@@ -41,7 +41,6 @@
       font-weight: bold;
       letter-spacing: 2px;
       color: var(--primary);
-      border-bottom: 2px solid var(--primary);
       padding-bottom: 4px;
     }
     .invoice-meta {
@@ -86,9 +85,8 @@
     
     /* 自社情報デザイン */
     .company-name {
-      font-size: 16px;
+      font-size: 18px;
       font-weight: bold;
-      color: var(--primary);
       margin-bottom: 2px;
     }
     .company-ceo {
@@ -129,11 +127,10 @@
       font-weight: bold;
     }
 
-    /* 御見積金額表示エリア（最初のトーンに調整） */
+    /* 御見積金額表示エリア */
     .total-display-box {
       font-size: 18px;
       font-weight: bold;
-      background-color: #eff6ff; /* 薄いブルーの背景 */
       border: 1px solid #bfdbfe;
       padding: 15px 20px;
       border-radius: 6px;
@@ -142,8 +139,7 @@
       align-items: center;
     }
     .total-display-value {
-      font-size: 26px;
-      color: var(--primary);
+      font-size: 24px;
       margin: 0 12px;
       font-weight: 800;
       letter-spacing: 1px;
@@ -288,7 +284,7 @@
     <form id="estimateForm">
       
       <div class="invoice-top-bar">
-        <div class="invoice-title">御見積書</div>
+        <div class="invoice-title">御 見 積 書</div>
         <div class="invoice-meta">
           <div>作成日: <input type="date" id="estimateDate" required></div>
           <div style="margin-top: 6px;">見積No. <span class="placeholder-no" id="numberPlaceholder">自動採番</span></div>
@@ -312,18 +308,15 @@
           <div class="company-name">あたご株式会社</div>
           <div class="company-ceo">代表取締役 愛宕彰</div>
           <div style="color: #475569; margin-top: 4px;">
-            <div>〒937-0061</div>
-            <div>富山県魚津市仏田3461-2</div>
-            <div>TEL: 0765-22-9883</div>
-            <div>FAX: 0765-22-9009</div>
+            <div>〒937-0061 富山県魚津市仏田3461-2</div>
+            <span>TEL: 0765-22-9883</span><span>FAX: 0765-22-9009</span>
           </div>
         </div>
       </div>
-
-      <div class="total-display-box">
         <span>御見積金額</span>
-        <span class="total-display-value">¥<span id="mainAmountLabel">0</span>-</span>
-        <span class="tax-note">御見積金額別途消費税</span>
+      <div class="total-display-box">
+        <div class="total-display-value">¥<span id="mainAmountLabel">0</span>-</div>
+        <span class="tax-note">※別途消費税</span>
       </div>
 
       <div style="display: flex; justify-content: space-between; align-items: flex-end;">
