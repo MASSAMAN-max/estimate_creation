@@ -174,17 +174,26 @@
     }
     th, td {
       border: 1px solid var(--border);
-      padding: 10px;
       vertical-align: middle;
     }
     th {
       background-color: #f1f5f9;
+      padding: 10px;
       font-size: 13px;
       font-weight: bold;
       text-align: center;
     }
+    td {
+      padding: 0 !important; 
+    }
     td input {
-      padding: 6px 2px !important;
+      width: 100% !important;
+      height: 100% !important;
+      box-sizing: border-box !important;
+      border: none !important;       /* input自体の枠線を消して、tdの枠線と一体化 */
+      outline: none !important;      /* クリックしたときの青い外枠を消す */
+      background: transparent;
+      padding: 10px 8px !important;  /* 箱の代わりに、文字の周りに適切な余白を持たせる */
       font-size: 12px !important;
     }
     .col-action { width: 60px; text-align: center; } /* 削除列 */
@@ -247,34 +256,32 @@
     /* ==========================================
        💡 【重要】印刷・PDF出力用の設定（印刷時には非表示にする）
        ========================================== */
+/* --- 印刷用設定（統合版） --- */
     @media print {
-      body {
-        background-color: #ffffff;
-        padding: 0;
-      }
-      /* 操作パネル、行追加ボタン、各行の削除列を完全に非表示にする */
-      .no-print, .col-action, .btn-danger {
-        display: none !important;
-      }
-      /* 見積書の枠線や影を消して紙面に最適化 */
-      .container {
-        border: none;
-        box-shadow: none;
-        padding: 0;
-        max-width: 100%;
-      }
-      /* 入力欄の背景色や枠線を印刷用に調整 */
-      input[type="text"], input[type="number"], textarea {
-        border: none;
-        border-radius: 0;
-        padding: 4px 0;
+      body { background-color: #ffffff; padding: 0; }
+      /* 1. 【重要】操作パネル、行追加ボタン、各行の削除列を完全に非表示にする */
+      .no-print, .col-action, .btn-danger { display: none !important; }
+      /* 2. 見積書の枠線や影を消して紙面に最適化 */
+      .container { border: none; box-shadow: none; padding: 0; max-width: 100%; }
+      /* 3. 【全体】すべての入力欄（発注元、件名、明細など）の枠線や点線、ブラウザの影を完全に消す */
+      input[type="text"], input[type="number"], textarea, td input {
+        border: none !important;
+        outline: none !important;
+        box-shadow: none !important;
         background: transparent !important;
+        text-decoration: none !important; /*  文字の下に出てしまう点線を強制非表示 */
+        -webkit-appearance: none;         /*  ブラウザ特有の入力欄デザインをリセット */
+        appearance: none;
+        border-radius: 0;
       }
-      /* 自社情報の薄グレー背景を戻す */
-      .invoice-right {
-        background-color: transparent !important;
-        border: 1px solid #cbd5e1;
-      }
+      /* 4. 【明細テーブル内】印刷時は少し文字位置を締めて綺麗に収める */
+      td input { padding: 4px 8px !important; }
+      /* 発注元や件名など（テーブル外）の入力欄の印刷時余白 */
+      .form-group input, .form-group textarea { padding: 4px 0; }
+      /* 5. 自社情報の薄グレー背景を白に戻して枠線をつける */
+      .invoice-right { background-color: transparent !important; border: 1px solid #cbd5e1; }
+      /* 6. 印刷時はテーブルの金額列の背景グレーも消して白くする */
+      .col-amount { background-color: transparent !important; }
     }
   </style>
 </head>
@@ -508,8 +515,8 @@
       }
 
       const payload = {
-        clientName: document.getElementById('clientName').textContent.trim(),
-        //clientName: document.getElementById('clientName').value.trim(),
+        //clientName: document.getElementById('clientName').textContent.trim(),
+        clientName: document.getElementById('clientName').value.trim(),
         estimateDate: document.getElementById('estimateDate').value,
         subject: document.getElementById('subject').value.trim(),
         paymentTerms: document.getElementById('paymentTerms').value.trim(),
