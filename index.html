@@ -191,8 +191,8 @@
     .col-category { width: 130px; } /* 項目 */
     .col-qty { width: 60px; } /* 数量 */
     .col-unit { width: 70px; } /* 単位 */
-    .col-price { width: 90px; } /* 単価 */
-    .col-amount { width: 100px; text-align: right; font-weight: bold; background-color: #f8fafc; font-size: 14px; } /* 金額 */
+    .col-price { width: 80px; } /* 単価 */
+    .col-amount { width: 90px; text-align: right; font-weight: bold; background-color: #f8fafc; font-size: 14px; } /* 金額 */
     .col-remarks { width: 110px; } /* 備考 */
     
     /* ボタン共通 */
@@ -508,7 +508,8 @@
       }
 
       const payload = {
-        clientName: document.getElementById('clientName').value.trim(),
+        clientName: document.getElementById('clientName').textContent.trim(),
+        //clientName: document.getElementById('clientName').value.trim(),
         estimateDate: document.getElementById('estimateDate').value,
         subject: document.getElementById('subject').value.trim(),
         paymentTerms: document.getElementById('paymentTerms').value.trim(),
