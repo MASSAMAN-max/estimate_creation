@@ -110,9 +110,8 @@
       border: 1px solid var(--border);
     }
     .company-name {
-      font-size: 16px;
+      font-size: 20px;
       font-weight: bold;
-      color: var(--primary);
       margin-bottom: 2px;
     }
 
@@ -286,7 +285,7 @@
   </div>
 
   <div class="action-panel no-print">
-    <div class="panel-title">見積書作成システム 操作パネル</div>
+    <div class="panel-title">見積書作成システム</div>
     <div class="panel-buttons">
       <button type="button" class="btn btn-success" onclick="printInvoice()">🖨️ 印刷・PDF出力</button>
       <button type="submit" form="estimateForm" class="btn btn-primary">💾 この内容でGASへ保存</button>
@@ -297,7 +296,7 @@
     <form id="estimateForm">
       
       <div class="invoice-top-bar">
-        <div class="invoice-title">御見積書</div>
+        <div class="invoice-title">御 見 積 書</div>
         <div class="invoice-meta">
           <div>作成日: <input type="date" id="estimateDate" required></div>
           <div style="margin-top: 6px;">見積No. <span class="placeholder-no" id="numberPlaceholder">自動採番</span></div>
@@ -307,7 +306,6 @@
       <div class="invoice-header">
         <div class="invoice-left">
           <div class="client-box">
-            <label class="no-print">発注元会社名 *</label>
             <input type="text" id="clientName" required placeholder="○○○○株式会社 御中">
           </div>
           <div class="subject-box">
@@ -321,10 +319,8 @@
           <div class="company-name">あたご株式会社</div>
           <div class="company-ceo">代表取締役 愛宕彰</div>
           <div style="color: #475569; margin-top: 4px; font-size: 13px;">
-            <div>〒937-0061</div>
-            <div>富山県魚津市仏田3461-2</div>
-            <div>TEL: 0765-22-9883</div>
-            <div>FAX: 0765-22-9009</div>
+            <div>〒937-0061  富山県魚津市仏田3461-2</div>
+            <div>TEL：0765-22-9883 FAX：0765-22-9009</div>
           </div>
         </div>
       </div>
@@ -332,8 +328,8 @@
       <div class="total-display-box">
         <span>御見積金額</span>
         <span class="total-display-value">¥<span id="mainAmountLabel">0</span>-</span>
-        <span class="tax-note">御見積金額別途消費税</span>
       </div>
+      <span class="tax-note">御見積金額別途消費税</span>
 
       <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 8px;">
         <h3 style="font-size: 15px; font-weight: bold; color: var(--primary);">【見積明細】</h3>
@@ -396,7 +392,7 @@
 
   <script>
     // 💡 ご自身のGASの「ウェブアプリURL」をここに貼り付けてください
-    const GAS_WEB_APP_URL = "YOUR_GAS_WEB_APP_URL"; 
+    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxQkNvNQblWXRtenGPoSaXbi99ftJ61j02s11rzCxwQZ4bDGddhzuDwrCRu0wYQxbNAow/exec"; 
 
     window.addEventListener('DOMContentLoaded', () => {
       document.getElementById('estimateDate').value = new Date().toISOString().split('T')[0];
