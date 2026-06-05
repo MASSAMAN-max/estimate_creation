@@ -6,27 +6,27 @@
   <title>簡易見積書作成システム</title>
   <style>
     :root {
-      --primary: #1e3a8a;       /* 信頼感のあるディープブルー */
-      --primary-hover: #1e40af;
-      --bg: #f1f5f9;
-      --text: #1e293b;
-      --border: #94a3b8;        /* 少しハッキリめのボーダー */
+      --primary: #2563eb;       /* 1番最初の鮮やかなブルー */
+      --primary-hover: #1d4ed8;
+      --bg: #f8fafc;            /* すっきりした薄い背景色 */
+      --text: #334155;          /* 柔らかいダークグレー */
+      --border: #cbd5e1;        /* 上品で薄めのボーダー */
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
       background-color: var(--bg);
       color: var(--text);
-      line-height: 1.5;
-      padding: 40px 20px;
+      line-height: 1.6;
+      padding: 30px 20px;
     }
     .container {
       max-width: 1000px;
       margin: 0 auto;
       background: #ffffff;
-      padding: 50px;
-      border-radius: 4px;
-      box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+      padding: 35px;
+      border-radius: 8px;      /* 1番最初の心地よい角丸 */
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
     }
 
     /* 上部レイアウト（タイトル、日付、No） */
@@ -34,14 +34,14 @@
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      margin-bottom: 10px;
+      margin-bottom: 20px;
     }
     .invoice-title {
-      font-size: 28px;
+      font-size: 26px;
       font-weight: bold;
-      letter-spacing: 4px;
-      color: var(--text);
-      border-bottom: 3px double var(--text);
+      letter-spacing: 2px;
+      color: var(--primary);
+      border-bottom: 2px solid var(--primary);
       padding-bottom: 4px;
     }
     .invoice-meta {
@@ -49,10 +49,11 @@
       font-size: 14px;
     }
     .invoice-meta input[type="date"] {
-      padding: 3px 8px;
-      font-size: 14px;
+      padding: 4px 8px;
+      font-size: 13px;
       border: 1px solid var(--border);
       border-radius: 4px;
+      color: var(--text);
     }
     .placeholder-no {
       font-weight: bold;
@@ -73,89 +74,88 @@
       gap: 16px;
     }
     .invoice-right {
-      width: 300px;
+      width: 280px;
       text-align: left;
       font-size: 14px;
       line-height: 1.6;
+      background-color: #f8fafc;
+      padding: 15px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
     }
     
     /* 自社情報デザイン */
     .company-name {
-      font-size: 18px;
+      font-size: 16px;
       font-weight: bold;
+      color: var(--primary);
       margin-bottom: 2px;
     }
     .company-ceo {
-      font-size: 14px;
-      margin-bottom: 8px;
+      font-size: 13px;
+      margin-bottom: 6px;
     }
 
-    /* 入力欄の基本デザイン */
+    /* 入力欄の共通モダンデザイン */
     input[type="text"], input[type="number"], textarea {
-      padding: 6px 10px;
+      padding: 8px 12px;
       font-size: 14px;
       border: 1px solid var(--border);
       border-radius: 4px;
       outline: none;
       width: 100%;
+      color: var(--text);
+      transition: border-color 0.2s, box-shadow 0.2s;
     }
     input:focus, textarea:focus {
       border-color: var(--primary);
-      background-color: #f8fafc;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+      background-color: #ffffff;
     }
 
-    /* 宛名・件名のカスタム入力 */
-    .client-input {
-      font-size: 20px;
+    /* 宛名・件名の入力スタイル */
+    .client-box label, .subject-box label {
+      font-size: 13px;
       font-weight: bold;
-      border-top: none !important;
-      border-left: none !important;
-      border-right: none !important;
-      border-radius: 0 !important;
-      padding-left: 0;
+      margin-bottom: 4px;
+      display: block;
     }
-    .subject-box {
-      display: flex;
-      align-items: center;
-      gap: 10px;
+    .client-box input {
       font-size: 16px;
       font-weight: bold;
-      border-bottom: 1px solid var(--text);
-      padding-bottom: 4px;
     }
     .subject-box input {
-      border: none;
-      font-size: 16px;
+      font-size: 15px;
       font-weight: bold;
-      padding: 2px 0;
     }
 
-    /* 💡 PDFを模した大判の御見積金額表示エリア */
+    /* 御見積金額表示エリア（最初のトーンに調整） */
     .total-display-box {
-      font-size: 20px;
+      font-size: 18px;
       font-weight: bold;
-      border-bottom: 2px solid var(--text);
-      padding-bottom: 8px;
+      background-color: #eff6ff; /* 薄いブルーの背景 */
+      border: 1px solid #bfdbfe;
+      padding: 15px 20px;
+      border-radius: 6px;
       margin-bottom: 30px;
       display: flex;
-      align-items: dashed bottom;
+      align-items: center;
     }
     .total-display-value {
-      font-size: 28px;
-      margin: 0 10px;
-      border-bottom: 1px solid var(--text);
-      padding: 0 20px;
+      font-size: 26px;
+      color: var(--primary);
+      margin: 0 12px;
+      font-weight: 800;
       letter-spacing: 1px;
     }
     .tax-note {
-      font-size: 14px;
-      color: #475569;
+      font-size: 13px;
+      color: #64748b;
       font-weight: normal;
-      align-self: flex-end;
-      margin-bottom: 4px;
+      margin-left: auto; /* 右端に寄せる */
     }
 
-    /* 明細テーブル（PDFの7列構造へ拡張） */
+    /* 明細テーブル */
     .table-container {
       margin-bottom: 20px;
       overflow-x: auto;
@@ -166,24 +166,30 @@
     }
     th, td {
       border: 1px solid var(--border);
-      padding: 8px;
-      text-align: left;
-      font-size: 13px;
+      padding: 10px;
+      vertical-align: middle;
     }
     th {
-      background-color: #f8fafc;
+      background-color: #f1f5f9;
+      font-size: 13px;
+      font-weight: bold;
       text-align: center;
     }
-    .col-action { width: 55px; text-align: center; }
-    .col-category { width: 120px; } /* 項目 */
-    .col-qty { width: 70px; }        /* 数量 */
-    .col-unit { width: 60px; }       /* 単位 */
-    .col-price { width: 100px; }     /* 単価 */
-    .col-amount { width: 125px; text-align: right; font-weight: bold; background-color: #f8fafc; } /* 金額 */
+    td input {
+      padding: 6px 8px !important;
+      font-size: 13px !important;
+    }
+    .col-action { width: 60px; text-align: center; }
+    .col-category { width: 130px; }
+    .col-qty { width: 80px; }
+    .col-unit { width: 70px; }
+    .col-price { width: 110px; }
+    .col-amount { width: 130px; text-align: right; font-weight: bold; background-color: #f8fafc; font-size: 14px; }
 
+    /* ボタンデザイン */
     .btn {
-      padding: 6px 14px;
-      font-size: 13px;
+      padding: 8px 16px;
+      font-size: 14px;
       font-weight: bold;
       border: none;
       border-radius: 4px;
@@ -192,37 +198,39 @@
     }
     .btn-primary { background-color: var(--primary); color: white; }
     .btn-primary:hover { background-color: var(--primary-hover); }
-    .btn-secondary { background-color: #475569; color: white; margin-bottom: 12px; }
-    .btn-secondary:hover { background-color: #334155; }
-    .btn-danger { background-color: #ef4444; color: white; padding: 3px 6px; font-size: 11px; }
+    .btn-secondary { background-color: #64748b; color: white; margin-bottom: 12px; }
+    .btn-secondary:hover { background-color: #475569; }
+    .btn-danger { background-color: #ef4444; color: white; padding: 4px 8px; font-size: 12px; }
+    .btn-danger:hover { background-color: #dc2626; }
 
     /* 下部レイアウト（有効期限・支払条件・備考） */
     .invoice-bottom-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 30px;
-      margin-top: 20px;
-      border-top: 1px solid #cbd5e1;
-      padding-top: 20px;
+      gap: 40px;
+      margin-top: 25px;
+      border-top: 2px solid #e2e8f0;
+      padding-top: 25px;
     }
     .condition-group {
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 12px;
     }
     .condition-row {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
     }
     .condition-row label {
-      width: 80px;
+      width: 90px;
       font-size: 13px;
       font-weight: bold;
-      background: #e2e8f0;
-      padding: 4px 8px;
+      background: #f1f5f9;
+      padding: 6px 10px;
       border-radius: 4px;
       text-align: center;
+      border: 1px solid var(--border);
     }
     .condition-row input {
       flex: 1;
@@ -233,19 +241,20 @@
       display: flex;
       flex-direction: column;
       align-items: flex-end;
-      gap: 6px;
+      gap: 8px;
       font-size: 14px;
     }
     .summary-row {
       display: flex;
-      width: 220px;
+      width: 240px;
       justify-content: space-between;
     }
     .summary-row.total {
-      font-size: 16px;
+      font-size: 18px;
       font-weight: bold;
       border-top: 1px solid var(--text);
-      padding-top: 4px;
+      padding-top: 6px;
+      color: var(--primary);
     }
 
     /* ローダー */
@@ -282,29 +291,32 @@
         <div class="invoice-title">御見積書</div>
         <div class="invoice-meta">
           <div>作成日: <input type="date" id="estimateDate" required></div>
-          <div style="margin-top: 4px;">見積No. <span class="placeholder-no" id="numberPlaceholder">保存時に自動採番</span></div>
+          <div style="margin-top: 6px;">見積No. <span class="placeholder-no" id="numberPlaceholder">自動採番</span></div>
         </div>
       </div>
       
       <div class="invoice-header">
         <div class="invoice-left">
-          <div style="margin-top: 10px;">
-            <input type="text" id="clientName" class="client-input" required placeholder="○○○○株式会社 御中">
+          <div class="client-box">
+            <label>発注元会社名 *</label>
+            <input type="text" id="clientName" required placeholder="○○○○株式会社 御中">
           </div>
           <div class="subject-box">
-            <span>件名:</span>
+            <label>件名 *</label>
             <input type="text" id="subject" required placeholder="新築工事に伴うお見積り">
           </div>
-          <div>下記の通り、お見積り申し上げます。</div>
+          <div style="font-size: 14px; margin-top: 4px; color: #64748b;">下記の通り、お見積り申し上げます。</div>
         </div>
         
         <div class="invoice-right">
           <div class="company-name">あたご株式会社</div>
           <div class="company-ceo">代表取締役 愛宕彰</div>
-          <div>〒937-0061</div>
-          <div>富山県魚津市仏田3461-2</div>
-          <div>TEL: 0765-22-9883</div>
-          <div>FAX: 0765-22-9009</div>
+          <div style="color: #475569; margin-top: 4px;">
+            <div>〒937-0061</div>
+            <div>富山県魚津市仏田3461-2</div>
+            <div>TEL: 0765-22-9883</div>
+            <div>FAX: 0765-22-9009</div>
+          </div>
         </div>
       </div>
 
@@ -315,7 +327,7 @@
       </div>
 
       <div style="display: flex; justify-content: space-between; align-items: flex-end;">
-        <h3 style="font-size: 15px; margin-bottom: 6px;">【見積明細】</h3>
+        <h3 style="font-size: 15px; margin-bottom: 8px; font-weight: bold; color: var(--primary);">【見積明細】</h3>
         <button type="button" class="btn btn-secondary" onclick="addTableRow()">＋ 行を追加</button>
       </div>
       
@@ -368,8 +380,8 @@
             <span>¥<span id="totalLabel">0</span></span>
           </div>
           
-          <div style="margin-top: 30px; width: 100%;">
-            <button type="submit" class="btn btn-primary" style="font-size: 15px; width: 100%; padding: 12px 0;">この内容でGASへ保存</button>
+          <div style="margin-top: 25px; width: 100%;">
+            <button type="submit" class="btn btn-primary" style="font-size: 15px; width: 100%; padding: 12px 0; letter-spacing: 1px;">この内容でGASへ保存</button>
           </div>
         </div>
       </div>
@@ -386,7 +398,7 @@
       for(let i=0; i<3; i++) addTableRow();
     });
 
-    // 明細行の追加 (PDFの全列に対応するinputクラスを付与)
+    // 明細行の追加
     function addTableRow() {
       const tbody = document.getElementById('detailsTableBody');
       const tr = document.createElement('tr');
@@ -446,14 +458,14 @@
       const tax = Math.floor(subtotal * 0.1);
       const total = subtotal + tax;
       
-      // PDFの「別途消費税」に合わせ、メインの巨大文字には【税抜小計】を連動
+      // 中央の巨大文字には【税抜小計】を連動
       document.getElementById('mainAmountLabel').textContent = subtotal.toLocaleString();
       
       // 右下の計算確認用
       document.getElementById('subtotalLabel').textContent = subtotal.toLocaleString();
       document.getElementById('taxLabel').textContent = tax.toLocaleString();
       document.getElementById('totalLabel').textContent = total.toLocaleString();
-      document.getElementById('totalLabel').dataset.value = total; // 税込
+      document.getElementById('totalLabel').dataset.value = total;
     }
 
     // フォーム送信
@@ -476,13 +488,13 @@
         
         if(name !== "" || category !== "") {
           details.push({
-            itemCategory: category,  // 💡 追加：項目
-            itemName: name,          // 仕様・摘要
-            itemQty: qty,            // 数量
-            itemUnit: unit,          // 単位
-            itemPrice: price,        // 単価
-            itemAmount: Math.floor(qty * price), // 金額
-            itemRemarks: remarks     // 💡 追加：備考
+            itemCategory: category,
+            itemName: name,
+            itemQty: qty,
+            itemUnit: unit,
+            itemPrice: price,
+            itemAmount: Math.floor(qty * price),
+            itemRemarks: remarks
           });
         }
       });
