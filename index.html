@@ -160,12 +160,12 @@
     .tax-note {
       font-size: 13px;
       color: #64748b;
-      margin-left: auto;
+      margin: 0;
     }
 
     /* 明細テーブル */
     .table-container {
-      margin-bottom: 20px;
+      margin-bottom: 18px;
       overflow-x: auto;
     }
     table {
@@ -188,12 +188,13 @@
       font-size: 13px !important;
     }
     .col-action { width: 60px; text-align: center; } /* 削除列 */
-    .col-category { width: 130px; }
-    .col-qty { width: 80px; }
-    .col-unit { width: 70px; }
-    .col-price { width: 110px; }
-    .col-amount { width: 130px; text-align: right; font-weight: bold; background-color: #f8fafc; font-size: 14px; }
-
+    .col-category { width: 120px; } /* 項目 */
+    .col-qty { width: 60px; } /* 数量 */
+    .col-unit { width: 60px; } /* 単位 */
+    .col-price { width: 110px; } /* 単価 */
+    .col-amount { width: 130px; text-align: right; font-weight: bold; background-color: #f8fafc; font-size: 14px; } /* 金額 */
+    .col-remarks { width: 100px; } /* 備考 */
+    
     /* ボタン共通 */
     .btn {
       padding: 8px 16px;
@@ -265,7 +266,6 @@
       /* 入力欄の背景色や枠線を印刷用に調整 */
       input[type="text"], input[type="number"], textarea {
         border: none;
-        border-bottom: 1px dashed #cbd5e1; /* 印刷時は薄い下線にする */
         border-radius: 0;
         padding: 4px 0;
         background: transparent !important;
@@ -329,7 +329,7 @@
         <span>御見積金額</span>
         <span class="total-display-value">¥<span id="mainAmountLabel">0</span>-</span>
       </div>
-      <span class="tax-note">御見積金額別途消費税</span>
+      <div class="tax-note">※別途消費税</div>
 
       <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 8px;">
         <h3 style="font-size: 15px; font-weight: bold; color: var(--primary);">【見積明細】</h3>
@@ -347,7 +347,7 @@
               <th class="col-unit">単位</th>
               <th class="col-price">単価</th>
               <th class="col-amount">金額</th>
-              <th>備考</th>
+              <th class="col-remarks">備考</th>
             </tr>
           </thead>
           <tbody id="detailsTableBody">
