@@ -832,7 +832,58 @@
     });*/
 
 
-
+    function getFormData() {
+      const clientSelect = document.getElementById('clientSelect');
+      let finalClientName = clientSelect.value;
+      if(finalClientName === '__NEW__') {
+        finalClientName = document.getElementById('clientName').value.trim();
+      }
+      
+      const details = [];
+      document.querySelectorAll('.detail-card').forEach(card => {
+        const name = card.querySelector('.item-name').value.trim();
+        const catSelect = card.querySelector('.item-category-select');
+        let finalCategory = catSelect.value;
+        if(finalCategory === '__NEW__') {
+          finalCategory = card.querySelector('.item-category-input').value.trim();
+        }
+        const qty = parseFloat(card.querySelector('.item-qty').value) || 0;
+        const unit = card.querySelector('.item-unit').value.trim() || '式';
+        const price = parseFloat(card.querySelector('.item-price').value) || 0;
+        const remarks = card.querySelector('.item-remarks').value.trim();
+        
+        if(name !== "" || finalCategory !== "") {
+          details.push({
+            itemCategory: finalCategory,
+            itemName: name,
+            itemQty: qty,
+            itemUnit: unit,
+            itemPrice: price,
+            itemAmount: Math.floor(qty * price),
+            itemRemarks: remarks
+          });
+        }
+      });
+     
+      let subtotal = 0;
+      details.forEach(item => {
+        subtotal += item.itemAmount;
+      });
+     
+      return {
+        clientName: finalClientName,
+        clientAddress: document.getElementById('clientAddress').value.trim(),
+        estimateDate: document.getElementById('estimateDate').value,
+        subject: document.getElementById('subject').value.trim(),
+        validity: document.getElementById('validity').value.trim(),
+        paymentTerms: document.getElementById('paymentTerms').value.trim(),
+        remarks: document.getElementById('remarks').value.trim(),
+        details: details,
+        subtotal: subtotal,
+        tax: Math.floor(subtotal * 0.1),
+        total: subtotal + Math.floor(subtotal * 0.1)
+      };
+    }
 
     async function showPDFPreview() {
       const data = getFormData();
