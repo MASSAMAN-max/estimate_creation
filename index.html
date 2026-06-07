@@ -2,204 +2,427 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>見積入力システム</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>見積データ入力フォーム</title>
+  
+  <!-- Googleの Material Design アイコン読み込み -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  
+  <!-- SweetAlert2：モーダルダイアログ・アラート用ライブラリ -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
   <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
     :root {
-      --bg: #f1f5f9;
-      --panel: #ffffff;
-      --text: #1e293b;
-      --primary: #2563eb;
-      --primary-hover: #1d4ed8;
-      --border: #cbd5e1;
+      --primary: #1976D2;
+      --primary-light: #42A5F5;
+      --primary-dark: #1565C0;
+      --success: #4CAF50;
+      --danger: #F44336;
+      --warning: #FF9800;
+      --gray-light: #F5F5F5;
+      --gray-border: #E0E0E0;
+      --text-primary: #212121;
+      --text-secondary: #666666;
+      --radius: 8px;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
-      font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", sans-serif;
-      background-color: var(--bg);
-      color: var(--text);
-      padding: 20px;
-      line-height: 1.4;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
+      background-color: #FAFAFA;
+      color: var(--text-primary);
+      line-height: 1.5;
     }
+
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      font-size: 24px;
+      vertical-align: middle;
+    }
+
     .app-container {
-      max-width: 1100px;
+      max-width: 100%;
       margin: 0 auto;
-      background: var(--panel);
-      padding: 24px;
-      border-radius: 8px;
-      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);
+      padding: 12px;
+      background: white;
+      min-height: 100vh;
     }
+
     header {
-      margin-bottom: 20px;
-      border-bottom: 2px solid var(--primary);
-      padding-bottom: 10px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-    }
-    h1 { font-size: 20px; color: var(--primary); font-weight: bold; }
-    .estimate-no-disp { font-size: 14px; background: #e2e8f0; padding: 4px 12px; border-radius: 4px; font-weight: bold; }
-    
-    /* フォームのグリッド配置 */
-    .form-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 16px;
-      margin-bottom: 24px;
-    }
-    .form-group { display: flex; flex-direction: column; gap: 4px; }
-    .full-width { grid-column: 1 / -1; }
-    label { font-size: 13px; font-weight: bold; color: #475569; }
-    label .required { color: #ef4444; margin-left: 4px; }
-    
-    input[type="text"], input[type="date"], input[type="number"], select, textarea {
-      width: 100%;
-      padding: 10px 12px;
-      font-size: 14px;
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      outline: none;
-      background: #fff;
-    }
-    input:focus, select:focus, textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
-    
-    /* アニメーション付きの手入力欄 */
-    .dynamic-input-container {
-      background: #f8fafc;
-      padding: 12px;
-      border-left: 4px solid var(--primary);
-      border-radius: 4px;
-      margin-top: 4px;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--gray-border);
     }
 
-    /* 明細セクション（カード型2段組） */
+    header h1 {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--primary);
+    }
+
+    .estimate-no-disp {
+      font-size: 12px;
+      color: var(--text-secondary);
+      background: var(--gray-light);
+      padding: 6px 12px;
+      border-radius: var(--radius);
+    }
+
+    .estimate-no-disp span {
+      font-weight: 600;
+      color: var(--primary);
+      font-size: 14px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    @media (min-width: 768px) {
+      .form-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .form-group.full-width {
+      grid-column: 1 / -1;
+    }
+
+    .form-group label {
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 4px;
+      color: var(--text-primary);
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      padding: 8px 10px;
+      font-size: 14px;
+      border: 1px solid var(--gray-border);
+      border-radius: var(--radius);
+      font-family: inherit;
+      background: white;
+      transition: border-color 0.3s;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
+    }
+
+    .dynamic-input-container {
+      margin-top: 8px;
+    }
+
+    .dynamic-input-container input {
+      padding: 8px 10px;
+      font-size: 13px;
+      border: 1px solid var(--warning);
+      background: #FFF3E0;
+    }
+
     .table-section-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      margin: 16px 0 12px 0;
+      gap: 8px;
+    }
+
+    .table-section-header label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--primary);
+    }
+
+    .details-list {
+      display: grid;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .detail-card {
+      border: 1px solid var(--gray-border);
+      border-radius: var(--radius);
+      padding: 12px;
+      background: #FAFAFA;
+    }
+
+    .card-row-upper {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
       margin-bottom: 12px;
     }
-    .details-list {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-      margin-bottom: 24px;
-    }
-    .detail-card {
-      background: #fff;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 14px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-    
-    /* 明細の1段目（項目・仕様・摘要・削除） */
-    .card-row-upper {
-      display: flex;
-      gap: 12px;
-      align-items: flex-start;
-    }
-    .field-category { width: 250px; flex-shrink: 0; }
-    .field-name { flex: 1; }
-    .field-delete { width: 60px; flex-shrink: 0; text-align: right; }
 
-    /* 明細の2段目（数量・単位・単価・金額・備考） */
-    .card-row-lower {
-      display: flex;
-      gap: 12px;
-      align-items: flex-end;
-      background: #f8fafc;
-      padding: 10px;
-      border-radius: 4px;
+    @media (min-width: 768px) {
+      .card-row-upper {
+        grid-template-columns: 1fr 2fr 80px;
+        align-items: flex-end;
+      }
     }
-    .field-qty { width: 100px; }
-    .field-unit { width: 80px; }
-    .field-price { width: 140px; }
-    .field-amount { width: 150px; }
-    .field-remarks { flex: 1; }
+
+    .card-row-lower {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    @media (min-width: 768px) {
+      .card-row-lower {
+        grid-template-columns: 1fr 1fr 1fr 1.2fr 1.5fr;
+      }
+    }
+
+    .field-delete {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+    }
+
+    .form-group input[type="number"] {
+      text-align: right;
+    }
+
+    .form-group select {
+      cursor: pointer;
+    }
 
     .amount-display-box {
-      padding: 9px 12px;
-      background: #e2e8f0;
-      border-radius: 4px;
-      font-weight: bold;
-      font-size: 14px;
+      padding: 8px 10px;
+      background: white;
+      border: 1px solid var(--gray-border);
+      border-radius: var(--radius);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--primary);
       text-align: right;
-      border: 1px solid #cbd5e1;
-      height: 41px;
     }
 
-    /* 音声入力ボタンのスタイル */
-    .btn-sm {
+    .btn {
+      padding: 8px 12px;
+      font-size: 13px;
+      font-weight: 500;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.3s;
+      text-decoration: none;
+    }
+
+    .btn-primary {
+      background-color: var(--primary);
+      color: white;
+      width: 100%;
+      padding: 12px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .btn-primary:hover {
+      background-color: var(--primary-dark);
+      box-shadow: 0 2px 8px rgba(25, 118, 210, 0.3);
+    }
+
+    .btn-secondary {
+      background-color: var(--gray-light);
+      color: var(--primary);
+      border: 1px solid var(--gray-border);
       font-size: 12px;
       padding: 6px 10px;
-      background-color: #4CAF50;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: background-color 0.3s;
     }
-     
+
+    .btn-secondary:hover {
+      background-color: #EEEEEE;
+    }
+
+    .btn-danger {
+      background-color: var(--danger);
+      color: white;
+      font-size: 12px;
+      padding: 6px 10px;
+    }
+
+    .btn-danger:hover {
+      background-color: #E53935;
+    }
+
+    .btn-sm {
+      background-color: var(--success);
+      color: white;
+      font-size: 12px;
+      padding: 6px 10px;
+      min-width: fit-content;
+    }
+
     .btn-sm:hover {
       background-color: #45a049;
     }
-     
+
     .btn-sm:disabled {
       background-color: #cccccc;
       cursor: not-allowed;
     }
 
-    /* 下部計算エリアとボタン */
-    .footer-flex {
+    .voice-input-wrapper {
       display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 40px;
-      margin-top: 20px;
+      gap: 6px;
     }
-    .bottom-remarks { flex: 1; }
+
+    .voice-input-wrapper input {
+      flex: 1;
+    }
+
+    .footer-flex {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    @media (min-width: 768px) {
+      .footer-flex {
+        grid-template-columns: 2fr 1fr;
+      }
+    }
+
+    .bottom-remarks {
+      grid-column: 1 / -1;
+    }
+
     .summary-box {
-      width: 320px;
-      background: #f1f5f9;
-      padding: 16px;
-      border-radius: 6px;
+      background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
+      color: white;
+      padding: 12px;
+      border-radius: var(--radius);
       display: flex;
       flex-direction: column;
       gap: 8px;
     }
-    .summary-row { display: flex; justify-content: space-between; font-size: 14px; }
-    .summary-row.total { font-weight: bold; font-size: 16px; color: var(--primary); border-top: 1px dashed var(--border); padding-top: 8px; margin-top: 4px; }
-    
-    /* ボタン類 */
-    .btn {
-      padding: 8px 16px; font-size: 14px; font-weight: bold; border-radius: 4px; border: none; cursor: pointer; transition: all 0.2s;
-      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
     }
-    .btn-primary { background: var(--primary); color: #fff; width: 100%; padding: 14px; font-size: 16px; margin-top: 16px; }
-    .btn-primary:hover { background: var(--primary-hover); }
-    .btn-secondary { background: #64748b; color: #fff; }
-    .btn-secondary:hover { background: #475569; }
-    .btn-danger { background: #ef4444; color: #fff; padding: 10px; width: 100%; }
-    .btn-danger:hover { background: #dc2626; }
-    
-    /* ローダー */
+
+    .summary-row.total {
+      font-weight: 600;
+      font-size: 14px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
     #loader {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8);
-      display: none; align-items: center; justify-content: center; flex-direction: column; gap: 12px; font-weight: bold; z-index: 9999;
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 9999;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      gap: 12px;
     }
-    .spinner { width: 40px; height: 40px; border: 4px solid #cbd5e1; border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-top: 3px solid white;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    #loaderText {
+      color: white;
+      font-size: 14px;
+      text-align: center;
+    }
+
+    @media (max-width: 600px) {
+      .app-container {
+        padding: 8px;
+      }
+
+      header h1 {
+        font-size: 16px;
+      }
+
+      .form-group label {
+        font-size: 11px;
+      }
+
+      .form-group input,
+      .form-group select,
+      .form-group textarea {
+        font-size: 13px;
+        padding: 6px 8px;
+      }
+
+      .btn {
+        font-size: 12px;
+        padding: 6px 10px;
+      }
+
+      .btn-primary {
+        font-size: 13px;
+        padding: 10px;
+      }
+
+      .detail-card {
+        padding: 10px;
+      }
+
+      .summary-row {
+        font-size: 12px;
+      }
+
+      .summary-row.total {
+        font-size: 13px;
+      }
+    }
   </style>
 </head>
 <body>
 
   <div class="app-container">
     <header>
-      <h1>見積データ入力フォーム</h1>
-      <div class="estimate-no-disp">見積No: <span id="numberPlaceholder">自動採番</span></div>
+      <h1>📋 見積フォーム</h1>
+      <div class="estimate-no-disp">
+        見積No: <span id="numberPlaceholder">自動採番</span>
+      </div>
     </header>
 
     <form id="estimateForm">
@@ -207,7 +430,7 @@
         <div class="form-group">
           <label for="clientSelect">取引先 *</label>
           <select id="clientSelect" required onchange="toggleNewClient()">
-            <option value="">-- 取引先を選択（読込中...） --</option>
+            <option value="">-- 選択（読込中...） --</option>
           </select>
           <div id="newClientContainer" class="dynamic-input-container" style="display: none;">
             <label for="clientName">新規取引先名 *</label>
@@ -222,17 +445,19 @@
 
         <div class="form-group full-width">
           <label for="clientAddress">取引先 住所</label>
-          <input type="text" id="clientAddress" placeholder="〒000-0000 富山県...">
+          <input type="text" id="clientAddress" placeholder="〒000-0000 住所">
         </div>
 
         <div class="form-group full-width">
           <label for="subject">件名 *</label>
-          <input type="text" id="subject" required placeholder="例) 新築工事に伴うお見積り">
+          <input type="text" id="subject" required placeholder="例) 工事に伴うお見積り">
         </div>
+
         <div class="form-group">
           <label for="validity">有効期限</label>
           <input type="text" id="validity" value="御見積作成から3ヵ月">
         </div>
+
         <div class="form-group">
           <label for="paymentTerms">支払条件</label>
           <input type="text" id="paymentTerms" value="月末締め翌月末払い">
@@ -240,8 +465,10 @@
       </div>
 
       <div class="table-section-header">
-        <label style="font-size: 15px; color: var(--primary); font-weight: bold;">【明細項目】</label>
-        <button type="button" class="btn btn-secondary" onclick="addTableRow()">＋ 行を追加</button>
+        <label>【明細項目】</label>
+        <button type="button" class="btn btn-secondary" onclick="addTableRow()">
+          <span class="material-symbols-outlined">add_circle</span>行追加
+        </button>
       </div>
       
       <div id="detailsContainer" class="details-list"></div>
@@ -249,24 +476,26 @@
       <div class="footer-flex">
         <div class="bottom-remarks form-group">
           <label for="remarks">全体備考・特記事項</label>
-          <textarea id="remarks" rows="5" placeholder="見積書の下部に記載する全体の備考項目があれば入力"></textarea>
+          <textarea id="remarks" rows="4" placeholder="見積書の備考欄に記載する内容"></textarea>
         </div>
         
         <div class="summary-box">
           <div class="summary-row">
-            <span>小計 (税抜):</span>
+            <span>小計 (税抜)</span>
             <span>¥<span id="subtotalLabel">0</span></span>
           </div>
           <div class="summary-row">
-            <span>消費税 (10%):</span>
+            <span>消費税 (10%)</span>
             <span>¥<span id="taxLabel">0</span></span>
           </div>
           <div class="summary-row total">
-            <span>合計金額 (税込):</span>
+            <span>合計金額 (税込)</span>
             <span>¥<span id="totalLabel">0</span></span>
           </div>
           
-          <button type="submit" class="btn btn-primary">💾 この内容で保存 ＆ 見積書作成</button>
+          <button type="submit" class="btn btn-primary">
+            <span class="material-symbols-outlined">save</span>保存＆見積書作成
+          </button>
         </div>
       </div>
     </form>
@@ -274,16 +503,15 @@
 
   <div id="loader">
     <div class="spinner"></div>
-    <div id="loaderText">データを保存＆PDFを自動作成中...</div>
+    <div id="loaderText">データを保存＆PDFを作成中...</div>
   </div>
 
   <script>
-    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxQkNvNQblWXRtenGPoSaXbi99ftJ61j02s11rzCxwQZ4bDGddhzuDwrCRu0wYQxbNAow/exec"; 
+    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/*****/exec"; 
 
     let MASTER_CLIENTS = [];
     let MASTER_CATEGORIES = [];
     let MASTER_UNITS = [];
-    let isListening = false;
 
     window.addEventListener('DOMContentLoaded', async () => {
       document.getElementById('estimateDate').value = new Date().toISOString().split('T')[0];
@@ -300,7 +528,7 @@
         MASTER_CATEGORIES = data.categories || [];
         MASTER_UNITS = data.units || [];
       } catch (e) {
-        console.error("マスタデータの取得に失敗しました。", e);
+        console.error("マスタデータ取得失敗", e);
       } finally {
         renderClientSelect();
         for(let i=0; i<2; i++) addTableRow();
@@ -309,11 +537,11 @@
 
     function renderClientSelect() {
       const select = document.getElementById('clientSelect');
-      let html = '<option value="">-- 取引先を選択してください --</option>';
+      let html = '<option value="">-- 取引先を選択 --</option>';
       MASTER_CLIENTS.forEach(client => {
         html += `<option value="${htmlEscape(client)}">${htmlEscape(client)}</option>`;
       });
-      html += '<option value="__NEW__">【＋新規取引先を手入力する】</option>';
+      html += '<option value="__NEW__">＋新規取引先を手入力</option>';
       select.innerHTML = html;
     }
 
@@ -349,7 +577,12 @@
     function startVoiceInput(button) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognition) {
-        alert('お使いのブラウザは音声入力に対応していません。');
+        Swal.fire({
+          icon: 'warning',
+          title: '非対応',
+          text: 'お使いのブラウザは音声入力に対応していません。',
+          confirmButtonText: '了解'
+        });
         return;
       }
 
@@ -359,12 +592,11 @@
       recognition.continuous = false;
       recognition.interimResults = false;
 
-      button.textContent = '🎤 聴取中...';
+      button.innerHTML = '<span class="material-symbols-outlined">mic</span>';
       button.disabled = true;
-      isListening = true;
 
       recognition.onstart = () => {
-        button.style.backgroundColor = '#ff6b6b';
+        button.style.backgroundColor = '#F44336';
       };
 
       recognition.onresult = (event) => {
@@ -377,15 +609,18 @@
       };
 
       recognition.onerror = (event) => {
-        console.error('音声認識エラー:', event.error);
-        alert('音声認識に失敗しました。もう一度お試しください。');
+        Swal.fire({
+          icon: 'error',
+          title: '音声認識失敗',
+          text: 'もう一度お試しください。',
+          confirmButtonText: '了解'
+        });
       };
 
       recognition.onend = () => {
-        button.textContent = '🎤 音声入力';
+        button.innerHTML = '<span class="material-symbols-outlined">mic</span>';
         button.disabled = false;
         button.style.backgroundColor = '';
-        isListening = false;
       };
 
       recognition.start();
@@ -396,11 +631,11 @@
       const card = document.createElement('div');
       card.className = 'detail-card';
       
-      let categoryOptions = '<option value="">-- 項目を選択 --</option>';
+      let categoryOptions = '<option value="">-- 選択 --</option>';
       MASTER_CATEGORIES.forEach(cat => {
         categoryOptions += `<option value="${htmlEscape(cat)}">${htmlEscape(cat)}</option>`;
       });
-      categoryOptions += '<option value="__NEW__">【＋新規項目を手入力】</option>';
+      categoryOptions += '<option value="__NEW__">＋新規項目</option>';
       
       let unitOptions = '<option value="式">式</option>';
       MASTER_UNITS.forEach(unit => {
@@ -411,50 +646,54 @@
       
       card.innerHTML = `
         <div class="card-row-upper">
-          <div class="form-group field-category">
-            <label>項目（大分類）</label>
+          <div class="form-group">
+            <label>項目</label>
             <select class="item-category-select" onchange="toggleNewCategory(this)">
               ${categoryOptions}
             </select>
             <div class="dynamic-input-container" style="display:none;">
-              <input type="text" class="item-category-input" placeholder="新規項目名を入力">
+              <input type="text" class="item-category-input" placeholder="新規項目名">
             </div>
           </div>
-          <div class="form-group field-name">
-            <label>仕様・摘要（品名・工事内容など）*</label>
-            <div style="display: flex; gap: 8px;">
-              <input type="text" class="item-name" placeholder="例) サッシ（大） 改修一式" style="flex: 1;">
-              <button type="button" class="btn btn-sm" style="padding: 8px 12px; white-space: nowrap;" onclick="startVoiceInput(this)">🎤 音声入力</button>
+          <div class="form-group">
+            <label>仕様・摘要 *</label>
+            <div class="voice-input-wrapper">
+              <input type="text" class="item-name" placeholder="品名・内容など">
+              <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)">
+                <span class="material-symbols-outlined">mic</span>
+              </button>
             </div>
           </div>
           <div class="form-group field-delete">
             <label>&nbsp;</label>
-            <button type="button" class="btn btn-danger" onclick="deleteTableRow(this)">削除</button>
+            <button type="button" class="btn btn-danger" onclick="deleteTableRow(this)">
+              <span class="material-symbols-outlined">delete</span>
+            </button>
           </div>
         </div>
         
         <div class="card-row-lower">
-          <div class="form-group field-qty">
+          <div class="form-group">
             <label>数量</label>
-            <input type="number" class="item-qty" style="text-align: right;" min="0" step="any" value="0" oninput="calculateAmount(this)">
+            <input type="number" class="item-qty" min="0" step="any" value="0" oninput="calculateAmount(this)">
           </div>
-          <div class="form-group field-unit">
+          <div class="form-group">
             <label>単位</label>
-            <select class="item-unit" style="text-align: center;">
+            <select class="item-unit">
               ${unitOptions}
             </select>
           </div>
-          <div class="form-group field-price">
+          <div class="form-group">
             <label>単価</label>
-            <input type="number" class="item-price" style="text-align: right;" min="0" value="0" oninput="calculateAmount(this)">
+            <input type="number" class="item-price" min="0" value="0" oninput="calculateAmount(this)">
           </div>
-          <div class="form-group field-amount">
-            <label>金額（自動）</label>
+          <div class="form-group">
+            <label>金額</label>
             <div class="amount-display-box">¥<span class="item-amount">0</span></div>
           </div>
-          <div class="form-group field-remarks">
+          <div class="form-group">
             <label>備考</label>
-            <input type="text" class="item-remarks" placeholder="型番や補足など">
+            <input type="text" class="item-remarks" placeholder="型番など">
           </div>
         </div>
       `;
@@ -502,7 +741,12 @@
         finalClientName = document.getElementById('clientName').value.trim();
       }
       if(!finalClientName) {
-        alert("取引先を選択または入力してください。");
+        Swal.fire({
+          icon: 'warning',
+          title: '入力不足',
+          text: '取引先を選択または入力してください。',
+          confirmButtonText: '了解'
+        });
         return;
       }
 
@@ -535,7 +779,12 @@
       });
 
       if(details.length === 0) {
-        alert("明細を1件以上入力してください。");
+        Swal.fire({
+          icon: 'warning',
+          title: '入力不足',
+          text: '明細を1件以上入力してください。',
+          confirmButtonText: '了解'
+        });
         return;
       }
 
@@ -551,7 +800,6 @@
         details: details
       };
 
-      document.getElementById('loaderText').textContent = "データを保存＆PDFを自動作成中...";
       document.getElementById('loader').style.display = 'flex';
 
       try {
@@ -563,13 +811,35 @@
         const result = await response.json();
         
         if (result.status === 'success') {
-          alert(`見積データを保存し、PDFを自動生成しました！\n見積番号: ${result.estimateNo}`);
           document.getElementById('numberPlaceholder').textContent = result.estimateNo;
+          
+          Swal.fire({
+            icon: 'success',
+            title: '保存完了！',
+            html: `見積番号: <strong>${result.estimateNo}</strong><br>PDFを自動生成しました。`,
+            confirmButtonText: '閉じる',
+            confirmButtonColor: var('--primary')
+          });
+          
+          document.getElementById('estimateForm').reset();
+          document.getElementById('detailsContainer').innerHTML = '';
+          for(let i=0; i<2; i++) addTableRow();
+          
         } else {
-          alert('エラーが発生しました: ' + result.message);
+          Swal.fire({
+            icon: 'error',
+            title: 'エラー',
+            text: result.message,
+            confirmButtonText: '了解'
+          });
         }
       } catch (error) {
-        alert('通信エラー: ' + error.message);
+        Swal.fire({
+          icon: 'error',
+          title: '通信エラー',
+          text: error.message,
+          confirmButtonText: '了解'
+        });
       } finally {
         document.getElementById('loader').style.display = 'none';
       }
