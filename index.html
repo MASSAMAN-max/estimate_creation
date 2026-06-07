@@ -131,6 +131,27 @@
       height: 41px;
     }
 
+    /* 音声入力ボタンのスタイル */
+    .btn-sm {
+      font-size: 12px;
+      padding: 6px 10px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+     
+    .btn-sm:hover {
+      background-color: #45a049;
+    }
+     
+    .btn-sm:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+
     /* 下部計算エリアとボタン */
     .footer-flex {
       display: flex;
@@ -245,7 +266,7 @@
             <span>¥<span id="totalLabel">0</span></span>
           </div>
           
-          <button type="submit" class="btn btn-primary">💾 この内容でGASへ保存 ＆ PDF生成</button>
+          <button type="submit" class="btn btn-primary">💾 この内容で保存 ＆ 見積書作成</button>
         </div>
       </div>
     </form>
@@ -283,7 +304,7 @@
       } finally {
         renderClientSelect();
         // 初期行を3行追加
-        for(let i=0; i<3; i++) addTableRow();
+        for(let i=0; i<2; i++) addTableRow();
       }
     }
 
@@ -328,19 +349,70 @@
         input.value = '';
       }
     }
+    // 明細行の「仕様・摘要」音声入力
+    function startVoiceInput(button) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        alert('お使いのブラウザは音声入力に対応していません。');
+        return;
+      }
+ 
+      const input = button.closest('.form-group').querySelector('.item-name');
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'ja-JP';
+      recognition.continuous = false;
+      recognition.interimResults = false;
+ 
+      button.textContent = '🎤 聴取中...';
+      button.disabled = true;
+      isListening = true;
+ 
+      recognition.onstart = () => {
+        button.style.backgroundColor = '#ff6b6b';
+      };
+ 
+      recognition.onresult = (event) => {
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          transcript += event.results[i][0].transcript;
+        }
+        input.value = (input.value + transcript).trim();
+        calculateAmount(input);
+      };
+ 
+      recognition.onerror = (event) => {
+        console.error('音声認識エラー:', event.error);
+        alert('音声認識に失敗しました。もう一度お試しください。');
+      };
+ 
+      recognition.onend = () => {
+        button.textContent = '🎤 音声入力';
+        button.disabled = false;
+        button.style.backgroundColor = '';
+        isListening = false;
+      };
+ 
+      recognition.start();
+    }
 
-    // 💡 明細行の追加（ご要望通りの2段構成レイアウト）
+    // 💡 明細行の追加
     function addTableRow() {
       const container = document.getElementById('detailsContainer');
       const card = document.createElement('div');
       card.className = 'detail-card';
       
-      // 項目の選択肢を生成
       let categoryOptions = '<option value="">-- 項目を選択 --</option>';
       MASTER_CATEGORIES.forEach(cat => {
         categoryOptions += `<option value="${htmlEscape(cat)}">${htmlEscape(cat)}</option>`;
       });
       categoryOptions += '<option value="__NEW__">【＋新規項目を手入力】</option>';
+      
+      let unitOptions = '<option value="式">式</option>';
+      MASTER_UNITS.forEach(unit => {
+        if (unit && unit !== '') {
+          unitOptions += `<option value="${htmlEscape(unit)}">${htmlEscape(unit)}</option>`;
+        }
+      });
       
       card.innerHTML = `
         <div class="card-row-upper">
@@ -355,7 +427,10 @@
           </div>
           <div class="form-group field-name">
             <label>仕様・摘要（品名・工事内容など）*</label>
-            <input type="text" class="item-name" placeholder="例) サッシ（大） 改修一式">
+            <div style="display: flex; gap: 8px;">
+              <input type="text" class="item-name" placeholder="例) サッシ（大） 改修一式" style="flex: 1;">
+              <button type="button" class="btn btn-sm" style="padding: 8px 12px; white-space: nowrap;" onclick="startVoiceInput(this)">🎤 音声入力</button>
+            </div>
           </div>
           <div class="form-group field-delete">
             <label>&nbsp;</label>
@@ -370,7 +445,9 @@
           </div>
           <div class="form-group field-unit">
             <label>単位</label>
-            <input type="text" class="item-unit" style="text-align: center;" placeholder="式">
+            <select class="item-unit" style="text-align: center;">
+              ${unitOptions}
+            </select>
           </div>
           <div class="form-group field-price">
             <label>単価</label>
@@ -474,7 +551,7 @@
       // 送信データの組み立て
       const payload = {
         clientName: finalClientName,
-        clientAddress: document.getElementById('clientAddress').value.trim(), // 👈 住所も追加
+        clientAddress: document.getElementById('clientAddress').value.trim(), // 住所
         estimateDate: document.getElementById('estimateDate').value,
         subject: document.getElementById('subject').value.trim(),
         paymentTerms: document.getElementById('paymentTerms').value.trim(),
