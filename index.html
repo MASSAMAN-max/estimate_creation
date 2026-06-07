@@ -288,6 +288,20 @@
       background-color: #cccccc;
       cursor: not-allowed;
     }
+     
+    .btn-sm.recording {
+      background-color: #F44336;
+      animation: pulse 1.5s infinite;
+    }
+     
+    @keyframes pulse {
+      0%, 100% {
+        box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.7);
+      }
+      50% {
+        box-shadow: 0 0 0 8px rgba(244, 67, 54, 0);
+      }
+    }
 
     .voice-input-wrapper {
       display: flex;
@@ -296,6 +310,16 @@
 
     .voice-input-wrapper input {
       flex: 1;
+    }
+
+    /* マイク点滅アニメーション */
+    @keyframes blink {
+      0%, 49%, 100% {
+        opacity: 1;
+      }
+      50%, 99% {
+        opacity: 0.3;
+      }
     }
 
     .footer-flex {
@@ -493,9 +517,14 @@
             <span>¥<span id="totalLabel">0</span></span>
           </div>
           
-          <button type="submit" class="btn btn-primary">
-            <span class="material-symbols-outlined">save</span>保存＆見積書作成
-          </button>
+          <div style="display: flex; gap: 8px; width: 100%;">
+            <button type="button" class="btn btn-primary" style="flex: 1; background-color: var(--gray-light); color: var(--text-primary); border: 1px solid var(--gray-border);" onclick="showPDFPreview()">
+              <span class="material-symbols-outlined">visibility</span>プレビュー
+            </button>
+            <button type="submit" class="btn btn-primary" style="flex: 1;">
+              <span class="material-symbols-outlined">save</span>保存＆作成
+            </button>
+          </div>
         </div>
       </div>
     </form>
@@ -574,6 +603,7 @@
       }
     }
 
+    // 音声入力関数
     function startVoiceInput(button) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognition) {
@@ -585,30 +615,40 @@
         });
         return;
       }
-
+     
       const input = button.closest('.form-group').querySelector('.item-name');
       const recognition = new SpeechRecognition();
       recognition.lang = 'ja-JP';
       recognition.continuous = false;
-      recognition.interimResults = false;
-
-      button.innerHTML = '<span class="material-symbols-outlined">mic</span>';
+      recognition.interimResults = true;
+     
+      button.classList.add('recording');
+      button.innerHTML = '<span class="material-symbols-outlined" style="animation: blink 1s infinite;">mic</span> 聴取中...';
       button.disabled = true;
-
+      input.style.backgroundColor = '#FFF3E0';
+      input.style.borderColor = '#FF9800';
+     
       recognition.onstart = () => {
-        button.style.backgroundColor = '#F44336';
+        // 入力中のビジュアル変更
       };
-
+     
       recognition.onresult = (event) => {
         let transcript = '';
         for (let i = event.resultIndex; i < event.results.length; i++) {
-          transcript += event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            transcript += event.results[i][0].transcript;
+          }
         }
-        input.value = (input.value + transcript).trim();
-        calculateAmount(input);
+        if (transcript) {
+          input.value = (input.value + transcript).trim();
+          calculateAmount(input);
+        }
       };
-
+     
       recognition.onerror = (event) => {
+        button.classList.remove('recording');
+        input.style.backgroundColor = '';
+        input.style.borderColor = '';
         Swal.fire({
           icon: 'error',
           title: '音声認識失敗',
@@ -616,13 +656,15 @@
           confirmButtonText: '了解'
         });
       };
-
+     
       recognition.onend = () => {
+        button.classList.remove('recording');
         button.innerHTML = '<span class="material-symbols-outlined">mic</span>';
         button.disabled = false;
-        button.style.backgroundColor = '';
+        input.style.backgroundColor = '';
+        input.style.borderColor = '';
       };
-
+     
       recognition.start();
     }
 
@@ -734,74 +776,206 @@
 
     document.getElementById('estimateForm').addEventListener('submit', async (e) => {
       e.preventDefault();
+    });
+      /* const data = getFormData();
       
-      const clientSelect = document.getElementById('clientSelect');
-      let finalClientName = clientSelect.value;
-      if(finalClientName === '__NEW__') {
-        finalClientName = document.getElementById('clientName').value.trim();
-      }
-      if(!finalClientName) {
-        Swal.fire({
-          icon: 'warning',
-          title: '入力不足',
-          text: '取引先を選択または入力してください。',
-          confirmButtonText: '了解'
-        });
+      if(!data.clientName) {
+        Swal.fire({ icon: 'warning', title: '入力不足', text: '取引先を選択してください。' });
         return;
       }
-
-      const details = [];
-      document.querySelectorAll('.detail-card').forEach(card => {
-        const name = card.querySelector('.item-name').value.trim();
+      if(data.details.length === 0) {
+        Swal.fire({ icon: 'warning', title: '入力不足', text: '明細を1件以上入力してください。' });
+        return;
+      }
+     
+      const payload = {
+        clientName: data.clientName,
+        clientAddress: data.clientAddress,
+        estimateDate: data.estimateDate,
+        subject: data.subject,
+        paymentTerms: data.paymentTerms,
+        validity: data.validity,
+        remarks: data.remarks,
+        totalAmount: data.total,
+        details: data.details
+      };
+     
+      document.getElementById('loader').style.display = 'flex';
+     
+      try {
+        const response = await fetch(GAS_WEB_APP_URL, {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
         
-        const catSelect = card.querySelector('.item-category-select');
-        let finalCategory = catSelect.value;
-        if(finalCategory === '__NEW__') {
-          finalCategory = card.querySelector('.item-category-input').value.trim();
+        const result = await response.json();
+        
+        if (result.status === 'success') {
+          document.getElementById('numberPlaceholder').textContent = result.estimateNo;
+          Swal.fire({
+            icon: 'success',
+            title: '保存完了！',
+            html: `見積番号: <strong>${result.estimateNo}</strong>`,
+            confirmButtonText: '閉じる'
+          });
+          document.getElementById('estimateForm').reset();
+          document.getElementById('detailsContainer').innerHTML = '';
+          for(let i=0; i<2; i++) addTableRow();
+        } else {
+          Swal.fire({ icon: 'error', title: 'エラー', text: result.message });
         }
+      } catch (error) {
+        Swal.fire({ icon: 'error', title: '通信エラー', text: error.message });
+      } finally {
+        document.getElementById('loader').style.display = 'none';
+      }
+    });*/
 
-        const qty = parseFloat(card.querySelector('.item-qty').value) || 0;
-        const unit = card.querySelector('.item-unit').value.trim() || '式';
-        const price = parseFloat(card.querySelector('.item-price').value) || 0;
-        const remarks = card.querySelector('.item-remarks').value.trim();
+
+
+
+    async function showPDFPreview() {
+      const data = getFormData();
+      
+      if(!data.clientName) {
+        Swal.fire({ icon: 'warning', title: '入力不足', text: '取引先を選択してください。', confirmButtonText: '了解' });
+        return;
+      }
+      if(data.details.length === 0) {
+        Swal.fire({ icon: 'warning', title: '入力不足', text: '明細を1件以上入力してください。', confirmButtonText: '了解' });
+        return;
+      }
+     
+      document.getElementById('loader').style.display = 'flex';
+      document.getElementById('loaderText').textContent = '保留版 PDF を生成中...';
+     
+      try {
+        // 🌟【新規】GAS呼び出し：保留版PDF生成
+        const previewResponse = await fetch(GAS_WEB_APP_URL, {
+          method: 'POST',
+          body: JSON.stringify({
+            ...data,
+            _action: 'preview'  // プレビュー用フラグ
+          })
+        });
         
-        if(name !== "" || finalCategory !== "") {
-          details.push({
-            itemCategory: finalCategory,
-            itemName: name,
-            itemQty: qty,
-            itemUnit: unit,
-            itemPrice: price,
-            itemAmount: Math.floor(qty * price),
-            itemRemarks: remarks
+        const previewResult = await previewResponse.json();
+        
+        if (previewResult.status !== 'success') {
+          throw new Error(previewResult.message);
+        }
+     
+        // HTMLプレビュー表示 + 確認ダイアログ
+        showPreviewDialog(data);
+     
+      } catch (error) {
+        Swal.fire({
+          icon: 'error',
+          title: 'プレビュー生成失敗',
+          text: error.message,
+          confirmButtonText: '了解'
+        });
+      } finally {
+        document.getElementById('loader').style.display = 'none';
+      }
+    }
+     
+     
+    【新規：showPreviewDialog 関数】
+     
+    function showPreviewDialog(data) {
+      let detailRows = '';
+      data.details.forEach(item => {
+        detailRows += `
+          <tr>
+            <td style="border: 1px solid #ddd; padding: 4px;">${htmlEscape(item.itemCategory)}</td>
+            <td style="border: 1px solid #ddd; padding: 4px;">${htmlEscape(item.itemName)}</td>
+            <td style="border: 1px solid #ddd; padding: 4px; text-align: right;">${item.itemQty}</td>
+            <td style="border: 1px solid #ddd; padding: 4px;">${htmlEscape(item.itemUnit)}</td>
+            <td style="border: 1px solid #ddd; padding: 4px; text-align: right;">¥${item.itemPrice.toLocaleString()}</td>
+            <td style="border: 1px solid #ddd; padding: 4px; text-align: right;">¥${item.itemAmount.toLocaleString()}</td>
+          </tr>
+        `;
+      });
+     
+      const previewHtml = `
+        <div style="text-align: left; font-size: 12px; max-height: 500px; overflow-y: auto; background: white; padding: 16px; border-radius: 8px;">
+          <h3 style="margin-bottom: 8px; border-bottom: 2px solid #1976D2; padding-bottom: 8px;">御見積書</h3>
+          <p style="margin: 4px 0;"><strong>見積日:</strong> ${data.estimateDate}</p>
+          <p style="margin: 4px 0;"><strong>取引先:</strong> ${htmlEscape(data.clientName)}</p>
+          ${data.clientAddress ? `<p style="margin: 4px 0;"><strong>住所:</strong> ${htmlEscape(data.clientAddress)}</p>` : ''}
+          <p style="margin: 4px 0;"><strong>件名:</strong> ${htmlEscape(data.subject)}</p>
+          <hr style="margin: 8px 0; border: none; border-top: 1px solid #ddd;">
+          <table style="width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 11px;">
+            <tr style="background: #E3F2FD;">
+              <th style="border: 1px solid #ddd; padding: 4px;">項目</th>
+              <th style="border: 1px solid #ddd; padding: 4px;">品名</th>
+              <th style="border: 1px solid #ddd; padding: 4px; text-align: right;">数量</th>
+              <th style="border: 1px solid #ddd; padding: 4px;">単位</th>
+              <th style="border: 1px solid #ddd; padding: 4px; text-align: right;">単価</th>
+              <th style="border: 1px solid #ddd; padding: 4px; text-align: right;">金額</th>
+            </tr>
+            ${detailRows}
+          </table>
+          <hr style="margin: 8px 0; border: none; border-top: 1px solid #ddd;">
+          <div style="text-align: right; margin: 8px 0;">
+            <p style="margin: 4px 0;">小計: ¥${data.subtotal.toLocaleString()}</p>
+            <p style="margin: 4px 0;">消費税(10%): ¥${data.tax.toLocaleString()}</p>
+            <p style="font-weight: 600; font-size: 13px; margin: 4px 0;">合計: ¥${data.total.toLocaleString()}</p>
+          </div>
+          ${data.remarks ? `<p style="margin: 8px 0;"><strong>備考:</strong> ${htmlEscape(data.remarks).replace(/\n/g, '<br>')}</p>` : ''}
+        </div>
+      `;
+     
+      Swal.fire({
+        title: 'PDFプレビュー',
+        html: previewHtml,
+        showDenyButton: true,
+        showCancelButton: true,
+        confirmButtonText: '確定して保存',
+        denyButtonText: 'ドラフト保存',
+        cancelButtonText: 'キャンセル',
+        confirmButtonColor: '#1976D2',
+        denyButtonColor: '#FF9800'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          // 確定版で保存
+          submitEstimate(data, 'confirmed');
+        } else if (result.isDenied) {
+          // ドラフト版で保存
+          submitEstimate(data, 'draft');
+        } else if (result.dismiss === Swal.DismissReason.cancel) {
+          // キャンセル：保留版PDFは Google Drive に残す
+          Swal.fire({
+            icon: 'info',
+            title: 'キャンセルしました',
+            text: '保留版PDFはGoogle Driveに残っています。',
+            confirmButtonText: '了解'
           });
         }
       });
-
-      if(details.length === 0) {
-        Swal.fire({
-          icon: 'warning',
-          title: '入力不足',
-          text: '明細を1件以上入力してください。',
-          confirmButtonText: '了解'
-        });
-        return;
-      }
-
+    }
+     
+     
+    【新規：submitEstimate 関数】
+     
+    async function submitEstimate(data, status) {
       const payload = {
-        clientName: finalClientName,
-        clientAddress: document.getElementById('clientAddress').value.trim(),
-        estimateDate: document.getElementById('estimateDate').value,
-        subject: document.getElementById('subject').value.trim(),
-        paymentTerms: document.getElementById('paymentTerms').value.trim(),
-        validity: document.getElementById('validity').value.trim(),
-        remarks: document.getElementById('remarks').value.trim(),
-        totalAmount: parseInt(document.getElementById('totalLabel').dataset.value) || 0,
-        details: details
+        clientName: data.clientName,
+        clientAddress: data.clientAddress,
+        estimateDate: data.estimateDate,
+        subject: data.subject,
+        paymentTerms: data.paymentTerms,
+        validity: data.validity,
+        remarks: data.remarks,
+        totalAmount: data.total,
+        details: data.details,
+        status: status === 'confirmed' ? '確定' : 'ドラフト'
       };
-
+     
       document.getElementById('loader').style.display = 'flex';
-
+      document.getElementById('loaderText').textContent = '保存中...';
+     
       try {
         const response = await fetch(GAS_WEB_APP_URL, {
           method: 'POST',
@@ -813,39 +987,34 @@
         if (result.status === 'success') {
           document.getElementById('numberPlaceholder').textContent = result.estimateNo;
           
+          const message = status === 'confirmed' 
+            ? `見積番号: <strong>${result.estimateNo}</strong><br>確定版PDFを生成しました。`
+            : `見積番号: <strong>${result.estimateNo}</strong><br>ドラフト版として保存しました。`;
+          
           Swal.fire({
             icon: 'success',
             title: '保存完了！',
-            html: `見積番号: <strong>${result.estimateNo}</strong><br>PDFを自動生成しました。`,
-            confirmButtonText: '閉じる',
-            confirmButtonColor: getComputedStyle(document.documentElement)
-              .getPropertyValue('--primary')
-              .trim()
+            html: message,
+            confirmButtonText: '閉じる'
           });
           
           document.getElementById('estimateForm').reset();
           document.getElementById('detailsContainer').innerHTML = '';
           for(let i=0; i<2; i++) addTableRow();
-          
         } else {
-          Swal.fire({
-            icon: 'error',
-            title: 'エラー',
-            text: result.message,
-            confirmButtonText: '了解'
-          });
+          Swal.fire({ icon: 'error', title: 'エラー', text: result.message });
         }
       } catch (error) {
-        Swal.fire({
-          icon: 'error',
-          title: '通信エラー',
-          text: error.message,
-          confirmButtonText: '了解'
-        });
+        Swal.fire({ icon: 'error', title: '通信エラー', text: error.message });
       } finally {
         document.getElementById('loader').style.display = 'none';
       }
-    });
+    }
+
+
+
+
+    
 
     function htmlEscape(str) {
       if (!str) return '';
