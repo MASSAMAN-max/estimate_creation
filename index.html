@@ -774,10 +774,10 @@
       document.getElementById('totalLabel').dataset.value = total;
     }
 
-    document.getElementById('estimateForm').addEventListener('submit', async (e) => {
+    /*document.getElementById('estimateForm').addEventListener('submit', async (e) => {
       e.preventDefault();
     });
-      /* const data = getFormData();
+      const data = getFormData();
       
       if(!data.clientName) {
         Swal.fire({ icon: 'warning', title: '入力不足', text: '取引先を選択してください。' });
@@ -885,7 +885,7 @@
       };
     }
 
-    async function showPDFPreview() {
+    function showPDFPreview() {
       const data = getFormData();
       
       if(!data.clientName) {
@@ -896,39 +896,8 @@
         Swal.fire({ icon: 'warning', title: '入力不足', text: '明細を1件以上入力してください。', confirmButtonText: '了解' });
         return;
       }
-     
-      document.getElementById('loader').style.display = 'flex';
-      document.getElementById('loaderText').textContent = '保留版 PDF を生成中...';
-     
-      try {
-        // 🌟【新規】GAS呼び出し：保留版PDF生成
-        const previewResponse = await fetch(GAS_WEB_APP_URL, {
-          method: 'POST',
-          body: JSON.stringify({
-            ...data,
-            _action: 'preview'  // プレビュー用フラグ
-          })
-        });
-        
-        const previewResult = await previewResponse.json();
-        
-        if (previewResult.status !== 'success') {
-          throw new Error(previewResult.message);
-        }
-     
-        // HTMLプレビュー表示 + 確認ダイアログ
-        showPreviewDialog(data);
-     
-      } catch (error) {
-        Swal.fire({
-          icon: 'error',
-          title: 'プレビュー生成失敗',
-          text: error.message,
-          confirmButtonText: '了解'
-        });
-      } finally {
-        document.getElementById('loader').style.display = 'none';
-      }
+      // プレビューダイアログを表示
+      showPreviewDialog(data);
     }
      
      
@@ -979,33 +948,20 @@
       Swal.fire({
         title: 'PDFプレビュー',
         html: previewHtml,
-        showDenyButton: true,
         showCancelButton: true,
         confirmButtonText: '確定して保存',
-        denyButtonText: 'ドラフト保存',
         cancelButtonText: 'キャンセル',
-        confirmButtonColor: '#1976D2',
-        denyButtonColor: '#FF9800'
+        confirmButtonColor: '#1976D2'
       }).then((result) => {
         if (result.isConfirmed) {
           // 確定版で保存
-          submitEstimate(data, 'confirmed');
-        } else if (result.isDenied) {
-          // ドラフト版で保存
-          submitEstimate(data, 'draft');
-        } else if (result.dismiss === Swal.DismissReason.cancel) {
-          // キャンセル：保留版PDFは Google Drive に残す
-          Swal.fire({
-            icon: 'info',
-            title: 'キャンセルしました',
-            text: '保留版PDFはGoogle Driveに残っています。',
-            confirmButtonText: '了解'
-          });
+          submitEstimate(data);
         }
+        // キャンセルの場合は何もしない（ダイアログが閉じて元の画面に戻る）
       });
     }
      
-    async function submitEstimate(data, status) {
+    async function submitEstimate(data) {
       const payload = {
         clientName: data.clientName,
         clientAddress: data.clientAddress,
@@ -1015,8 +971,7 @@
         validity: data.validity,
         remarks: data.remarks,
         totalAmount: data.total,
-        details: data.details,
-        status: status === 'confirmed' ? '確定' : 'ドラフト'
+        details: data.details
       };
      
       document.getElementById('loader').style.display = 'flex';
@@ -1033,16 +988,12 @@
         if (result.status === 'success') {
           document.getElementById('numberPlaceholder').textContent = result.estimateNo;
           
-          const message = status === 'confirmed' 
-            ? `見積番号: <strong>${result.estimateNo}</strong><br>確定版PDFを生成しました。`
-            : `見積番号: <strong>${result.estimateNo}</strong><br>ドラフト版として保存しました。`;
-          
-          Swal.fire({
-            icon: 'success',
-            title: '保存完了！',
-            html: message,
-            confirmButtonText: '閉じる'
-          });
+        Swal.fire({
+          icon: 'success',
+          title: '保存完了！',
+          html: `見積番号: <strong>${result.estimateNo}</strong><br>PDFを生成しました。`,
+          confirmButtonText: '閉じる'
+        });
           
           document.getElementById('estimateForm').reset();
           document.getElementById('detailsContainer').innerHTML = '';
