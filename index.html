@@ -818,7 +818,9 @@
             title: '保存完了！',
             html: `見積番号: <strong>${result.estimateNo}</strong><br>PDFを自動生成しました。`,
             confirmButtonText: '閉じる',
-            confirmButtonColor: var('--primary')
+            confirmButtonColor: getComputedStyle(document.documentElement)
+              .getPropertyValue('--primary')
+              .trim()
           });
           
           document.getElementById('estimateForm').reset();
