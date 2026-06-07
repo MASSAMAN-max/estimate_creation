@@ -280,17 +280,16 @@
   <script>
     const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxQkNvNQblWXRtenGPoSaXbi99ftJ61j02s11rzCxwQZ4bDGddhzuDwrCRu0wYQxbNAow/exec"; 
 
-    // スプレッドシートから取得したマスタ情報を保持する配列
     let MASTER_CLIENTS = [];
     let MASTER_CATEGORIES = [];
+    let MASTER_UNITS = [];
+    let isListening = false;
 
     window.addEventListener('DOMContentLoaded', async () => {
       document.getElementById('estimateDate').value = new Date().toISOString().split('T')[0];
-      // 画面起動時にスプレッドシートからホワイトリスト（マスタ）を取得
       await loadMasterLists();
     });
 
-    // マスタデータの読み込み
     async function loadMasterLists() {
       try {
         const res = await fetch(GAS_WEB_APP_URL);
@@ -299,16 +298,15 @@
         
         MASTER_CLIENTS = data.clients || [];
         MASTER_CATEGORIES = data.categories || [];
+        MASTER_UNITS = data.units || [];
       } catch (e) {
-        console.error("マスタデータの取得に失敗しました。手入力モードで動作します。", e);
+        console.error("マスタデータの取得に失敗しました。", e);
       } finally {
         renderClientSelect();
-        // 初期行を3行追加
         for(let i=0; i<2; i++) addTableRow();
       }
     }
 
-    // 取引先セレクトボックスの生成
     function renderClientSelect() {
       const select = document.getElementById('clientSelect');
       let html = '<option value="">-- 取引先を選択してください --</option>';
@@ -319,7 +317,6 @@
       select.innerHTML = html;
     }
 
-    // 取引先の新規手入力欄の表示切り替え
     function toggleNewClient() {
       const select = document.getElementById('clientSelect');
       const container = document.getElementById('newClientContainer');
@@ -335,7 +332,6 @@
       }
     }
 
-    // 明細行の「項目」手入力欄の表示切り替え
     function toggleNewCategory(select) {
       const container = select.parentNode.querySelector('.dynamic-input-container');
       const input = select.parentNode.querySelector('.item-category-input');
@@ -349,28 +345,28 @@
         input.value = '';
       }
     }
-    // 明細行の「仕様・摘要」音声入力
+
     function startVoiceInput(button) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognition) {
         alert('お使いのブラウザは音声入力に対応していません。');
         return;
       }
- 
+
       const input = button.closest('.form-group').querySelector('.item-name');
       const recognition = new SpeechRecognition();
       recognition.lang = 'ja-JP';
       recognition.continuous = false;
       recognition.interimResults = false;
- 
+
       button.textContent = '🎤 聴取中...';
       button.disabled = true;
       isListening = true;
- 
+
       recognition.onstart = () => {
         button.style.backgroundColor = '#ff6b6b';
       };
- 
+
       recognition.onresult = (event) => {
         let transcript = '';
         for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -379,23 +375,22 @@
         input.value = (input.value + transcript).trim();
         calculateAmount(input);
       };
- 
+
       recognition.onerror = (event) => {
         console.error('音声認識エラー:', event.error);
         alert('音声認識に失敗しました。もう一度お試しください。');
       };
- 
+
       recognition.onend = () => {
         button.textContent = '🎤 音声入力';
         button.disabled = false;
         button.style.backgroundColor = '';
         isListening = false;
       };
- 
+
       recognition.start();
     }
 
-    // 💡 明細行の追加
     function addTableRow() {
       const container = document.getElementById('detailsContainer');
       const card = document.createElement('div');
@@ -498,11 +493,9 @@
       document.getElementById('totalLabel').dataset.value = total;
     }
 
-    // フォーム送信処理
     document.getElementById('estimateForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       
-      // 1. 取引先名の決定（既存選択 or 新規手入力）
       const clientSelect = document.getElementById('clientSelect');
       let finalClientName = clientSelect.value;
       if(finalClientName === '__NEW__') {
@@ -513,12 +506,10 @@
         return;
       }
 
-      // 2. 明細行データの収集
       const details = [];
       document.querySelectorAll('.detail-card').forEach(card => {
         const name = card.querySelector('.item-name').value.trim();
         
-        // 項目の決定（既存選択 or 新規手入力）
         const catSelect = card.querySelector('.item-category-select');
         let finalCategory = catSelect.value;
         if(finalCategory === '__NEW__') {
@@ -548,10 +539,9 @@
         return;
       }
 
-      // 送信データの組み立て
       const payload = {
         clientName: finalClientName,
-        clientAddress: document.getElementById('clientAddress').value.trim(), // 住所
+        clientAddress: document.getElementById('clientAddress').value.trim(),
         estimateDate: document.getElementById('estimateDate').value,
         subject: document.getElementById('subject').value.trim(),
         paymentTerms: document.getElementById('paymentTerms').value.trim(),
@@ -585,7 +575,6 @@
       }
     });
 
-    // エスケープ処理（安全対策）
     function htmlEscape(str) {
       if (!str) return '';
       return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
