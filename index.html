@@ -407,19 +407,17 @@
       .form-group label {
         font-size: 11px;
       }
-
       .form-group input,
       .form-group select,
       .form-group textarea {
         font-size: 13px;
         padding: 6px 8px;
       }
-
+      
       .btn {
         font-size: 12px;
         padding: 6px 10px;
       }
-
       .btn-primary {
         font-size: 13px;
         padding: 10px;
@@ -432,22 +430,80 @@
       .summary-row {
         font-size: 12px;
       }
-
       .summary-row.total {
         font-size: 13px;
+      }
+
+      .login-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100vh;
+        background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+      }
+      .login-box {
+        background: white;
+        padding: 32px;
+        border-radius: var(--radius);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+        width: 100%;
+        max-width: 350px;
+      }
+      .login-box input {
+        padding: 10px;
+        font-size: 14px;
+        border: 1px solid var(--gray-border);
+        border-radius: var(--radius);
       }
     }
   </style>
 </head>
 <body>
 
+【追加位置：body直下、最初のdiv要素として追加】
+ 
+<!-- ログイン画面：初期表示（認証前） -->
+<div id="loginScreen" class="login-container" style="display:flex;">
+  <div class="login-box">
+    <h2 style="text-align:center; margin-bottom:32px;">見積フォーム ログイン</h2>
+    
+    <div style="margin-bottom:20px;">
+      <label style="display:block; margin-bottom:8px; font-weight:bold;">ログインID</label>
+      <input type="text" id="loginIdInput" style="width:100%; padding:8px 10px; border:1px solid var(--gray-border); border-radius: var(--radius); font-size:14px;" placeholder="IDを入力してください">
+    </div>
+    
+    <div style="margin-bottom:32px; position:relative;">
+      <label style="display:block; margin-bottom:8px; font-weight:bold;">パスワード</label>
+      <input type="password" id="loginPasswordInput" style="width:100%; padding:8px 10px; padding-right:50px; box-sizing: border-box; border:1px solid var(--gray-border); border-radius: var(--radius); font-size:14px;" placeholder="パスワードを入力してください">
+      <span onclick="togglePasswordVisibility()" style="position:absolute; right:12px; top:45px; cursor:pointer; color:var(--text-secondary); user-select:none;">
+        <span id="eyeIcon" class="material-symbols-outlined" style="font-size: 22px; vertical-align: middle;">visibility_off</span>
+      </span>
+    </div>
+    
+    <button id="loginBtn" class="btn btn-primary" onclick="handleLoginSubmit()" style="width:100%; padding:12px; font-size:14px; font-weight:600;">ログイン</button>
+  </div>
+</div>
+ 
+<!-- メインアプリ画面：認証後の表示 -->
+<div id="mainApp" style="display:none;">
+  <!-- 【以下、既存のapp-container全体】 -->
   <div class="app-container">
-    <header>
-      <h1>📋 見積フォーム</h1>
-      <div class="estimate-no-disp">
-        見積No: <span id="numberPlaceholder">自動採番</span>
+    <!-- ユーザーラベル（header内に統合） -->
+    <header style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; padding-bottom:12px; border-bottom:2px solid var(--gray-border);">
+      <h1 style="font-size:18px; font-weight:600; color:var(--primary);">📋 見積フォーム</h1>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <span id="userDisplayLabel" style="font-size:12px; color:var(--text-secondary); font-weight:bold; background:var(--gray-light); padding:6px 12px; border-radius:var(--radius);"></span>
+        <button type="button" id="logoutBtn" class="btn btn-danger" style="padding:6px 10px; font-size:12px;" onclick="handleLogout()">
+          <span class="material-symbols-outlined" style="font-size:18px;">logout</span>
+        </button>
       </div>
     </header>
+
 
     <form id="estimateForm">
       <div class="form-grid">
@@ -517,12 +573,12 @@
             <span>¥<span id="totalLabel">0</span></span>
           </div>
           
-          <div style="display: flex; gap: 8px; width: 100%;">
-            <button type="button" class="btn btn-primary" style="flex: 1; background-color: var(--gray-light); color: var(--text-primary); border: 1px solid var(--gray-border);" onclick="showPDFPreview()">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%;">
+            <button type="button" class="btn btn-primary" style="background-color: var(--gray-light); color: var(--text-primary); border: 1px solid var(--gray-border);" onclick="showPDFPreview()">
               <span class="material-symbols-outlined">visibility</span>プレビュー
             </button>
-            <button type="submit" class="btn btn-primary" style="flex: 1;">
-              <span class="material-symbols-outlined">save</span>保存＆作成
+            <button type="button" class="btn btn-primary" style="background-color: var(--warning);" onclick="saveDraftForm()">
+              <span class="material-symbols-outlined">draft</span>下書き保存
             </button>
           </div>
         </div>
@@ -541,11 +597,107 @@
     let MASTER_CLIENTS = [];
     let MASTER_CATEGORIES = [];
     let MASTER_UNITS = [];
+    let currentUser = null;  // ログインユーザー情報
 
     window.addEventListener('DOMContentLoaded', async () => {
-      document.getElementById('estimateDate').value = new Date().toISOString().split('T')[0];
-      await loadMasterLists();
+      // ログイン状態をチェック
+      const savedUser = sessionStorage.getItem('currentUser');
+      if (savedUser) {
+        currentUser = JSON.parse(savedUser);
+        showMainApp();
+        document.getElementById('estimateDate').value = new Date().toISOString().split('T')[0];
+        await loadMasterLists();
+      } else {
+        showLoginScreen();
+      }
     });
+
+    // ログイン関連関数
+    function showLoginScreen() {
+      document.getElementById('loginScreen').style.display = 'flex';
+      document.getElementById('mainApp').style.display = 'none';
+    }
+     
+    function showMainApp() {
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('mainApp').style.display = 'block';
+      document.getElementById('userDisplayLabel').textContent = `ログイン: ${currentUser.userName}`;
+    }
+     
+    function togglePasswordVisibility() {
+      const input = document.getElementById('loginPasswordInput');
+      const icon = document.getElementById('eyeIcon');
+      
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.textContent = 'visibility';
+      } else {
+        input.type = 'password';
+        icon.textContent = 'visibility_off';
+      }
+    }
+     
+    async function handleLoginSubmit() {
+      const loginId = document.getElementById('loginIdInput').value.trim();
+      const password = document.getElementById('loginPasswordInput').value.trim();
+      
+      if (!loginId || !password) {
+        Swal.fire({ icon: 'warning', title: '入力不足', text: 'IDとパスワードを入力してください。', confirmButtonText: '了解' });
+        return;
+      }
+      
+      const loginBtn = document.getElementById('loginBtn');
+      loginBtn.disabled = true;
+      loginBtn.textContent = '認証中...';
+      
+      try {
+        // 【重要】GET リクエストでログイン認証（クエリパラメータ）
+        const authUrl = `${GAS_WEB_APP_URL}?action=login&loginId=${encodeURIComponent(loginId)}&password=${encodeURIComponent(password)}`;
+        const response = await fetch(authUrl);
+        const result = await response.json();
+        
+        if (result.success) {
+          currentUser = {
+            userId: result.userId,
+            userName: result.userName
+          };
+          sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+          
+          showMainApp();
+          document.getElementById('estimateDate').value = new Date().toISOString().split('T')[0];
+          await loadMasterLists();
+          
+          document.getElementById('loginIdInput').value = '';
+          document.getElementById('loginPasswordInput').value = '';
+        } else {
+          Swal.fire({ icon: 'error', title: 'ログイン失敗', text: result.message, confirmButtonText: '了解' });
+        }
+      } catch (error) {
+        Swal.fire({ icon: 'error', title: '通信エラー', text: error.message, confirmButtonText: '了解' });
+      } finally {
+        loginBtn.disabled = false;
+        loginBtn.textContent = 'ログイン';
+      }
+    }
+     
+    function handleLogout() {
+      Swal.fire({
+        icon: 'question',
+        title: 'ログアウト',
+        text: 'ログアウトしてもよろしいですか？',
+        showCancelButton: true,
+        confirmButtonText: '実行',
+        cancelButtonText: 'キャンセル'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          sessionStorage.removeItem('currentUser');
+          currentUser = null;
+          document.getElementById('estimateForm').reset();
+          document.getElementById('detailsContainer').innerHTML = '';
+          showLoginScreen();
+        }
+      });
+    }
 
     async function loadMasterLists() {
       try {
@@ -971,7 +1123,8 @@
         validity: data.validity,
         remarks: data.remarks,
         totalAmount: data.total,
-        details: data.details
+        details: data.details,
+        userName: currentUser.userName
       };
      
       document.getElementById('loader').style.display = 'flex';
@@ -1009,7 +1162,66 @@
     }
 
 
-
+    // 下書き保存関数
+    async function saveDraftForm() {
+      const data = getFormData();
+      
+      if (!data.clientName) {
+        Swal.fire({ icon: 'warning', title: '入力不足', text: '取引先を選択してください。', confirmButtonText: '了解' });
+        return;
+      }
+      if (data.details.length === 0) {
+        Swal.fire({ icon: 'warning', title: '入力不足', text: '明細を1件以上入力してください。', confirmButtonText: '了解' });
+        return;
+      }
+      
+      const payload = {
+        clientName: data.clientName,
+        clientAddress: data.clientAddress,
+        estimateDate: data.estimateDate,
+        subject: data.subject,
+        paymentTerms: data.paymentTerms,
+        validity: data.validity,
+        remarks: data.remarks,
+        totalAmount: data.total,
+        details: data.details,
+        userName: currentUser.userName  // 🌟【追加】ユーザー名
+      };
+      
+      document.getElementById('loader').style.display = 'flex';
+      document.getElementById('loaderText').textContent = '下書きを保存中...';
+      
+      try {
+        const response = await fetch(GAS_WEB_APP_URL, {
+          method: 'POST',
+          body: JSON.stringify({
+            ...payload,
+            _action: 'saveDraft'  // 下書き保存フラグ
+          })
+        });
+        
+        const result = await response.json();
+        
+        if (result.status === 'success') {
+          Swal.fire({
+            icon: 'success',
+            title: '下書き保存完了！',
+            html: `下書きID: <strong>${result.draftId}</strong>`,
+            confirmButtonText: '閉じる'
+          }).then(() => {
+            document.getElementById('estimateForm').reset();
+            document.getElementById('detailsContainer').innerHTML = '';
+            for(let i=0; i<2; i++) addTableRow();
+          });
+        } else {
+          Swal.fire({ icon: 'error', title: 'エラー', text: result.message, confirmButtonText: '了解' });
+        }
+      } catch (error) {
+        Swal.fire({ icon: 'error', title: '通信エラー', text: error.message, confirmButtonText: '了解' });
+      } finally {
+        document.getElementById('loader').style.display = 'none';
+      }
+    }
 
     
 
