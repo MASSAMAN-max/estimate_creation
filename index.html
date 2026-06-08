@@ -435,9 +435,10 @@
       }
 
       .login-container {
-        position: fixed;
-        top: 0;
-        left: 0;
+        display: flex;           /* 中身を整列させるモード */
+        justify-content: center; /* 左右の真ん中 */
+        align-items: center;     /* 上下の真ん中 */
+        min-height: 100vh;       /* 画面の縦いっぱいに広げる */
         width: 100%;
         height: 100vh;
         background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
@@ -653,15 +654,28 @@
       loginBtn.textContent = '認証中...';
       
       try {
-        // 【重要】GET リクエストでログイン認証（クエリパラメータ）
-        const authUrl = `${GAS_WEB_APP_URL}?action=login&loginId=${encodeURIComponent(loginId)}&password=${encodeURIComponent(password)}`;
-        const response = await fetch(authUrl);
+        // 🌟【修正】GET から POST リクエストに変更し、GASのdoPostが読める形にする
+        const response = await fetch(GAS_WEB_APP_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'text/plain', // GASでエラーを起こさないためのおまじない
+          },
+          body: JSON.stringify({
+            action: 'login',
+            payload: {
+              loginId: loginId,
+              password: password
+            }
+          })
+        });
+        
         const result = await response.json();
         
-        if (result.success) {
+        // 🌟【修正】GAS側の返却形式（status: 'success'）に合わせて判定する
+        if (result.status === 'success' && result.data && result.data.success) {
           currentUser = {
-            userId: result.userId,
-            userName: result.userName
+            userId: result.data.userId,
+            userName: result.data.userName
           };
           sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
           
@@ -672,7 +686,9 @@
           document.getElementById('loginIdInput').value = '';
           document.getElementById('loginPasswordInput').value = '';
         } else {
-          Swal.fire({ icon: 'error', title: 'ログイン失敗', text: result.message, confirmButtonText: '了解' });
+          // GAS側から戻ってきたエラーメッセージを表示
+          const errorMsg = result.message || "ログインIDまたはパスワードが違います。";
+          Swal.fire({ icon: 'error', title: 'ログイン失敗', text: errorMsg, confirmButtonText: '了解' });
         }
       } catch (error) {
         Swal.fire({ icon: 'error', title: '通信エラー', text: error.message, confirmButtonText: '了解' });
