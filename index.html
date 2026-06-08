@@ -435,34 +435,37 @@
       .summary-row.total {
         font-size: 13px;
       }
-
-      #loginScreen {
-        position: fixed !important;/* PCの親要素の幅制限などを無視して、画面全体を基準にする */
-        top: 0;
-        left: 0;
-        width: 100vw;            /* 画面の横幅いっぱいに広げる */
-        height: 100vh;           /* 画面の縦幅いっぱいに広げる */
-        display: flex !important;           /* 中身を整列させるモード */
-        justify-content: center; /* 左右の真ん中 */
-        align-items: center;     /* 上下の真ん中 */
-        background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
-        z-index: 9999;           /* 他の要素よりも一番手前に表示する */
-        box-sizing: border-box;
-      }
-      .login-box {
-        background: white;
-        padding: 32px;
-        border-radius: var(--radius);
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-        width: 100%;
-        max-width: 350px;
-      }
-      .login-box input {
-        padding: 10px;
-        font-size: 14px;
-        border: 1px solid var(--gray-border);
-        border-radius: var(--radius);
-      }
+    }
+    
+    #loginScreen {
+      position: fixed !important; /* PCの親要素の幅制限などを無視して、画面全体を基準にする */
+      top: 0;
+      left: 0;
+      width: 100vw;               /* 画面の横幅いっぱいに広げる */
+      height: 100vh;              /* 画面の縦幅いっぱいに広げる */
+      display: flex !important;   /* 中身を整列させるモード */
+      justify-content: center;    /* 左右の真ん中 */
+      align-items: center;        /* 上下の真ん中 */
+      background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
+      z-index: 9999;              /* 他の要素よりも一番手前に表示する */
+      box-sizing: border-box;
+    }
+    .login-box {
+      background: white;
+      padding: 32px;
+      border-radius: var(--radius);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+      width: 90%;                 /* スマホでの画面はみ出しを防ぐ */
+      max-width: 350px;           /* PCでも大きくなりすぎないように制限 */
+      box-sizing: border-box;
+    }
+    .login-box input {
+      width: 100%;                /* 入力欄をボックスの横幅いっぱいに広げる */
+      padding: 10px;
+      font-size: 14px;
+      border: 1px solid var(--gray-border);
+      border-radius: var(--radius);
+      box-sizing: border-box;     /* パディングによる横幅はみ出しを防ぐ */
     }
   </style>
 </head>
