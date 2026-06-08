@@ -438,12 +438,12 @@
     }
     
     #loginScreen {
-      position: fixed !important; /* PCの親要素の幅制限などを無視して、画面全体を基準にする */
+      position: fixed; /* PCの親要素の幅制限などを無視して、画面全体を基準にする */
       top: 0;
       left: 0;
       width: 100vw;               /* 画面の横幅いっぱいに広げる */
       height: 100vh;              /* 画面の縦幅いっぱいに広げる */
-      display: flex !important;   /* 中身を整列させるモード */
+      display: flex;   /* 中身を整列させるモード */
       justify-content: center;    /* 左右の真ん中 */
       align-items: center;        /* 上下の真ん中 */
       background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
