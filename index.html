@@ -582,7 +582,7 @@
             <button type="button" class="btn btn-primary" style="background-color: var(--gray-light); color: var(--text-primary); border: 1px solid var(--gray-border);" onclick="showPDFPreview()">
               <span class="material-symbols-outlined">visibility</span>プレビュー
             </button>
-            <button type="button" class="btn btn-primary" style="background-color: var(--warning);" onclick="saveDraftForm()">
+            <button type="button" class="btn btn-primary" style="background-color: var(--warning);" onclick="executeSaveProcess('saveDraft')">
               <span class="material-symbols-outlined">draft</span>下書き保存
             </button>
           </div>
@@ -947,62 +947,6 @@
       document.getElementById('totalLabel').dataset.value = total;
     }
 
-    /*document.getElementById('estimateForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-    });
-      const data = getFormData();
-      
-      if(!data.clientName) {
-        Swal.fire({ icon: 'warning', title: '入力不足', text: '取引先を選択してください。' });
-        return;
-      }
-      if(data.details.length === 0) {
-        Swal.fire({ icon: 'warning', title: '入力不足', text: '明細を1件以上入力してください。' });
-        return;
-      }
-     
-      const payload = {
-        clientName: data.clientName,
-        clientAddress: data.clientAddress,
-        estimateDate: data.estimateDate,
-        subject: data.subject,
-        paymentTerms: data.paymentTerms,
-        validity: data.validity,
-        remarks: data.remarks,
-        totalAmount: data.total,
-        details: data.details
-      };
-     
-      document.getElementById('loader').style.display = 'flex';
-     
-      try {
-        const response = await fetch(GAS_WEB_APP_URL, {
-          method: 'POST',
-          body: JSON.stringify(payload)
-        });
-        
-        const result = await response.json();
-        
-        if (result.status === 'success') {
-          document.getElementById('numberPlaceholder').textContent = result.estimateNo;
-          Swal.fire({
-            icon: 'success',
-            title: '保存完了！',
-            html: `見積番号: <strong>${result.estimateNo}</strong>`,
-            confirmButtonText: '閉じる'
-          });
-          document.getElementById('estimateForm').reset();
-          document.getElementById('detailsContainer').innerHTML = '';
-          for(let i=0; i<2; i++) addTableRow();
-        } else {
-          Swal.fire({ icon: 'error', title: 'エラー', text: result.message });
-        }
-      } catch (error) {
-        Swal.fire({ icon: 'error', title: '通信エラー', text: error.message });
-      } finally {
-        document.getElementById('loader').style.display = 'none';
-      }
-    });*/
 
 
     function getFormData() {
@@ -1128,65 +1072,20 @@
       }).then((result) => {
         if (result.isConfirmed) {
           // 確定版で保存
-          submitEstimate(data);
+          executeSaveProcess('saveEstimate');
         }
         // キャンセルの場合は何もしない（ダイアログが閉じて元の画面に戻る）
       });
     }
      
-    async function submitEstimate(data) {
-      const payload = {
-        clientName: data.clientName,
-        clientAddress: data.clientAddress,
-        estimateDate: data.estimateDate,
-        subject: data.subject,
-        paymentTerms: data.paymentTerms,
-        validity: data.validity,
-        remarks: data.remarks,
-        totalAmount: data.total,
-        details: data.details,
-        userName: currentUser.userName
-      };
-     
-      document.getElementById('loader').style.display = 'flex';
-      document.getElementById('loaderText').textContent = '保存中...';
-     
-      try {
-        const response = await fetch(GAS_WEB_APP_URL, {
-          method: 'POST',
-          body: JSON.stringify(payload)
-        });
-        
-        const result = await response.json();
-        
-        if (result.status === 'success') {
-          document.getElementById('numberPlaceholder').textContent = result.estimateNo;
-          
-        Swal.fire({
-          icon: 'success',
-          title: '保存完了！',
-          html: `見積番号: <strong>${result.estimateNo}</strong><br>PDFを生成しました。`,
-          confirmButtonText: '閉じる'
-        });
-          
-          document.getElementById('estimateForm').reset();
-          document.getElementById('detailsContainer').innerHTML = '';
-          for(let i=0; i<2; i++) addTableRow();
-        } else {
-          Swal.fire({ icon: 'error', title: 'エラー', text: result.message });
-        }
-      } catch (error) {
-        Swal.fire({ icon: 'error', title: '通信エラー', text: error.message });
-      } finally {
-        document.getElementById('loader').style.display = 'none';
-      }
-    }
-
-
-    // 下書き保存関数
-    async function saveDraftForm() {
+    // =====================================
+    // 【共通】見積・下書きデータ送信関数
+    // =====================================
+    async function executeSaveProcess(actionType) {
+      // 1. 画面から入力データを取得
       const data = getFormData();
       
+      // 2. 共通の入力チェック
       if (!data.clientName) {
         Swal.fire({ icon: 'warning', title: '入力不足', text: '取引先を選択してください。', confirmButtonText: '了解' });
         return;
@@ -1196,55 +1095,70 @@
         return;
       }
       
-      const payload = {
-        clientName: data.clientName,
-        clientAddress: data.clientAddress,
-        estimateDate: data.estimateDate,
-        subject: data.subject,
-        paymentTerms: data.paymentTerms,
-        validity: data.validity,
-        remarks: data.remarks,
-        totalAmount: data.total,
-        details: data.details,
-        userName: currentUser.userName  // 🌟【追加】ユーザー名
-      };
+      // 3. アクションごとの個別設定（文字の切り替えなど）
+      const isDraft = actionType === 'saveDraft';
+      const loaderMsg = isDraft ? '下書きを保存中...' : '見積書を確定保存中...';
+      const successTitle = isDraft ? '下書き保存完了！' : '見積確定保存完了！';
       
       document.getElementById('loader').style.display = 'flex';
-      document.getElementById('loaderText').textContent = '下書きを保存中...';
+      document.getElementById('loaderText').textContent = loaderMsg;
       
       try {
+        // 4. GASへ通信
         const response = await fetch(GAS_WEB_APP_URL, {
           method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify({
-            ...payload,
-            _action: 'saveDraft'  // 下書き保存フラグ
+            action: actionType, // 'saveDraft' または 'saveEstimate'
+            payload: {
+              clientName: data.clientName,
+              clientAddress: data.clientAddress,
+              estimateDate: data.estimateDate,
+              subject: data.subject,
+              paymentTerms: data.paymentTerms,
+              validity: data.validity,
+              remarks: data.remarks,
+              totalAmount: data.total,
+              details: data.details,
+              currentUserName: currentUser.userName
+            }
           })
         });
         
         const result = await response.json();
         
         if (result.status === 'success') {
+          // 5. 戻ってきたIDの判定
+          const generatedId = isDraft ? result.data.draftId : result.data.estimateNo;
+          const idLabel = isDraft ? '下書きID' : '見積番号';
+          const pdfMsg = isDraft ? '' : '<br>PDFを生成しました。';
+          
+          if (!isDraft) {
+            document.getElementById('numberPlaceholder').textContent = generatedId;
+          }
+          
+          // 成功ポップアップ
           Swal.fire({
             icon: 'success',
-            title: '下書き保存完了！',
-            html: `下書きID: <strong>${result.draftId}</strong>`,
+            title: successTitle,
+            html: `${idLabel}: <strong>${generatedId}</strong>${pdfMsg}`,
             confirmButtonText: '閉じる'
           }).then(() => {
+            // フォームのリセット処理
             document.getElementById('estimateForm').reset();
             document.getElementById('detailsContainer').innerHTML = '';
             for(let i=0; i<2; i++) addTableRow();
           });
+          
         } else {
-          Swal.fire({ icon: 'error', title: 'エラー', text: result.message, confirmButtonText: '了解' });
+          Swal.fire({ icon: 'error', title: 'エラー', text: result.message });
         }
       } catch (error) {
-        Swal.fire({ icon: 'error', title: '通信エラー', text: error.message, confirmButtonText: '了解' });
+        Swal.fire({ icon: 'error', title: '通信エラー', text: error.message });
       } finally {
         document.getElementById('loader').style.display = 'none';
       }
     }
-
-    
 
     function htmlEscape(str) {
       if (!str) return '';
