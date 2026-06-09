@@ -637,10 +637,20 @@
           <label for="estimateDate">見積作成日 *</label>
           <input type="date" id="estimateDate" required>
         </div>
-
-        <div class="form-group full-width">
+<!-- 
+         <div class="form-group full-width">
           <label for="clientAddress">取引先 住所</label>
           <input type="text" id="clientAddress" placeholder="〒000-0000 住所">
+        </div>
+-->
+        <div class="voice-input-wrapper">
+          <div class="form-group full-width">
+            <label for="clientAddress">取引先 住所</label>
+            <input type="text" id="clientAddress" placeholder="〒000-0000 住所">
+            <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)">
+              <span class="material-symbols-outlined">mic</span>
+            </button>
+          </div>
         </div>
 
         <div class="form-group full-width">
