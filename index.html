@@ -268,7 +268,7 @@
       background-color: var(--danger);
       color: white;
       font-size: 16px;
-      padding: 6px 12px;
+      padding: 6px 6px;
     }
     .btn-danger:hover {
       background-color: #E53935;
@@ -479,10 +479,10 @@
       
       <div style="margin-bottom:32px; position:relative;">
         <label for="loginPasswordInput" style="display:block; margin-bottom:8px; font-weight:bold;">パスワード</label>
-        <input type="password" id="loginPasswordInput" name="password" autocomplete="current-password" style="width:100%; padding:8px 10px; padding-right:50px; box-sizing: border-box; border:1px solid var(--gray-border); border-radius: var(--radius); font-size:14px;" placeholder="パスワードを入力してください">
+        <input type="password" id="loginPasswordInput" name="password" autocomplete="current-password" style="width:100%; padding:12px; padding-right:50px; box-sizing: border-box; border:1px solid var(--gray-border); border-radius: var(--radius); font-size:16px !important;" placeholder="パスワードを入力してください">
         
-        <span onclick="togglePasswordVisibility()" style="position:absolute; right:12px; top:45px; cursor:pointer; color:var(--text-secondary); user-select:none;">
-          <span id="eyeIcon" class="material-symbols-outlined" style="font-size: 22px; vertical-align: middle; transform: translateY(-4px);">visibility_off</span>
+        <span onclick="togglePasswordVisibility()" style="position:absolute; right:12px; bottom: 0; height: 50px; display: flex; align-items: center; cursor:pointer; color:var(--text-secondary); user-select:none;">
+          <span id="eyeIcon" class="material-symbols-outlined" style="font-size: 22px; vertical-align: middle;">visibility_off</span>
         </span>
       </div>
       
