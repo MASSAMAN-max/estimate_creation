@@ -547,6 +547,33 @@
       border-radius: var(--radius);
       box-sizing: border-box;     /* パディングによる横幅はみ出しを防ぐ */
     }
+
+    /* ⭕ ログアウトボタン：普段は馴染んで、ホバーすると赤くなる親切設計 */
+    .mini-logout-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 8px 14px;              /* フォームに合わせたサイズ感 */
+      font-size: 14px;
+      font-weight: bold;
+      background-color: #f1f5f9;
+      color: #64748b;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .mini-logout-btn .material-symbols-outlined {
+      font-size: 18px;
+    }
+    /* ホバー時に「赤（警告色）」に変身 */
+    .mini-logout-btn:hover {
+      background-color: #fee2e2;
+      color: #ef4444;
+      border-color: #fca5a5;
+      transform: translateY(-1px);
+    }
+    
   </style>
 </head>
 <body>
@@ -586,7 +613,7 @@
       <h1 style="font-size:18px; font-weight:600; color:var(--primary);">📋 見積フォーム</h1>
       <div style="display:flex; align-items:center; gap:12px;">
         <span id="userDisplayLabel" style="font-size:12px; color:var(--text-secondary); font-weight:bold; background:var(--gray-light); padding:6px 12px; border-radius:var(--radius);"></span>
-        <button type="button" id="logoutBtn" class="btn btn-danger" style="padding:6px 10px; font-size:12px;" onclick="handleLogout()">
+        <button type="button" id="logoutBtn" class="mini-logout-btn" style="padding:6px 10px; font-size:12px;" onclick="handleLogout()">
           <span class="material-symbols-outlined" style="font-size:18px;">logout</span>
         </button>
       </div>
