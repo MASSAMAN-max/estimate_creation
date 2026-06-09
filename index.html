@@ -97,7 +97,33 @@
       }
     }
 
-    .form-group {
+    /* ⭕ フォーム要素：文字を16pxにしてスマホのズームを防止＋サイズ感を統一 */
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 12px;                  /* 🌟ゆったりした押しやすいサイズに変更 */
+      font-size: 16px !important;     /* 🌟16pxに固定してスマホの自動ズームを完全防止！ */
+      font-family: inherit;
+      background: white;
+      border: 2px solid var(--gray-border); /* 🌟線を2pxにして視認性をアップ */
+      border-radius: var(--radius);
+      box-sizing: border-box;
+      transition: all 0.2s ease;      /* 🌟じわっと変わるアニメーション */
+    }
+    
+    /* ⭕ フォーカス時：線を太くし、背景をわずかに変えて「選択中」を分かりやすく（2の要素） */
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      background: #fdfdfd;
+      box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.15); /* 🌟少し立体的な影に */
+    }
+
+    
+/*    .form-group {
       display: flex;
       flex-direction: column;
     }
@@ -132,7 +158,7 @@
       border-color: var(--primary);
       box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
     }
-
+*/
     .dynamic-input-container {
       margin-top: 8px;
     }
@@ -222,7 +248,61 @@
       text-align: right;
     }
 
+
+    /* ⭕ ボタン共通：文字を16px太字に、ホバー時に浮き上がるアニメーションを追加 */
     .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-size: 16px;                /* 🌟文字サイズを16pxに統一 */
+      font-weight: bold;              /* 🌟しっかり目立つ太字に */
+      cursor: pointer;
+      border: none;
+      border-radius: var(--radius);
+      padding: 12px 24px;             /* 🌟横幅もゆったりしたサイズ感に */
+      box-sizing: border-box;
+      transition: all 0.2s ease;      /* 🌟動きを滑らかにする設定 */
+      text-decoration: none;
+    }
+    
+    /* プライマリボタン（保存・送信など） */
+    .btn-primary {
+      background-color: var(--primary);
+      color: white;
+      width: 100%;
+    }
+    .btn-primary:hover {
+      background-color: var(--primary-dark);
+      transform: translateY(-1px);    /* 🌟ホバー時に1pxだけ上に浮かす */
+      box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3); /* 🌟影を強くして立体感を出す */
+    }
+    
+    /* セカンダリボタン（追加・戻るなど） */
+    .btn-secondary {
+      background-color: var(--gray-light);
+      color: var(--primary);
+      border: 1px solid var(--gray-border);
+    }
+    .btn-secondary:hover {
+      background-color: #EEEEEE;
+      transform: translateY(-1px);    /* 🌟同様に浮かす */
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    }
+    
+    /* 危険・削除ボタン */
+    .btn-danger {
+      background-color: var(--danger);
+      color: white;
+    }
+    .btn-danger:hover {
+      background-color: #E53935;
+      transform: translateY(-1px);    /* 🌟同様に浮かす */
+      box-shadow: 0 4px 8px rgba(244, 67, 54, 0.3);
+    }
+    
+    
+/*    .btn {
       padding: 8px 12px;
       font-size: 13px;
       font-weight: 500;
@@ -281,7 +361,7 @@
       padding: 6px 10px;
       min-width: fit-content;
     }
-
+*/
     .btn-sm:hover {
       background-color: #45a049;
     }
