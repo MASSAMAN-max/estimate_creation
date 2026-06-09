@@ -637,32 +637,16 @@
           <label for="estimateDate">見積作成日 *</label>
           <input type="date" id="estimateDate" required>
         </div>
-<!-- 
-         <div class="form-group full-width">
-          <label for="clientAddress">取引先 住所</label>
-          <input type="text" id="clientAddress" placeholder="〒000-0000 住所">
-        </div>
--->
-  
-          <div class="form-group full-width">
-            <label for="clientAddress">取引先 住所</label>
-            <div class="voice-input-wrapper">
-              <input type="text" id="clientAddress" placeholder="〒000-0000 住所">
-              <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)">
-                <span class="material-symbols-outlined">mic</span>
-              </button>
-            </div>
-          </div>
 
-          <div class="form-group">
-            <label>仕様・摘要 *</label>
-            <div class="voice-input-wrapper">
-              <input type="text" class="item-name" placeholder="品名・内容など">
-              <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)">
-                <span class="material-symbols-outlined">mic</span>
-              </button>
-            </div>
+        <div class="form-group full-width">
+          <label for="clientAddress">取引先 住所</label>
+          <div class="voice-input-wrapper">
+            <input type="text" id="clientAddress" placeholder="〒000-0000 住所">
+            <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)">
+              <span class="material-symbols-outlined">mic</span>
+            </button>
           </div>
+        </div>
 
         <div class="form-group full-width">
           <label for="subject">件名 *</label>
@@ -920,7 +904,7 @@
         return;
       }
      
-      const input = button.closest('.form-group').querySelector('.item-name');
+      const input = button.closest('.voice-input-wrapper').querySelector('input');
       const recognition = new SpeechRecognition();
       recognition.lang = 'ja-JP';
       recognition.continuous = false;
