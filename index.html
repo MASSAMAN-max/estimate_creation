@@ -93,7 +93,7 @@
 
     @media (min-width: 768px) {
       .form-grid {
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: 1fr 1fr 1fr;
       }
     }
 
@@ -205,7 +205,7 @@
       background: white;
       border: 1px solid var(--gray-border);
       border-radius: var(--radius);
-      font-size: 13px;
+      font-size: 16px;
       font-weight: 600;
       color: var(--primary);
       text-align: right;
@@ -215,7 +215,7 @@
     .badge-required {
       background-color: #ef4444;
       color: white;
-      padding: 2px 6px;
+      padding: 4px 6px;
       border-radius: 4px;
       font-size: 12px;
       margin-left: 8px;
@@ -247,8 +247,8 @@
     }
     .btn-primary:hover {
       background-color: var(--primary-dark);
-      transform: translateY(-1px);    /* 🌟ホバー時に1pxだけ上に浮かす */
-      box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3); /* 🌟影を強くして立体感を出す */
+      transform: translateY(-1px);    /* 浮かす */
+      box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3); /* 影を強くして立体感を出す */
     }
     
     /* セカンダリボタン（追加・戻るなど） */
@@ -259,7 +259,7 @@
     }
     .btn-secondary:hover {
       background-color: #EEEEEE;
-      transform: translateY(-1px);    /* 🌟同様に浮かす */
+      transform: translateY(-1px);    /* 浮かす */
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
     }
     
@@ -272,7 +272,7 @@
     }
     .btn.btn-danger:hover {
       background-color: #E53935;
-      transform: translateY(-1px);    /* 🌟同様に浮かす */
+      transform: translateY(-1px);    /* 浮かす */
       box-shadow: 0 4px 8px rgba(244, 67, 54, 0.3);
     }
     
@@ -286,6 +286,8 @@
 
     .btn-sm:hover {
       background-color: #45a049;
+      transform: translateY(-1px);    /* 浮かす */
+      box-shadow: 0 4px 8px rgba(244, 67, 54, 0.3);
     }
 
     .btn-sm:disabled {
@@ -510,7 +512,7 @@
     <form id="estimateForm">
       <div class="form-grid">
         <div class="form-group">
-          <label for="clientSelect">取引先 * <span class="badge-required">必須</span></label>
+          <label for="clientSelect">取引先 <span class="badge-required">必須</span></label>
           <select id="clientSelect" required onchange="toggleNewClient()">
             <option value="">-- 選択（読込中...） --</option>
           </select>
@@ -521,7 +523,7 @@
         </div>
         
         <div class="form-group">
-          <label for="estimateDate">見積作成日 * <span class="badge-required">必須</span></label>
+          <label for="estimateDate">見積作成日 <span class="badge-required">必須</span></label>
           <input type="date" id="estimateDate" required>
         </div>
 
@@ -536,7 +538,7 @@
         </div>
 
         <div class="form-group full-width">
-          <label for="subject">件名 * <span class="badge-required">必須</span></label>
+          <label for="subject">件名 <span class="badge-required">必須</span></label>
           <div class="voice-input-wrapper">
           <input type="text" id="subject" required placeholder="例) 工事に伴うお見積り">
             <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)">
