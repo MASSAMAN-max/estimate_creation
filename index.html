@@ -142,7 +142,7 @@
     }
 
     .table-section-header label {
-      font-size: 13px;
+      font-size: 16px;
       font-weight: 600;
       color: var(--primary);
     }
@@ -664,7 +664,7 @@
       loginBtn.textContent = '認証中...';
       
       try {
-        // 🌟【修正】GET から POST リクエストに変更し、GASのdoPostが読める形にする
+        // GET から POST リクエストに変更し、GASのdoPostが読める形にする
         const response = await fetch(GAS_WEB_APP_URL, {
           method: 'POST',
           headers: {
@@ -681,7 +681,7 @@
         
         const result = await response.json();
         
-        // 🌟【修正】GAS側の返却形式（status: 'success'）に合わせて判定する
+        // GAS側の返却形式（status: 'success'）に合わせて判定する
         if (result.status === 'success' && result.data && result.data.success) {
           currentUser = {
             userId: result.data.userId,
@@ -878,8 +878,9 @@
               <input type="text" class="item-category-input" placeholder="新規項目名">
             </div>
           </div>
+          
           <div class="form-group">
-            <label>仕様・摘要 *</label>
+            <label>仕様・摘要 <span class="badge-required">必須</label>
             <div class="voice-input-wrapper">
               <input type="text" class="item-name" placeholder="品名・内容など">
               <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)">
@@ -908,21 +909,15 @@
             <label>金額</label>
             <div class="amount-display-box">¥<span class="item-amount">0</span></div>
           </div>
-
-
-        <div class="form-group full-width">
-          <label for="subject">件名 <span class="badge-required">必須</span></label>
-          <div class="voice-input-wrapper">
-          <input type="text" id="subject" required placeholder="例) 工事に伴うお見積り">
-            <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)">
-              <span class="material-symbols-outlined">mic</span>
-            </button>
-          </div>
-        </div>
           
           <div class="form-group">
             <label>備考</label>
-            <input type="text" class="item-remarks" placeholder="型番など">
+            <div class="voice-input-wrapper">
+              <input type="text" class="item-remarks" placeholder="特記事項等">
+              <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)">
+                <span class="material-symbols-outlined">mic</span>
+              </button>
+            </div>
           </div>
           
           <div class="form-group field-delete">
