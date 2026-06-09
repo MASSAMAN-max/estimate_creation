@@ -165,7 +165,6 @@
       gap: 8px;
       margin-bottom: 12px;
     }
-
     @media (min-width: 768px) {
       .card-row-upper {
         grid-template-columns: 1fr 2fr 80px;
@@ -178,10 +177,42 @@
       grid-template-columns: 1fr 1fr 1fr;
       gap: 8px;
     }
-
     @media (min-width: 768px) {
       .card-row-lower {
         grid-template-columns: 1fr 1fr 1fr 1.2fr 1.5fr;
+      }
+    }
+
+    /* 1行目：数量・単位・単価（横比率 1 : 1 : 2） */
+    .item-grid-row-3col {
+      display: grid;
+      grid-template-columns: 1fr 1fr 2fr;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    
+    /* 2行目：金額・備考（横比率 1 : 1） */
+    .item-grid-row-2col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    
+    /* 3行目：削除ボタンの配置（スマホは押しやすく全幅、PCでは右寄せ） */
+    .item-delete-row {
+      display: flex;
+      justify-content: flex-end;
+    }
+    .item-delete-row .btn-danger {
+      width: 100%;
+      padding: 12px;
+      font-size: 15px;
+    }
+    @media (min-width: 768px) {
+      .item-delete-row .btn-danger {
+        width: auto; /* PCでは文字幅に合わせる */
+        padding: 10px 24px;
       }
     }
 
@@ -199,15 +230,21 @@
       cursor: pointer;
     }
 
+    /* 🌟 金額ボックス：他の input/select とデザイン・サイズを完全統一 */
     .amount-display-box {
-      padding: 8px 10px;
-      background: white;
-      border: 1px solid var(--gray-border);
+      width: 100%;
+      padding: 12px;                        /* 他の入力欄と同じ余白 */
+      font-size: 16px !important;           /* 他の入力欄と同じ文字サイズ */
+      font-weight: bold;
+      border: 2px solid var(--gray-border); /* 他の入力欄と同じ線の太さ */
       border-radius: var(--radius);
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--primary);
-      text-align: right;
+      box-sizing: border-box;
+      background-color: #f8fafc;            /* 入力不可（自動計算）と一目でわかる上品な薄グレー */
+      color: var(--primary);                /* 金額は目立つようにテーマカラーに */
+      display: flex;
+      justify-content: space-between;       /* ¥マークを左端、数値を右端に綺麗に整列 */
+      align-items: center;
+      height: 48px;                         /* 入力欄と高さを「1ピクセル」の狂いもなく揃える固定値 */
     }
 
     /* 必須バッジ：赤い小さなラベル */
@@ -891,25 +928,31 @@
         </div>
         
         <div class="card-row-lower">
-          <div class="form-group">
-            <label>数量</label>
-            <input type="number" class="item-qty" min="0" step="any" value="0" oninput="calculateAmount(this)">
+          
+          <div class="item-grid-row-3col">
+            <div class="form-group">
+              <label>数量</label>
+              <input type="number" class="item-qty" min="0" step="any" value="0" oninput="calculateAmount(this)">
+            </div>
+            <div class="form-group">
+              <label>単位</label>
+              <select class="item-unit">
+                ${unitOptions}
+              </select>
+            </div>
+            <div class="form-group">
+              <label>単価</label>
+              <input type="number" class="item-price" min="0" value="0" oninput="calculateAmount(this)">
+            </div>
           </div>
-          <div class="form-group">
-            <label>単位</label>
-            <select class="item-unit">
-              ${unitOptions}
-            </select>
-          </div>
-          <div class="form-group">
-            <label>単価</label>
-            <input type="number" class="item-price" min="0" value="0" oninput="calculateAmount(this)">
-          </div>
-
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%;">
+        
+          <div class="item-grid-row-2col">
             <div class="form-group">
               <label>金額</label>
-              <div class="amount-display-box">¥<span class="item-amount">0</span></div>
+              <div class="amount-display-box">
+                <span>¥</span>
+                <span class="item-amount">0</span>
+              </div>
             </div>
             <div class="form-group">
               <label>備考</label>
@@ -920,15 +963,14 @@
                 </button>
               </div>
             </div>
-          
-          <div>
-            <div class="form-group field-delete">
-              <label>&nbsp;</label>
-              <button type="button" class="btn btn-danger" onclick="deleteTableRow(this)">
-                <span class="material-symbols-outlined">delete</span>
-              </button>
-            </div>
           </div>
+           
+          <div class="item-delete-row">
+            <button type="button" class="btn btn-danger" onclick="deleteTableRow(this)">
+              <span class="material-symbols-outlined">delete</span> 明細を削除
+            </button>
+          </div>
+        
         </div>
       `;
       container.appendChild(card);
