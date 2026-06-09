@@ -35,7 +35,7 @@
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
       font-size: 16px;
-      font-weight: 500;
+      font-weight: 600;
       background-color: #FAFAFA;
       color: var(--text-primary);
       line-height: 1.5;
@@ -146,13 +146,12 @@
       font-weight: 600;
       color: var(--primary);
     }
-
+    /* 明細一覧カード */
     .details-list {
       display: grid;
       gap: 12px;
       margin-bottom: 16px;
     }
-
     .detail-card {
       border: 1px solid var(--gray-border);
       border-radius: var(--radius);
@@ -176,7 +175,7 @@
 
     .card-row-lower {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr 1fr 1fr;
       gap: 8px;
     }
 
@@ -888,12 +887,6 @@
               </button>
             </div>
           </div>
-          <div class="form-group field-delete">
-            <label>&nbsp;</label>
-            <button type="button" class="btn btn-danger" onclick="deleteTableRow(this)">
-              <span class="material-symbols-outlined">delete</span>
-            </button>
-          </div>
         </div>
         
         <div class="card-row-lower">
@@ -915,9 +908,28 @@
             <label>金額</label>
             <div class="amount-display-box">¥<span class="item-amount">0</span></div>
           </div>
+
+
+        <div class="form-group full-width">
+          <label for="subject">件名 <span class="badge-required">必須</span></label>
+          <div class="voice-input-wrapper">
+          <input type="text" id="subject" required placeholder="例) 工事に伴うお見積り">
+            <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)">
+              <span class="material-symbols-outlined">mic</span>
+            </button>
+          </div>
+        </div>
+          
           <div class="form-group">
             <label>備考</label>
             <input type="text" class="item-remarks" placeholder="型番など">
+          </div>
+          
+          <div class="form-group field-delete">
+            <label>&nbsp;</label>
+            <button type="button" class="btn btn-danger" onclick="deleteTableRow(this)">
+              <span class="material-symbols-outlined">delete</span>
+            </button>
           </div>
         </div>
       `;
