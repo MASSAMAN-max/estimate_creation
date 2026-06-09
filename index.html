@@ -264,13 +264,13 @@
     }
     
     /* 危険・削除ボタン */
-    .btn-danger {
+    .btn.btn-danger {
       background-color: var(--danger);
       color: white;
-      font-size: 12px;
+      font-size: 16px;
       padding: 12px 6px;
     }
-    .btn-danger:hover {
+    .btn.btn-danger:hover {
       background-color: #E53935;
       transform: translateY(-1px);    /* 🌟同様に浮かす */
       box-shadow: 0 4px 8px rgba(244, 67, 54, 0.3);
@@ -481,7 +481,7 @@
         <label for="loginPasswordInput" style="display:block; margin-bottom:8px; font-weight:bold;">パスワード</label>
         <input type="password" id="loginPasswordInput" name="password" autocomplete="current-password" style="width:100%; padding:12px; padding-right:50px; box-sizing: border-box; border:1px solid var(--gray-border); border-radius: var(--radius); font-size:16px !important;" placeholder="パスワードを入力してください">
         
-        <span onclick="togglePasswordVisibility()" style="position:absolute; right:12px; bottom: 0; height: 40px; display: flex; align-items: center; cursor:pointer; color:var(--text-secondary); user-select:none;">
+        <span onclick="togglePasswordVisibility()" style="position:absolute; right:12px; bottom: 0; height: 45px; display: flex; align-items: center; cursor:pointer; color:var(--text-secondary); user-select:none;">
           <span id="eyeIcon" class="material-symbols-outlined" style="font-size: 22px; vertical-align: middle;">visibility_off</span>
         </span>
       </div>
