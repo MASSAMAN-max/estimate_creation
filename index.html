@@ -665,30 +665,36 @@
     let currentUser = null;  // ログインユーザー情報
 
     window.addEventListener('DOMContentLoaded', async () => {
-      // ログイン状態をチェック
-      const savedUser = sessionStorage.getItem('currentUser');
+      // 🌟【修正】sessionStorage から localStorage へ変更（ログイン状態をチェック）
+      const savedUser = localStorage.getItem('currentUser');
+      
       if (savedUser) {
         currentUser = JSON.parse(savedUser);
         showMainApp();
+        
+        // 💡 今日の日付を自動セット（重要な処理なので残します）
         document.getElementById('estimateDate').value = new Date().toISOString().split('T')[0];
+        
         await loadMasterLists();
       } else {
         showLoginScreen();
       }
     });
 
+    // =====================================
     // ログイン関連関数
+    // =====================================
     function showLoginScreen() {
       document.getElementById('loginScreen').style.display = 'flex';
       document.getElementById('mainApp').style.display = 'none';
     }
-     
+      
     function showMainApp() {
       document.getElementById('loginScreen').style.display = 'none';
       document.getElementById('mainApp').style.display = 'block';
       document.getElementById('userDisplayLabel').textContent = `ログイン: ${currentUser.userName}`;
     }
-     
+      
     function togglePasswordVisibility() {
       const input = document.getElementById('loginPasswordInput');
       const icon = document.getElementById('eyeIcon');
@@ -701,7 +707,7 @@
         icon.textContent = 'visibility_off';
       }
     }
-     
+      
     async function handleLoginSubmit() {
       const loginId = document.getElementById('loginIdInput').value.trim();
       const password = document.getElementById('loginPasswordInput').value.trim();
@@ -716,11 +722,10 @@
       loginBtn.textContent = '認証中...';
       
       try {
-        // GET から POST リクエストに変更し、GASのdoPostが読める形にする
         const response = await fetch(GAS_WEB_APP_URL, {
           method: 'POST',
           headers: {
-            'Content-Type': 'text/plain', // GASでエラーを起こさないためのおまじない
+            'Content-Type': 'text/plain',
           },
           body: JSON.stringify({
             action: 'login',
@@ -731,23 +736,22 @@
           })
         });
         
+        // 🌟【修正】res.json() から response.json() に修正
         const result = await response.json();
         
-        // GAS側の返却形式（status: 'success'）に合わせて判定する
-        if (result.status === 'success' && result.data) {
-          currentUser = {
-            userId: result.data.userId,
-            userName: result.data.userName,
-          };
-          sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+        if (result.status === 'success') {
+          currentUser = result.data; // { userId: "...", userName: "..." }
           
+          // ログイン状態をローカルストレージに保存
+          localStorage.setItem('currentUser', JSON.stringify(currentUser));
+          
+          // 🌟【修正】showMainScreen() から showMainApp() に修正
           showMainApp();
-          document.getElementById('estimateDate').value = new Date().toISOString().split('T')[0];
+          
+          // マスタデータの取得を開始
           await loadMasterLists();
         } else {
-          // GAS側から戻ってきたエラーメッセージを表示
-          const errorMsg = result.message || "ログインIDまたはパスワードが違います。";
-          Swal.fire({ icon: 'error', title: 'ログイン失敗', text: errorMsg, confirmButtonText: '了解' });
+          Swal.fire({ icon: 'error', title: 'ログイン失敗', text: result.message });
         }
       } catch (error) {
         Swal.fire({ icon: 'error', title: '通信エラー', text: error.message, confirmButtonText: '了解' });
@@ -767,8 +771,10 @@
         cancelButtonText: 'キャンセル'
       }).then((result) => {
         if (result.isConfirmed) {
-          sessionStorage.removeItem('currentUser');
+          // localStorageから削除する
+          localStorage.removeItem('currentUser');
           currentUser = null;
+          
           document.getElementById('estimateForm').reset();
           document.getElementById('detailsContainer').innerHTML = '';
           document.getElementById('loginIdInput').value = '';
@@ -781,6 +787,20 @@
     function htmlEscape(text) {
       const map = {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'};
       return String(text).replace(/[&<>"']/g, c => map[c]);
+    }
+
+    //【新設】いつでも安全にユーザー名を取得・自動復元する共通関数
+    function getCurrentUserName() {
+      if (currentUser && currentUser.userName) {
+        return currentUser.userName;
+      }
+      // 変数が消えていたらローカルストレージから復元を試みる
+      const saved = localStorage.getItem('currentUser');
+      if (saved) {
+        currentUser = JSON.parse(saved);
+        return currentUser.userName;
+      }
+      return null;
     }
     
     async function loadMasterLists() {
@@ -1171,9 +1191,10 @@
     // 【共通】見積・下書きデータ送信関数
     // =====================================
     async function executeSaveProcess(actionType) {
-      //【安全対策】ログイン情報が消えていないか真っ先にチェック！
-      if (!currentUser || !currentUser.userName) {
-        Swal.fire({ icon: 'error', title: '認証エラー', text: 'ユーザー情報が確認できません。一度再ログインしてください。', confirmButtonText: '了解' });
+      // 🌟【修正】毎回エラーで弾くのではなく、自動復元関数を呼び出すだけ
+      const userName = getCurrentUserName();
+      if (!userName) {
+        Swal.fire({ icon: 'error', title: '認証エラー', text: 'ログイン情報が確認できません。再度ログインしてください。', confirmButtonText: '了解' });
         return;
       }
 
@@ -1204,7 +1225,7 @@
           method: 'POST',
           headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify({
-            action: actionType, // 'saveDraft' または 'saveEstimate'
+            action: actionType,
             payload: {
               clientName: data.clientName,
               clientAddress: data.clientAddress,
@@ -1215,9 +1236,9 @@
               remarks: data.remarks,
               totalAmount: data.total,
               details: data.details,
-              currentUserName: currentUser.userName
+              currentUserName: userName // 🌟【修正】取得した変数を入れる
             }
-          })
+          }
         });
         
         const result = await response.json();
