@@ -790,7 +790,10 @@
           headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify({
             action: 'loadMasterLists',
-            userId: currentUser?.userId || ''
+            payload: {
+              currentUserName: currentUser?.userName || '',
+              userId: currentUser?.userId || ''
+            }
           })
         });
     
