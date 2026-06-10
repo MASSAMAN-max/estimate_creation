@@ -784,50 +784,60 @@
     }
     
     async function loadMasterLists() {
-      try {
-        // 1. GETからPOST通信に変更し、アクション名をGASに送信する
-        const res = await fetch(GAS_WEB_APP_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'text/plain' // GASのdoPostで確実に受け取るための設定
-          },
-          body: JSON.stringify({
-            action: 'loadMasterLists'
-          })
-        });
+          try {
+            // 🌟安全対策：そもそもブラウザ側にログイン情報がなければその場で弾く
+            if (!currentUser || !currentUser.userId) {
+              throw new Error("ユーザー情報が確認できません。再ログインしてください。");
+            }
     
-        const result = await res.json();
+            // 1. アクション名と一緒に「ユーザーID」もセットしてGASに送る
+            const res = await fetch(GAS_WEB_APP_URL, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'text/plain'
+              },
+              body: JSON.stringify({
+                action: 'loadMasterLists',
+                userId: currentUser.userId,        // 🔥パターンA：第一階層でチェックしている場合
+                payload: {
+                  userId: currentUser.userId      // 🔥パターンB：payloadの中でチェックしている場合
+                }
+              })
+            });
         
-        // 2. エラー判定を新しいGASの返し方（status: 'error'）に合わせる
-        if (result.status === 'error') {
-          throw new Error(result.message);
+            const result = await res.json();
+            
+            // 2. エラー判定
+            if (result.status === 'error') {
+              throw new Error(result.message);
+            }
+            
+            // 3. データの格納
+            const masterData = result.data || {};
+            MASTER_CLIENTS = masterData.clients || [];
+            MASTER_CATEGORIES = masterData.categories || [];
+            MASTER_UNITS = masterData.units || [];
+        
+          } catch (e) {
+            console.error("マスタデータ取得失敗", e);
+            // 🌟ユーザーに再ログインを促すポップアップを表示
+            Swal.fire({
+              icon: 'error',
+              title: '認証エラー',
+              text: e.message,
+              confirmButtonText: 'ログイン画面へ'
+            }).then(() => {
+              showLoginScreen(); // エラー時はログイン画面に強制移動
+            });
+          } finally {
+            renderClientSelect();
+            // 既存の明細行がなければ2行追加する
+            const container = document.getElementById('detailsContainer');
+            if (container && container.children.length === 0) {
+              for (let i = 0; i < 2; i++) addTableRow();
+            }
+          }
         }
-        
-        // 3. 「result.data」の中から各マスターを取り出す
-        const masterData = result.data || {};
-        MASTER_CLIENTS = masterData.clients || [];
-        MASTER_CATEGORIES = masterData.categories || [];
-        MASTER_UNITS = masterData.units || [];
-    
-      } catch (e) {
-        console.error("マスタデータ取得失敗", e);
-        // 必要に応じて、ユーザー向けのアラート（Swal.fireなど）をここに置いてもOKです
-      } finally {
-        renderClientSelect();
-        for (let i = 0; i < 2; i++) addTableRow();
-      }
-    }
-
-    function renderClientSelect() {
-      const select = document.getElementById('clientSelect');
-      let html = '<option value="">-- 取引先を選択 --</option>';
-      MASTER_CLIENTS.forEach(client => {
-        html += `<option value="${htmlEscape(client)}">${htmlEscape(client)}</option>`;
-      });
-      html += '<option value="__NEW__">＋新規取引先を手入力</option>';
-      select.innerHTML = html;
-    }
-
     function toggleNewClient() {
       const select = document.getElementById('clientSelect');
       const container = document.getElementById('newClientContainer');
