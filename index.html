@@ -212,7 +212,7 @@
     .item-grid-row-3col .form-group:nth-child(1) { flex: 1; }
     .item-grid-row-3col .form-group:nth-child(2) { flex: 1; }
     .item-grid-row-3col .form-group:nth-child(3) { flex: 2; }
-    .item-grid-row-3col .form-group:nth-child(3) { flex: 2; }
+    .item-grid-row-3col .form-group:nth-child(4) { flex: 2; }
     
     /* 【3行目】金額(1) : 備考(2) の比率設定 */
     .item-grid-row-2col {
@@ -340,7 +340,7 @@
       background-color: var(--success);
       color: white;
       font-size: 16px;
-      padding: 12px 24px;
+      padding: 12px 12px;
       min-width: fit-content;
     }
 
@@ -417,12 +417,12 @@
     .summary-row {
       display: flex;
       justify-content: space-between;
-      font-size: 13px;
+      font-size: 16px;
     }
 
     .summary-row.total {
       font-weight: 600;
-      font-size: 14px;
+      font-size: 16px;
       padding-top: 8px;
       border-top: 1px solid rgba(255, 255, 255, 0.3);
     }
@@ -547,7 +547,7 @@
           style="width:100%; padding:12px; box-sizing: border-box; border:1px solid var(--gray-border); padding-right:50px;
           border-radius: var(--radius); font-size:16px;" placeholder="パスワードを入力してください">
         
-        <span onclick="togglePasswordVisibility()" style="position:absolute; right:12px; bottom: 0; height: 45px; display: flex; align-items: center; cursor:pointer; color:var(--text-secondary); user-select:none;">
+        <span onclick="togglePasswordVisibility()" style="position:absolute; right:12px; bottom: 0; height: 50px; display: flex; align-items: center; cursor:pointer; color:var(--text-secondary); user-select:none;">
           <span id="eyeIcon" class="material-symbols-outlined" style="font-size: 22px; vertical-align: middle;">visibility_off</span>
         </span>
       </div>
@@ -986,7 +986,7 @@
                 <input type="text" class="item-category-input" placeholder="新規項目名">
               </div>
             </div>
-            <div style="display: flex;">
+            <div style="font-weight: bold;">
               <label style="font-weight: bold; display: block; color: #6c757d; margin-bottom: 2px;">項目合計金額</label>
               <div class="amount-display-box" style="background: #e3f2fd; padding: 4px 12px; border-radius: 4px; border: 1px solid #b3e5fc; font-weight: bold; font-size: 16px; color: #0d47a1;">
                 <span>¥</span><span class="card-total-amount" data-value="0">0</span>
@@ -997,8 +997,8 @@
           <div class="breakdown-container"></div>
           
           <div style="display: flex; justify-content: space-between; margin-top: 10px; border-top: 1px dashed #dee2e6; padding-top: 10px;">
-            <button type="button" class="btn" style="background-color: #e8f5e9; color: #2e7d32; padding: 6px 12px; font-size: 12px; font-weight: bold;" onclick="addBreakdownRow(this)">
-              <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle;">add</span> ＋内訳を追加
+            <button type="button" class="btn" style="background-color: #e8f5e9; color: #2e7d32; padding: 6px 12px; font-size: 14px; font-weight: bold;" onclick="addBreakdownRow(this)">
+              <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle;">add</span> 内訳を追加
             </button>
             <button type="button" class="btn btn-danger" style="padding: 6px 12px; font-size: 12px;" onclick="deleteTableRow(this)">
               <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle;">delete</span> 項目ごと削除
@@ -1064,6 +1064,7 @@
               <label>金額</label>
               <div class="amount-display-box"><span>¥</span><span class="item-amount" data-value="0">0</span></div>
             </div>
+          </div>
             
             <div class="form-group">
               <label>備考</label>
