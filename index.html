@@ -32,13 +32,26 @@
       --radius: 8px;
     }
 
+    /* ページ全体のベーススタイル：フォント・背景・余白 */
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
-      font-size: 16px;
-      font-weight: 600;
+      margin: 0;
       background-color: #FAFAFA;
       color: var(--text-primary);
-      line-height: 1.5;
+      font-size: 16px;
+      line-height: 1.6;
+      font-weight: 500;
+    }
+
+    /* フォーム要素共通スタイル：input, select, textarea の標準化 */
+    input, select, textarea {
+      font-family: inherit;
+      font-size: 16px !important;  /* モバイルでのズーム防止 */
+      padding: 12px;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      box-sizing: border-box;
+      background: white;
     }
 
     .material-symbols-outlined {
