@@ -183,21 +183,24 @@
       }
     }
 
-    /* 1行目：数量・単位・単価（横比率 1 : 1 : 2） */
+    /* 数量(1) : 単位(1) : 単価(2) の比率設定 */
     .item-grid-row-3col {
-      display: grid;
-      grid-template-columns: 1fr 1fr 2fr;
+      display: flex;
       gap: 12px;
       margin-bottom: 12px;
     }
+    .item-grid-row-3col .form-group:nth-child(1) { flex: 1; }
+    .item-grid-row-3col .form-group:nth-child(2) { flex: 1; }
+    .item-grid-row-3col .form-group:nth-child(3) { flex: 2; }
     
-    /* 2行目：金額・備考（横比率 1 : 1） */
+    /* 金額(1) : 備考(2) の比率設定 */
     .item-grid-row-2col {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
+      display: flex;
       gap: 12px;
-      margin-bottom: 16px;
+      margin-bottom: 12px;
     }
+    .item-grid-row-2col .form-group:nth-child(1) { flex: 1; }
+    .item-grid-row-2col .form-group:nth-child(2) { flex: 2; }
     
     /* 3行目：削除ボタンの配置（スマホは押しやすく全幅、PCでは右寄せ） */
     .item-delete-row {
@@ -908,106 +911,73 @@
       const container = document.getElementById('detailsContainer');
       const card = document.createElement('div');
       card.className = 'detail-card';
-      // カード全体のスタイルを安定させる（外枠と余白）
-      card.style.border = '1px solid #ddd';
-      card.style.borderRadius = '8px';
-      card.style.padding = '16px';
-      card.style.marginBottom = '16px';
-      card.style.background = '#f9f9f9';
       
-      // 1. 項目（カテゴリ）の選択肢
-      let categoryOptions = '<option value="">-- 選択 --</option>';
-      MASTER_CATEGORIES.forEach(cat => {
-        categoryOptions += `<option value="${htmlEscape(cat)}">${htmlEscape(cat)}</option>`;
-      });
-      categoryOptions += '<option value="__NEW__">＋新規項目</option>';
-      
-      // 2. 単位の選択肢（「式」の重複排除）
-      let unitOptions = '';
-      if (!MASTER_UNITS.includes('式')) {
-        unitOptions += '<option value="式">式</option>';
-      }
-      MASTER_UNITS.forEach(unit => {
-        if (unit && unit.trim() !== '') {
-          unitOptions += `<option value="${htmlEscape(unit.trim())}">${htmlEscape(unit.trim())}</option>`;
-        }
-      });
+      // 1〜99の数量選択肢を1行でスマートに生成
+      const qtyOptions = Array.from({length: 99}, (_, i) => `<option value="${i+1}">${i+1}</option>`).join('');
+      const categoryOptions = MASTER_CATEGORIES.map(cat => `<option value="${htmlEscape(cat)}">${htmlEscape(cat)}</option>`).join('') + '<option value="__NEW__">＋新規項目</option>';
+      const unitOptions = (!MASTER_UNITS.includes('式') ? '<option value="式">式</option>' : '') + 
+                          MASTER_UNITS.filter(u => u && u.trim()).map(u => `<option value="${htmlEscape(u.trim())}">${htmlEscape(u.trim())}</option>`).join('');
     
-      // 3. 数量の選択肢（1〜99）をループで生成
-      let qtyOptions = '';
-      for (let i = 1; i <= 99; i++) {
-        qtyOptions += `<option value="${i}">${i}</option>`;
-      }
-      
       card.innerHTML = `
-        <div style="display: flex; gap: 12px; margin-bottom: 12px;">
-          <div class="form-group" style="flex: 1;">
-            <label style="display: block; font-weight: bold; margin-bottom: 4px;">項目</label>
-            <select class="item-category-select" onchange="toggleNewCategory(this)" style="width: 100%; padding: 6px; border-radius: 4px; border: 1px solid #ccc;">
+        <div class="card-row-upper">
+          <div class="form-group">
+            <label>項目</label>
+            <select class="item-category-select" onchange="toggleNewCategory(this)">
+              <option value="">-- 選択 --</option>
               ${categoryOptions}
             </select>
-            <div class="dynamic-input-container" style="display:none; margin-top: 4px;">
-              <input type="text" class="item-category-input" placeholder="新規項目名" style="width: 100%; padding: 6px; border-radius: 4px; border: 1px solid #ccc;">
+            <div class="dynamic-input-container" style="display:none;">
+              <input type="text" class="item-category-input" placeholder="新規項目名">
             </div>
           </div>
           
-          <div class="form-group" style="flex: 2;">
-            <label style="display: block; font-weight: bold; margin-bottom: 4px;">仕様・摘要 <span class="badge-required" style="color: red; font-size: 11px;">(必須)</span></label>
-            <div class="voice-input-wrapper" style="display: flex; gap: 4px;">
-              <input type="text" class="item-name" placeholder="品名・内容など" style="flex: 1; padding: 6px; border-radius: 4px; border: 1px solid #ccc;">
-              <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)" style="padding: 6px;">
-                <span class="material-symbols-outlined" style="font-size: 18px; vertical-align: middle;">mic</span>
-              </button>
+          <div class="form-group">
+            <label>仕様・摘要 <span class="badge-required">必須</span></label>
+            <div class="voice-input-wrapper">
+              <input type="text" class="item-name" placeholder="品名・内容など">
+              <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)"><span class="material-symbols-outlined">mic</span></button>
             </div>
           </div>
         </div>
         
-        <div style="display: flex; gap: 12px; margin-bottom: 12px;">
-          <div class="form-group" style="flex: 1;">
-            <label style="display: block; font-weight: bold; margin-bottom: 4px;">数量</label>
-            <select class="item-qty" onchange="calculateAmount(this)" style="width: 100%; padding: 6px; border-radius: 4px; border: 1px solid #ccc;">
-              ${qtyOptions}
-            </select>
+        <div class="card-row-lower">
+          <div class="item-grid-row-3col">
+            <div class="form-group">
+              <label>数量</label>
+              <select class="item-qty" onchange="calculateAmount(this)">${qtyOptions}</select>
+            </div>
+            <div class="form-group">
+              <label>単位</label>
+              <select class="item-unit">${unitOptions}</select>
+            </div>
+            <div class="form-group">
+              <label>単価</label>
+              <input type="number" class="item-price" min="0" value="0" oninput="calculateAmount(this)">
+            </div>
           </div>
-          <div class="form-group" style="flex: 1;">
-            <label style="display: block; font-weight: bold; margin-bottom: 4px;">単位</label>
-            <select class="item-unit" style="width: 100%; padding: 6px; border-radius: 4px; border: 1px solid #ccc;">
-              ${unitOptions}
-            </select>
-          </div>
-          <div class="form-group" style="flex: 2;">
-            <label style="display: block; font-weight: bold; margin-bottom: 4px;">単価</label>
-            <input type="number" class="item-price" min="0" value="0" oninput="calculateAmount(this)" style="width: 100%; padding: 6px; border-radius: 4px; border: 1px solid #ccc;">
-          </div>
-        </div>
         
-        <div style="display: flex; gap: 12px; margin-bottom: 12px;">
-          <div class="form-group" style="flex: 1;">
-            <label style="display: block; font-weight: bold; margin-bottom: 4px;">金額</label>
-            <div class="amount-display-box" style="display: flex; align-items: center; background: #e9ecef; padding: 6px; border-radius: 4px; border: 1px solid #ccc; height: 38px; box-sizing: border-box;">
-              <span style="margin-right: 4px; font-weight: bold; color: #495057;">¥</span>
-              <span class="item-amount" data-value="0" style="font-weight: bold; color: #495057;">0</span>
+          <div class="item-grid-row-2col">
+            <div class="form-group">
+              <label>金額</label>
+              <div class="amount-display-box"><span>¥</span><span class="item-amount" data-value="0">0</span></div>
+            </div>
+            <div class="form-group">
+              <label>備考</label>
+              <div class="voice-input-wrapper">
+                <input type="text" class="item-remarks" placeholder="特記事項等">
+                <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)"><span class="material-symbols-outlined">mic</span></button>
+              </div>
             </div>
           </div>
-          <div class="form-group" style="flex: 2;">
-            <label style="display: block; font-weight: bold; margin-bottom: 4px;">備考</label>
-            <div class="voice-input-wrapper" style="display: flex; gap: 4px;">
-              <input type="text" class="item-remarks" placeholder="特記事項等" style="flex: 1; padding: 6px; border-radius: 4px; border: 1px solid #ccc;">
-              <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)" style="padding: 6px;">
-                <span class="material-symbols-outlined" style="font-size: 18px; vertical-align: middle;">mic</span>
-              </button>
-            </div>
+           
+          <div class="item-delete-row">
+            <button type="button" class="btn btn-danger" onclick="deleteTableRow(this)">
+              <span class="material-symbols-outlined">delete</span> 明細を削除
+            </button>
           </div>
-        </div>
-         
-        <div class="item-delete-row" style="text-align: right; border-top: 1px dashed #ddd; padding-top: 12px;">
-          <button type="button" class="btn btn-danger" onclick="deleteTableRow(this)" style="background-color: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
-            <span class="material-symbols-outlined" style="font-size: 18px;">delete</span> 明細を削除
-          </button>
         </div>
       `;
       container.appendChild(card);
-      // 行追加時に全体の合計金額表示を一度同期する
       updateTotalSummary();
     }
 
