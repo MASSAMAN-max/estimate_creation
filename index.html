@@ -828,12 +828,6 @@
           confirmButtonText: '了解'
         });
       } finally {
-        const container = document.getElementById('detailsContainer');
-        if (container && container.children.length === 0) {
-          for (let i = 0; i < 2; i++) addTableRow();
-        }
-      }
-
         // 既存の明細行がなければ2行追加する
         const container = document.getElementById('detailsContainer');
         if (container && container.children.length === 0) {
