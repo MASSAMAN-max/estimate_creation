@@ -700,7 +700,7 @@
       
       const loginBtn = document.getElementById('loginBtn');
       loginBtn.disabled = true;
-     . = '認証中...';
+      loginBtn.textContent = '認証中...';
       
       try {
         // GET から POST リクエストに変更し、GASのdoPostが読める形にする
