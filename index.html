@@ -1229,7 +1229,10 @@
           const pdfMsg = isDraft ? '' : '<br>PDFを生成しました。';
           
           if (!isDraft) {
-            document.getElementById('numberPlaceholder').textContent = generatedId;
+            const placeholder = document.getElementById('numberPlaceholder');
+            if (placeholder) {
+              placeholder.textContent = generatedId;
+            }
           }
           
           // 成功ポップアップ
