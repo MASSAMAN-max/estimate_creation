@@ -719,7 +719,7 @@
         const result = await response.json();
         
         // GAS側の返却形式（status: 'success'）に合わせて判定する
-        if (result.status === 'success' && result.data && result.data.success) {
+        if (result.status === 'success' && result.data) {
           currentUser = {
             userId: result.data.userId,
             userName: result.data.userName,
@@ -767,18 +767,36 @@
 
     async function loadMasterLists() {
       try {
-        const res = await fetch(GAS_WEB_APP_URL);
-        const data = await res.json();
-        if(data.error) throw new Error(data.error);
+        // 🌟 1. GETからPOST通信に変更し、アクション名をGASに送信する
+        const res = await fetch(GAS_WEB_APP_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'text/plain' // GASのdoPostで確実に受け取るための設定
+          },
+          body: JSON.stringify({
+            action: 'loadMasterLists'
+          })
+        });
+    
+        const result = await res.json();
         
-        MASTER_CLIENTS = data.clients || [];
-        MASTER_CATEGORIES = data.categories || [];
-        MASTER_UNITS = data.units || [];
+        // 🌟 2. エラー判定を新しいGASの返し方（status: 'error'）に合わせる
+        if (result.status === 'error') {
+          throw new Error(result.message);
+        }
+        
+        // 🌟 3. 「result.data」の中から各マスターを取り出す
+        const masterData = result.data || {};
+        MASTER_CLIENTS = masterData.clients || [];
+        MASTER_CATEGORIES = masterData.categories || [];
+        MASTER_UNITS = masterData.units || [];
+    
       } catch (e) {
         console.error("マスタデータ取得失敗", e);
+        // 必要に応じて、ユーザー向けのアラート（Swal.fireなど）をここに置いてもOKです
       } finally {
         renderClientSelect();
-        for(let i=0; i<2; i++) addTableRow();
+        for (let i = 0; i < 2; i++) addTableRow();
       }
     }
 
@@ -891,16 +909,22 @@
       const card = document.createElement('div');
       card.className = 'detail-card';
       
+      // 項目（カテゴリ）の選択肢
       let categoryOptions = '<option value="">-- 選択 --</option>';
       MASTER_CATEGORIES.forEach(cat => {
         categoryOptions += `<option value="${htmlEscape(cat)}">${htmlEscape(cat)}</option>`;
       });
       categoryOptions += '<option value="__NEW__">＋新規項目</option>';
       
-      let unitOptions = '<option value="式">式</option>';
+      // 🌟 改善：単位の重複排除（「式」が2回出ないようにする）
+      let unitOptions = '';
+      // マスタに「式」が含まれていない場合のみ、デフォルトの「式」を追加
+      if (!MASTER_UNITS.includes('式')) {
+        unitOptions += '<option value="式">式</option>';
+      }
       MASTER_UNITS.forEach(unit => {
-        if (unit && unit !== '') {
-          unitOptions += `<option value="${htmlEscape(unit)}">${htmlEscape(unit)}</option>`;
+        if (unit && unit.trim() !== '') {
+          unitOptions += `<option value="${htmlEscape(unit.trim())}">${htmlEscape(unit.trim())}</option>`;
         }
       });
       
@@ -917,7 +941,7 @@
           </div>
           
           <div class="form-group">
-            <label>仕様・摘要 <span class="badge-required">必須</label>
+            <label>仕様・摘要 <span class="badge-required">必須</span></label>
             <div class="voice-input-wrapper">
               <input type="text" class="item-name" placeholder="品名・内容など">
               <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)">
@@ -928,7 +952,6 @@
         </div>
         
         <div class="card-row-lower">
-          
           <div class="item-grid-row-3col">
             <div class="form-group">
               <label>数量</label>
@@ -951,7 +974,7 @@
               <label>金額</label>
               <div class="amount-display-box">
                 <span>¥</span>
-                <span class="item-amount">0</span>
+                <span class="item-amount" data-value="0">0</span>
               </div>
             </div>
             <div class="form-group">
@@ -970,10 +993,12 @@
               <span class="material-symbols-outlined">delete</span> 明細を削除
             </button>
           </div>
-        
         </div>
       `;
       container.appendChild(card);
+      
+      // 🌟 念のため追加時に計算を走らせて状態を同期
+      updateTotalSummary();
     }
 
     function deleteTableRow(button) {
@@ -1209,6 +1234,7 @@
             document.getElementById('estimateForm').reset();
             document.getElementById('detailsContainer').innerHTML = '';
             for(let i=0; i<2; i++) addTableRow();
+            updateTotalSummary(); 
           });
           
         } else {
@@ -1219,11 +1245,6 @@
       } finally {
         document.getElementById('loader').style.display = 'none';
       }
-    }
-
-    function htmlEscape(str) {
-      if (!str) return '';
-      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
   </script>
 </body>
