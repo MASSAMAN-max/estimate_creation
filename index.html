@@ -146,44 +146,40 @@
       font-weight: 600;
       color: var(--primary);
     }
-    /* 明細一覧カード */
+/* 明細一覧カード */
     .details-list {
       display: grid;
-      gap: 12px;
+      gap: 16px;
       margin-bottom: 16px;
     }
     .detail-card {
       border: 1px solid var(--gray-border);
       border-radius: var(--radius);
-      padding: 12px;
+      padding: 16px;
       background: #FAFAFA;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
     }
 
+    /* 【1行目】項目(1) : 仕様・摘要(2) のレスポンシブ設定 */
     .card-row-upper {
       display: grid;
       grid-template-columns: 1fr;
-      gap: 8px;
+      gap: 12px;
       margin-bottom: 12px;
     }
     @media (min-width: 768px) {
       .card-row-upper {
-        grid-template-columns: 1fr 2fr 80px;
-        align-items: flex-end;
+        grid-template-columns: 1fr 2fr;
+        align-items: flex-start;
       }
     }
 
+    /* 【2・3行目の土台】古いGridを解除して縦に並べる */
     .card-row-lower {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 8px;
-    }
-    @media (min-width: 768px) {
-      .card-row-lower {
-        grid-template-columns: 1fr 1fr 1fr 1.2fr 1.5fr;
-      }
+      display: block;
     }
 
-    /* 数量(1) : 単位(1) : 単価(2) の比率設定 */
+    /* 【2行目】数量(1) : 単位(1) : 単価(2) の比率設定 */
     .item-grid-row-3col {
       display: flex;
       gap: 12px;
@@ -193,7 +189,7 @@
     .item-grid-row-3col .form-group:nth-child(2) { flex: 1; }
     .item-grid-row-3col .form-group:nth-child(3) { flex: 2; }
     
-    /* 金額(1) : 備考(2) の比率設定 */
+    /* 【3行目】金額(1) : 備考(2) の比率設定 */
     .item-grid-row-2col {
       display: flex;
       gap: 12px;
@@ -202,20 +198,20 @@
     .item-grid-row-2col .form-group:nth-child(1) { flex: 1; }
     .item-grid-row-2col .form-group:nth-child(2) { flex: 2; }
     
-    /* 3行目：削除ボタンの配置（スマホは押しやすく全幅、PCでは右寄せ） */
+    /* 【4行目】削除ボタンの配置（スマホは全幅、PCでは右寄せ） */
     .item-delete-row {
       display: flex;
       justify-content: flex-end;
+      border-top: 1px dashed var(--gray-border);
+      padding-top: 12px;
+      margin-top: 12px;
     }
     .item-delete-row .btn-danger {
       width: 100%;
-      padding: 12px;
-      font-size: 15px;
     }
     @media (min-width: 768px) {
       .item-delete-row .btn-danger {
-        width: auto; /* PCでは文字幅に合わせる */
-        padding: 10px 24px;
+        width: auto;
       }
     }
 
@@ -515,12 +511,16 @@
       
       <div style="margin-bottom:35px;">
         <label for="loginIdInput" style="display:block; margin-bottom:8px; font-weight:bold;">ログインID</label>
-        <input type="text" id="loginIdInput" name="username" autocomplete="username" style="width:100%; padding:8px 12px; border:1px solid var(--gray-border); border-radius: var(--radius); font-size:16px;" placeholder="IDを入力してください">
+        <input type="text" id="loginIdInput" name="username" autocomplete="username"
+          style="width:100%; padding:12px; box-sizing: border-box; border:1px solid var(--gray-border);
+          border-radius: var(--radius); font-size:16px;" placeholder="IDを入力してください">
       </div>
       
       <div style="margin-bottom:35px; position:relative;">
         <label for="loginPasswordInput" style="display:block; margin-bottom:8px; font-weight:bold;">パスワード</label>
-        <input type="password" id="loginPasswordInput" name="password" autocomplete="current-password" style="width:100%; padding:12px; padding-right:50px; box-sizing: border-box; border:1px solid var(--gray-border); border-radius: var(--radius); font-size:16px;" placeholder="パスワードを入力してください">
+        <input type="password" id="loginPasswordInput" name="password" autocomplete="current-password"
+          style="width:100%; padding:12px; box-sizing: border-box; border:1px solid var(--gray-border); padding-right:50px;
+          border-radius: var(--radius); font-size:16px;" placeholder="パスワードを入力してください">
         
         <span onclick="togglePasswordVisibility()" style="position:absolute; right:12px; bottom: 0; height: 45px; display: flex; align-items: center; cursor:pointer; color:var(--text-secondary); user-select:none;">
           <span id="eyeIcon" class="material-symbols-outlined" style="font-size: 22px; vertical-align: middle;">visibility_off</span>
