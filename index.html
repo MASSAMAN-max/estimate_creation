@@ -950,30 +950,82 @@
       recognition.start();
     }
 
+// =====================================
+    // 明細行（親項目カード）を追加している関数
+    // =====================================
     function addTableRow() {
       const container = document.getElementById('detailsContainer');
       const card = document.createElement('div');
-      card.className = 'detail-card';
+      card.className = 'detail-card'; // 既存のCSSを活かすためクラス名は維持します
       
-      // 1〜99の数量選択肢を1行でスマートに生成
-      const qtyOptions = Array.from({length: 99}, (_, i) => `<option value="${i+1}">${i+1}</option>`).join('');
       const categoryOptions = MASTER_CATEGORIES.map(cat => `<option value="${htmlEscape(cat)}">${htmlEscape(cat)}</option>`).join('') + '<option value="__NEW__">＋新規項目</option>';
-      const unitOptions = (!MASTER_UNITS.includes('式') ? '<option value="式">式</option>' : '') + 
-                          MASTER_UNITS.filter(u => u && u.trim()).map(u => `<option value="${htmlEscape(u.trim())}">${htmlEscape(u.trim())}</option>`).join('');
     
+      // 🌟【新構造】親項目の中に内訳行（子）が複数入るHTML構造にアップデート
       card.innerHTML = `
-        <div class="card-row-upper">
-          <div class="form-group">
-            <label>項目</label>
-            <select class="item-category-select" onchange="toggleNewCategory(this)">
-              <option value="">-- 選択 --</option>
-              ${categoryOptions}
-            </select>
-            <div class="dynamic-input-container" style="display:none;">
-              <input type="text" class="item-category-input" placeholder="新規項目名">
+        <div style="background: #f8f9fa; padding: 12px; border-radius: 6px; border: 1px solid #dee2e6; margin-bottom: 15px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; background: #fff; padding: 8px; border-radius: 4px; border: 1px solid #e9ecef;">
+            <div class="form-group" style="margin-bottom: 0; flex-grow: 1; max-width: 50%;">
+              <label style="font-weight: bold; color: #495057;">親項目</label>
+              <select class="item-category-select" onchange="toggleNewCategory(this)">
+                <option value="">-- 選択 --</option>
+                ${categoryOptions}
+              </select>
+              <div class="dynamic-input-container" style="display:none; margin-top: 5px;">
+                <input type="text" class="item-category-input" placeholder="新規項目名">
+              </div>
+            </div>
+            <div style="text-align: right;">
+              <label style="font-weight: bold; display: block; font-size: 11px; color: #6c757d; margin-bottom: 2px;">項目合計金額</label>
+              <div class="amount-display-box" style="background: #e3f2fd; padding: 4px 12px; border-radius: 4px; border: 1px solid #b3e5fc; font-weight: bold; font-size: 15px; color: #0d47a1;">
+                <span>¥</span><span class="card-total-amount" data-value="0">0</span>
+              </div>
             </div>
           </div>
           
+          <div class="breakdown-container"></div>
+          
+          <div style="display: flex; justify-content: space-between; margin-top: 10px; border-top: 1px dashed #dee2e6; padding-top: 10px;">
+            <button type="button" class="btn" style="background-color: #e8f5e9; color: #2e7d32; padding: 6px 12px; font-size: 12px; font-weight: bold;" onclick="addBreakdownRow(this)">
+              <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle;">add</span> ＋内訳を追加
+            </button>
+            <button type="button" class="btn btn-danger" style="padding: 6px 12px; font-size: 12px;" onclick="deleteTableRow(this)">
+              <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle;">delete</span> 項目ごと削除
+            </button>
+          </div>
+        </div>
+      `;
+      
+      container.appendChild(card);
+      
+      // 👉 要望3：親項目を作ったとき、最初から「内訳1」を1セット自動表示する
+      const breakdownContainer = card.querySelector('.breakdown-container');
+      addBreakdownRow(breakdownContainer, true); // 第2引数で最初の子行であることを伝える
+      
+      updateTotalSummary();
+    }
+
+    // =====================================
+    // 🌟【新設】子行（内訳）を追加する関数
+    // =====================================
+    function addBreakdownRow(element, isFirst = false) {
+      let container;
+      if (isFirst) {
+        container = element; // addTableRowから直接コンテナが渡された場合
+      } else {
+        container = element.closest('.detail-card').querySelector('.breakdown-container');
+      }
+      
+      const row = document.createElement('div');
+      row.className = 'breakdown-row';
+      row.style = 'border: 1px solid #f1f3f5; padding: 8px; margin-bottom: 8px; border-radius: 4px; background: #fff;';
+      
+      const qtyOptions = Array.from({length: 99}, (_, i) => `<option value="${i+1}">${i+1}</option>`).join('');
+      const unitOptions = (!MASTER_UNITS.includes('式') ? '<option value="式">式</option>' : '') + 
+                          MASTER_UNITS.filter(u => u && u.trim()).map(u => `<option value="${htmlEscape(u.trim())}">${htmlEscape(u.trim())}</option>`).join('');
+
+      // 既存のCSSグリッドクラス（item-grid-row-3colなど）をそのまま内訳行の内部に流用します
+      row.innerHTML = `
+        <div class="card-row-upper" style="margin-bottom: 4px;">
           <div class="form-group">
             <label>仕様・摘要 <span class="badge-required">必須</span></label>
             <div class="voice-input-wrapper">
@@ -982,12 +1034,11 @@
             </div>
           </div>
         </div>
-        
-        <div class="card-row-lower">
+        <div class="card-row-lower" style="margin-bottom: 4px;">
           <div class="item-grid-row-3col">
             <div class="form-group">
               <label>数量</label>
-              <select class="item-qty" onchange="calculateAmount(this)">${qtyOptions}</select>
+              <select class="item-qty" onchange="calculateBreakdownAmount(this)">${qtyOptions}</select>
             </div>
             <div class="form-group">
               <label>単位</label>
@@ -995,10 +1046,9 @@
             </div>
             <div class="form-group">
               <label>単価</label>
-              <input type="number" class="item-price" min="0" value="0" oninput="calculateAmount(this)">
+              <input type="number" class="item-price" min="0" value="0" oninput="calculateBreakdownAmount(this)">
             </div>
           </div>
-        
           <div class="item-grid-row-2col">
             <div class="form-group">
               <label>金額</label>
@@ -1012,15 +1062,87 @@
               </div>
             </div>
           </div>
-           
-          <div class="item-delete-row">
-            <button type="button" class="btn btn-danger" onclick="deleteTableRow(this)">
-              <span class="material-symbols-outlined">delete</span> 明細を削除
-            </button>
-          </div>
         </div>
+        ${!isFirst ? `
+        <div style="text-align: right; margin-top: -2px; margin-bottom: 2px;">
+          <button type="button" class="btn btn-sm btn-danger" onclick="deleteBreakdownRow(this)" style="padding: 2px 8px; font-size: 11px; height: auto; line-height: 1;">
+            <span class="material-symbols-outlined" style="font-size: 13px; vertical-align: middle;">delete</span> 内訳を削除
+          </button>
+        </div>
+        ` : ''}
       `;
-      container.appendChild(card);
+      
+      container.appendChild(row);
+      
+      // 🌟【要望】項目、内訳1の単位はデフォルトで「式」
+      const unitSelect = row.querySelector('.item-unit');
+      unitSelect.value = '式';
+      
+      // 🌟【要望】内訳の数に応じて「式に強制固定」するかをチェック
+      checkUnitConstraint(container.closest('.detail-card'));
+      calculateBreakdownAmount(row.querySelector('.item-qty'));
+    }
+
+    // =====================================
+    // 🌟【新設】内訳の数による単位制限ルールを制御する関数
+    // =====================================
+    function checkUnitConstraint(card) {
+      const rows = card.querySelectorAll('.breakdown-row');
+      if (rows.length >= 2) {
+        // 内訳2ができた場合：すべての内訳の単位を「式」に強制固定（変更不可）にする
+        rows.forEach(row => {
+          const unitSelect = row.querySelector('.item-unit');
+          unitSelect.value = '式';
+          unitSelect.disabled = true;
+        });
+      } else if (rows.length === 1) {
+        // 内訳2が削除されて内訳1だけに戻った場合：選択制（ロック解除）に戻す
+        rows[0].querySelector('.item-unit').disabled = false;
+      }
+    }
+
+    // =====================================
+    // 🌟【新設】内訳行（子）を削除する関数
+    // =====================================
+    function deleteBreakdownRow(button) {
+      const card = button.closest('.detail-card');
+      const row = button.closest('.breakdown-row');
+      row.remove();
+      
+      // 🌟【要望】内訳2が消えたら選択制に戻すためのチェック
+      checkUnitConstraint(card);
+      // 金額の再集計
+      updateCardTotal(card);
+    }
+
+    // =====================================
+    // 🌟【新設・変更】内訳の金額計算 ＆ 親カード合計の連動関数
+    // =====================================
+    function calculateBreakdownAmount(element) {
+      const row = element.closest('.breakdown-row');
+      const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+      const price = parseFloat(row.querySelector('.item-price').value) || 0;
+      const amount = Math.floor(qty * price);
+      
+      const amountSpan = row.querySelector('.item-amount');
+      amountSpan.textContent = amount.toLocaleString();
+      amountSpan.dataset.value = amount;
+      
+      // 親カードの合計を更新
+      updateCardTotal(row.closest('.detail-card'));
+    }
+
+    function updateCardTotal(card) {
+      let cardSubtotal = 0;
+      card.querySelectorAll('.item-amount').forEach(span => {
+        cardSubtotal += parseFloat(span.dataset.value) || 0;
+      });
+      
+      const totalSpan = card.querySelector('.card-total-amount');
+      totalSpan.textContent = cardSubtotal.toLocaleString();
+      totalSpan.dataset.value = cardSubtotal;
+      
+      // 見積書全体の合計を更新
       updateTotalSummary();
     }
 
@@ -1040,10 +1162,14 @@
       
       updateTotalSummary();
     }
-
+    
+    // =====================================
+    // 【変更】全体の合計や消費税を計算している関数
+    // =====================================
     function updateTotalSummary() {
       let subtotal = 0;
-      document.querySelectorAll('.item-amount').forEach(span => {
+      // 各親項目の「合計金額ボックス」から値を集計します
+      document.querySelectorAll('.card-total-amount').forEach(span => {
         subtotal += parseFloat(span.dataset.value) || 0;
       });
       
@@ -1056,8 +1182,9 @@
       document.getElementById('totalLabel').dataset.value = total;
     }
 
-
-
+    // =====================================
+    // 【変更】画面入力値を集める関数
+    // =====================================
     function getFormData() {
       const clientSelect = document.getElementById('clientSelect');
       let finalClientName = clientSelect.value;
@@ -1066,36 +1193,43 @@
       }
       
       const details = [];
+      
+      // 🌟【新ロジック】親子構造をループして、GASに優しいフラットな「パターンB」に整形
       document.querySelectorAll('.detail-card').forEach(card => {
-        const name = card.querySelector('.item-name').value.trim();
         const catSelect = card.querySelector('.item-category-select');
         let finalCategory = catSelect.value;
         if(finalCategory === '__NEW__') {
           finalCategory = card.querySelector('.item-category-input').value.trim();
         }
-        const qty = parseFloat(card.querySelector('.item-qty').value) || 0;
-        const unit = card.querySelector('.item-unit').value.trim() || '式';
-        const price = parseFloat(card.querySelector('.item-price').value) || 0;
-        const remarks = card.querySelector('.item-remarks').value.trim();
         
-        if(name !== "" || finalCategory !== "") {
-          details.push({
-            itemCategory: finalCategory,
-            itemName: name,
-            itemQty: qty,
-            itemUnit: unit,
-            itemPrice: price,
-            itemAmount: Math.floor(qty * price),
-            itemRemarks: remarks
-          });
-        }
+        // 親カードに属する内訳たちをループ
+        card.querySelectorAll('.breakdown-row').forEach((row, index) => {
+          const name = row.querySelector('.item-name').value.trim();
+          const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+          const unit = row.querySelector('.item-unit').value.trim() || '式';
+          const price = parseFloat(row.querySelector('.item-price').value) || 0;
+          const remarks = row.querySelector('.item-remarks').value.trim();
+          
+          if(name !== "" || finalCategory !== "") {
+            details.push({
+              // 🌟【パターンBの肝】1つ目の内訳(index:0)だけ親項目を入れ、2つ目以降は空欄にする
+              itemCategory: index === 0 ? finalCategory : "",
+              itemName: name,
+              itemQty: qty,
+              itemUnit: unit,
+              itemPrice: price,
+              itemAmount: Math.floor(qty * price),
+              itemRemarks: remarks
+            });
+          }
+        });
       });
-     
+      
       let subtotal = 0;
       details.forEach(item => {
         subtotal += item.itemAmount;
       });
-     
+      
       return {
         clientName: finalClientName,
         clientAddress: document.getElementById('clientAddress').value.trim(),
@@ -1110,7 +1244,7 @@
         total: subtotal + Math.floor(subtotal * 0.1)
       };
     }
-
+    
     function showPDFPreview() {
       const data = getFormData();
       
