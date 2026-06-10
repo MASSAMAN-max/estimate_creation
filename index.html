@@ -192,7 +192,7 @@
       display: block;
     }
 
-    /* 【2行目】数量(1) : 単位(1) : 単価(2) の比率設定 */
+    /* 【2行目】数量(1) : 単位(1) : 単価(2) の比率設定 
     .item-grid-row-3col {
       display: flex;
       gap: 12px;
@@ -200,6 +200,18 @@
     }
     .item-grid-row-3col .form-group:nth-child(1) { flex: 1; }
     .item-grid-row-3col .form-group:nth-child(2) { flex: 1; }
+    .item-grid-row-3col .form-group:nth-child(3) { flex: 2; }
+    */
+    
+    /* 【2行目】数量(1) : 単位(1) : 単価(2) の比率設定 */
+    .item-grid-row-3col {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+    .item-grid-row-3col .form-group:nth-child(1) { flex: 1; }
+    .item-grid-row-3col .form-group:nth-child(2) { flex: 1; }
+    .item-grid-row-3col .form-group:nth-child(3) { flex: 2; }
     .item-grid-row-3col .form-group:nth-child(3) { flex: 2; }
     
     /* 【3行目】金額(1) : 備考(2) の比率設定 */
@@ -962,7 +974,7 @@
     
       // 🌟【新構造】親項目の中に内訳行（子）が複数入るHTML構造にアップデート
       card.innerHTML = `
-        <div style="background: #f8f9fa; padding: 12px; border-radius: 6px; border: 1px solid #dee2e6; margin-bottom: 15px;">
+        <div style="background: #cae3fc; padding: 12px; border-radius: 6px; border: 1px solid #dee2e6; margin-bottom: 15px;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; background: #fff; padding: 8px; border-radius: 4px; border: 1px solid #e9ecef;">
             <div class="form-group" style="margin-bottom: 0; flex-grow: 1; max-width: 50%;">
               <label style="font-weight: bold; color: #495057;">親項目</label>
@@ -974,9 +986,9 @@
                 <input type="text" class="item-category-input" placeholder="新規項目名">
               </div>
             </div>
-            <div style="text-align: right;">
-              <label style="font-weight: bold; display: block; font-size: 11px; color: #6c757d; margin-bottom: 2px;">項目合計金額</label>
-              <div class="amount-display-box" style="background: #e3f2fd; padding: 4px 12px; border-radius: 4px; border: 1px solid #b3e5fc; font-weight: bold; font-size: 15px; color: #0d47a1;">
+            <div style="display: flex;">
+              <label style="font-weight: bold; display: block; color: #6c757d; margin-bottom: 2px;">項目合計金額</label>
+              <div class="amount-display-box" style="background: #e3f2fd; padding: 4px 12px; border-radius: 4px; border: 1px solid #b3e5fc; font-weight: bold; font-size: 16px; color: #0d47a1;">
                 <span>¥</span><span class="card-total-amount" data-value="0">0</span>
               </div>
             </div>
@@ -1048,12 +1060,11 @@
               <label>単価</label>
               <input type="number" class="item-price" min="0" value="0" oninput="calculateBreakdownAmount(this)">
             </div>
-          </div>
-          <div class="item-grid-row-2col">
             <div class="form-group">
               <label>金額</label>
               <div class="amount-display-box"><span>¥</span><span class="item-amount" data-value="0">0</span></div>
             </div>
+            
             <div class="form-group">
               <label>備考</label>
               <div class="voice-input-wrapper">
@@ -1061,7 +1072,6 @@
                 <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)"><span class="material-symbols-outlined">mic</span></button>
               </div>
             </div>
-          </div>
         </div>
         ${!isFirst ? `
         <div style="text-align: right; margin-top: -2px; margin-bottom: 2px;">
@@ -1370,7 +1380,7 @@
               remarks: data.remarks,
               totalAmount: data.total,
               details: data.details,
-              currentUserName: userName // 🌟【修正】取得した変数を入れる
+              currentUserName: userName
             }
           })
         });
