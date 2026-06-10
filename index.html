@@ -558,7 +558,7 @@
 </div>
  
 <!-- メインアプリ画面：認証後の表示 -->
-<div id="mainApp" style="display:none;">
+<div id="mainApp" style="display:none;" padding: 12px;">
   <!-- 【以下、既存のapp-container全体】 -->
   <div class="app-container">
     <!-- ユーザーラベル（header内に統合） -->
@@ -1085,29 +1085,33 @@
       
       container.appendChild(row);
       
-      // 🌟【要望】項目、内訳1の単位はデフォルトで「式」
+      // 内訳の単位はデフォルトで「式」
       const unitSelect = row.querySelector('.item-unit');
       unitSelect.value = '式';
       
-      // 🌟【要望】内訳の数に応じて「式に強制固定」するかをチェック
+      // 内訳の数に応じて「式に強制固定」するかをチェック
       checkUnitConstraint(container.closest('.detail-card'));
       calculateBreakdownAmount(row.querySelector('.item-qty'));
     }
 
     // =====================================
-    // 🌟【新設】内訳の数による単位制限ルールを制御する関数
+    // 内訳の数による単位制限ルールを制御する関数
     // =====================================
     function checkUnitConstraint(card) {
       const rows = card.querySelectorAll('.breakdown-row');
       if (rows.length >= 2) {
-        // 内訳2ができた場合：すべての内訳の単位を「式」に強制固定（変更不可）にする
-        rows.forEach(row => {
-          const unitSelect = row.querySelector('.item-unit');
-          unitSelect.value = '式';
-          unitSelect.disabled = true;
-        });
+        // 💡 内訳2以上がある場合 1行目（内訳1）だけを「式」に強制固定してロックする
+        const firstUnitSelect = rows[0].querySelector('.item-unit');
+        firstUnitSelect.value = '式';
+        firstUnitSelect.disabled = true;
+        
+        // 2行目以降（内訳2、3...）は選択制にしたいので、ロックをかけない（もしdisabledになっていれば解除）
+        for (let i = 1; i < rows.length; i++) {
+          rows[i].querySelector('.item-unit').disabled = false;
+        }
+        
       } else if (rows.length === 1) {
-        // 内訳2が削除されて内訳1だけに戻った場合：選択制（ロック解除）に戻す
+        // 💡 内訳が1つだけに戻った場合 内訳1のロックを解除して、自由に選択できるように戻す
         rows[0].querySelector('.item-unit').disabled = false;
       }
     }
