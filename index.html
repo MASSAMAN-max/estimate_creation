@@ -783,44 +783,41 @@
       return String(text).replace(/[&<>"']/g, c => map[c]);
     }
     
-async function loadMasterLists() {
+    async function loadMasterLists() {
       try {
-        // 1. GASにマスタ取得をリクエスト（身元チェックはGAS側に任せる）
         const res = await fetch(GAS_WEB_APP_URL, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'text/plain'
-          },
+          headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify({
             action: 'loadMasterLists',
-            userId: currentUser?.userId || '' // 存在する場合のみ念のため送る
+            userId: currentUser?.userId || ''
           })
         });
     
         const result = await res.json();
+        if (result.status === 'error') throw new Error(result.message);
         
-        // 2. GAS側からエラーが返ってきた場合
-        if (result.status === 'error') {
-          throw new Error(result.message);
-        }
-        
-        // 3. データの格納
         const masterData = result.data || {};
         MASTER_CLIENTS = masterData.clients || [];
         MASTER_CATEGORIES = masterData.categories || [];
         MASTER_UNITS = masterData.units || [];
     
       } catch (e) {
-        // 🌟ログイン画面に戻さず、エラー通知だけを出すようにマイルドに修正
         console.error("マスタデータ取得失敗", e);
         Swal.fire({
           icon: 'warning',
           title: 'マスタデータの取得に失敗',
-          text: '一部のマスタ情報が読み込めませんでした。再読み込みするか、そのまま入力してください。',
+          text: '一部のマスタ情報が読み込めませんでした。',
           confirmButtonText: '了解'
         });
       } finally {
-        renderClientSelect();
+        // 🌟【修正】renderClientSelect が存在するときだけ実行（これでエラーで落ちなくなります）
+        if (typeof renderClientSelect === 'function') {
+          renderClientSelect();
+        } else {
+          console.warn("renderClientSelect 関数が定義されていないため、スキップしました。");
+        }
+
         // 既存の明細行がなければ2行追加する
         const container = document.getElementById('detailsContainer');
         if (container && container.children.length === 0) {
