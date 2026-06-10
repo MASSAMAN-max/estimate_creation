@@ -1164,6 +1164,12 @@ async function loadMasterLists() {
     // 【共通】見積・下書きデータ送信関数
     // =====================================
     async function executeSaveProcess(actionType) {
+      //【安全対策】ログイン情報が消えていないか真っ先にチェック！
+      if (!currentUser || !currentUser.userName) {
+        Swal.fire({ icon: 'error', title: '認証エラー', text: 'ユーザー情報が確認できません。一度再ログインしてください。', confirmButtonText: '了解' });
+        return;
+      }
+
       // 1. 画面から入力データを取得
       const data = getFormData();
       
