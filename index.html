@@ -783,61 +783,52 @@
       return String(text).replace(/[&<>"']/g, c => map[c]);
     }
     
-    async function loadMasterLists() {
-          try {
-            // 🌟安全対策：そもそもブラウザ側にログイン情報がなければその場で弾く
-            if (!currentUser || !currentUser.userId) {
-              throw new Error("ユーザー情報が確認できません。再ログインしてください。");
-            }
+async function loadMasterLists() {
+      try {
+        // 1. GASにマスタ取得をリクエスト（身元チェックはGAS側に任せる）
+        const res = await fetch(GAS_WEB_APP_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'text/plain'
+          },
+          body: JSON.stringify({
+            action: 'loadMasterLists',
+            userId: currentUser?.userId || '' // 存在する場合のみ念のため送る
+          })
+        });
     
-            // 1. アクション名と一緒に「ユーザーID」もセットしてGASに送る
-            const res = await fetch(GAS_WEB_APP_URL, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'text/plain'
-              },
-              body: JSON.stringify({
-                action: 'loadMasterLists',
-                userId: currentUser.userId,        // 🔥パターンA：第一階層でチェックしている場合
-                payload: {
-                  userId: currentUser.userId      // 🔥パターンB：payloadの中でチェックしている場合
-                }
-              })
-            });
+        const result = await res.json();
         
-            const result = await res.json();
-            
-            // 2. エラー判定
-            if (result.status === 'error') {
-              throw new Error(result.message);
-            }
-            
-            // 3. データの格納
-            const masterData = result.data || {};
-            MASTER_CLIENTS = masterData.clients || [];
-            MASTER_CATEGORIES = masterData.categories || [];
-            MASTER_UNITS = masterData.units || [];
-        
-          } catch (e) {
-            console.error("マスタデータ取得失敗", e);
-            // 🌟ユーザーに再ログインを促すポップアップを表示
-            Swal.fire({
-              icon: 'error',
-              title: '認証エラー',
-              text: e.message,
-              confirmButtonText: 'ログイン画面へ'
-            }).then(() => {
-              showLoginScreen(); // エラー時はログイン画面に強制移動
-            });
-          } finally {
-            renderClientSelect();
-            // 既存の明細行がなければ2行追加する
-            const container = document.getElementById('detailsContainer');
-            if (container && container.children.length === 0) {
-              for (let i = 0; i < 2; i++) addTableRow();
-            }
-          }
+        // 2. GAS側からエラーが返ってきた場合
+        if (result.status === 'error') {
+          throw new Error(result.message);
         }
+        
+        // 3. データの格納
+        const masterData = result.data || {};
+        MASTER_CLIENTS = masterData.clients || [];
+        MASTER_CATEGORIES = masterData.categories || [];
+        MASTER_UNITS = masterData.units || [];
+    
+      } catch (e) {
+        // 🌟ログイン画面に戻さず、エラー通知だけを出すようにマイルドに修正
+        console.error("マスタデータ取得失敗", e);
+        Swal.fire({
+          icon: 'warning',
+          title: 'マスタデータの取得に失敗',
+          text: '一部のマスタ情報が読み込めませんでした。再読み込みするか、そのまま入力してください。',
+          confirmButtonText: '了解'
+        });
+      } finally {
+        renderClientSelect();
+        // 既存の明細行がなければ2行追加する
+        const container = document.getElementById('detailsContainer');
+        if (container && container.children.length === 0) {
+          for (let i = 0; i < 2; i++) addTableRow();
+        }
+      }
+    }
+    
     function toggleNewClient() {
       const select = document.getElementById('clientSelect');
       const container = document.getElementById('newClientContainer');
