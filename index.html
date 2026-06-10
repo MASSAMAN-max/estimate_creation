@@ -738,16 +738,12 @@
           currentUser = {
             userId: result.data.userId,
             userName: result.data.userName,
-            password: password
           };
           sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
           
           showMainApp();
           document.getElementById('estimateDate').value = new Date().toISOString().split('T')[0];
           await loadMasterLists();
-          
-          document.getElementById('loginIdInput').value = '';
-          document.getElementById('loginPasswordInput').value = '';
         } else {
           // GAS側から戻ってきたエラーメッセージを表示
           const errorMsg = result.message || "ログインIDまたはパスワードが違います。";
@@ -775,14 +771,21 @@
           currentUser = null;
           document.getElementById('estimateForm').reset();
           document.getElementById('detailsContainer').innerHTML = '';
+          document.getElementById('loginIdInput').value = '';
+          document.getElementById('loginPasswordInput').value = '';
           showLoginScreen();
         }
       });
     }
 
+    function htmlEscape(text) {
+      const map = {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'};
+      return String(text).replace(/[&<>"']/g, c => map[c]);
+    }
+    
     async function loadMasterLists() {
       try {
-        // 🌟 1. GETからPOST通信に変更し、アクション名をGASに送信する
+        // 1. GETからPOST通信に変更し、アクション名をGASに送信する
         const res = await fetch(GAS_WEB_APP_URL, {
           method: 'POST',
           headers: {
@@ -795,12 +798,12 @@
     
         const result = await res.json();
         
-        // 🌟 2. エラー判定を新しいGASの返し方（status: 'error'）に合わせる
+        // 2. エラー判定を新しいGASの返し方（status: 'error'）に合わせる
         if (result.status === 'error') {
           throw new Error(result.message);
         }
         
-        // 🌟 3. 「result.data」の中から各マスターを取り出す
+        // 3. 「result.data」の中から各マスターを取り出す
         const masterData = result.data || {};
         MASTER_CLIENTS = masterData.clients || [];
         MASTER_CATEGORIES = masterData.categories || [];
