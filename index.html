@@ -804,6 +804,20 @@
         MASTER_CLIENTS = masterData.clients || [];
         MASTER_CATEGORIES = masterData.categories || [];
         MASTER_UNITS = masterData.units || [];
+
+        //【ここにまとめる】取引先のプルダウンをその場で組み立てる
+        const selectElement = document.getElementById('clientSelect');
+        if (selectElement) {
+          selectElement.innerHTML = '<option value="">-- 取引先を選択してください --</option>';
+          MASTER_CLIENTS.forEach(client => {
+            const option = document.createElement('option');
+            option.value = client;
+            option.textContent = client;
+            selectElement.appendChild(option);
+          });
+          // 新規追加用の選択肢もここに結合
+          selectElement.innerHTML += '<option value="__NEW__">（新規取引先を入力する）</option>';
+        }
     
       } catch (e) {
         console.error("マスタデータ取得失敗", e);
@@ -814,12 +828,11 @@
           confirmButtonText: '了解'
         });
       } finally {
-        // 🌟【修正】renderClientSelect が存在するときだけ実行（これでエラーで落ちなくなります）
-        if (typeof renderClientSelect === 'function') {
-          renderClientSelect();
-        } else {
-          console.warn("renderClientSelect 関数が定義されていないため、スキップしました。");
+        const container = document.getElementById('detailsContainer');
+        if (container && container.children.length === 0) {
+          for (let i = 0; i < 2; i++) addTableRow();
         }
+      }
 
         // 既存の明細行がなければ2行追加する
         const container = document.getElementById('detailsContainer');
