@@ -174,7 +174,6 @@
 
     /* 【1行目】項目(1) : 仕様・摘要(2) のレスポンシブ設定 */
     .card-row-upper {
-     /* display: grid;*/
       display: flex;
       grid-template-columns: 1fr;
       gap: 12px;
@@ -182,7 +181,8 @@
     }
     @media (min-width: 768px) {
       .card-row-upper {
-        grid-template-columns: 1fr; /*/2fr;/*/
+        display: flex;
+        grid-template-columns: 1fr;
         align-items: flex-start;
       }
     }
@@ -1123,11 +1123,11 @@
       if (rows.length >= 2) {
         // 💡 内訳2以上がある場合：内容1（1行目）を「一式・空白合計行」としてロック
         
-        // ① 単位を「空白」にする（選択肢になければ先頭に一時的に追加）
+        // ① 単位を「式」にする（選択肢になければ先頭に一時的に追加）
         if (!firstUnit.querySelector('option[value=""]')) {
           const blankOpt = document.createElement('option');
           blankOpt.value = '';
-          blankOpt.textContent = '（空白）';
+          blankOpt.textContent = '式';
           firstUnit.insertBefore(blankOpt, firstUnit.firstChild);
         }
         firstUnit.value = '';
