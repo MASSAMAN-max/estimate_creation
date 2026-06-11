@@ -1307,34 +1307,64 @@
           finalCategory = card.querySelector('.item-category-input').value.trim();
         }
         
+        const rows = card.querySelectorAll('.breakdown-row');
+        const isMultiple = rows.length >= 2; // 内訳が2行以上あるかどうかの判定
+        
+        let tempDetails = [];
+        let breakdownSubtotal = 0; // 2行目以降の金額の合計を蓄積する変数
+        
         // 親カードに属する内訳たちをループ
-        card.querySelectorAll('.breakdown-row').forEach((row, index) => {
+        rows.forEach((row, index) => {
           const name = row.querySelector('.item-name').value.trim();
           const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
-          
-          // ✨【修正】勝手に '式' に書き換わらないよう、選択されている値をそのまま取得
-          const unit = row.querySelector('.item-unit').value; 
-          
+          const unit = row.querySelector('.item-unit').value.trim();
           const price = parseFloat(row.querySelector('.item-price').value) || 0;
           const remarks = row.querySelector('.item-remarks').value.trim();
           
-          // ✨【修正】再計算（qty * price）を廃止！
-          // 画面上のスパン（dataset.value）に保存されている正しい金額をそのまま吸い上げます
-          const amountSpan = row.querySelector('.item-amount');
-          const amount = parseFloat(amountSpan.dataset.value) || 0;
+          // 各行の基本金額を計算（数量 × 単価）
+          let amount = Math.floor(qty * price);
+          
+          // 内訳が2行以上ある場合、2行目以降の金額を足していく
+          if (isMultiple && index > 0) {
+            breakdownSubtotal += amount;
+          }
           
           if(name !== "" || finalCategory !== "") {
-            details.push({
-              // 🌟【パターンBの肝】1つ目の内訳(index:0)だけ親項目を入れ、2つ目以降は空欄にする
+            // 💡【単位の空白バグ解決】
+            // 1行目で単位が空（ロック処理の value='' のせい）なら、自動的に「式」に救済する
+            let finalUnit = unit;
+            if (index === 0 && (unit === '' || !unit)) {
+              finalUnit = '式';
+            } else if (!unit) {
+              finalUnit = '式'; // 2行目以降も空なら「式」にする安心ガード
+            }
+
+            tempDetails.push({
+              _index: index, // 金額の書き換え判定用に一時的に持たせる（後で消します）
               itemCategory: index === 0 ? finalCategory : "",
               itemName: name,
               itemQty: qty,
-              itemUnit: unit,
+              itemUnit: finalUnit,
               itemPrice: price,
-              itemAmount: amount, // 🔥 画面の正しい金額（合計値など）が入ります
+              itemAmount: amount, // 1行目の場合は、後ほど合計値に上書きされます
               itemRemarks: remarks
             });
           }
+        });
+        
+        // 💡【金額バグ完全解決】
+        // 内訳が2つ以上ある場合、1行目（_indexが0）の金額を「2行目以降の合計金額」にガチャンと上書き
+        if (isMultiple) {
+          const firstItem = tempDetails.find(d => d._index === 0);
+          if (firstItem) {
+            firstItem.itemAmount = breakdownSubtotal;
+          }
+        }
+        
+        // 一時的に使った _index を削除しながら、メインの details 配列に合流
+        tempDetails.forEach(d => {
+          delete d._index;
+          details.push(d);
         });
       });
       
