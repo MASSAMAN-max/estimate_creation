@@ -275,6 +275,7 @@
     .badge-required {
       background-color: #ef4444;
       color: white;
+      position: relative;
       top: -2px;
       padding: 2px 6px;
       border-radius: 4px;
@@ -1053,7 +1054,7 @@
       // 既存のCSSグリッドクラス（item-grid-row-3colなど）をそのまま内訳行の内部に流用します
       row.innerHTML = `
 
-        <div class="form-group">
+        <div class="form-group" margin-top: 5px;">
           <label>仕様・摘要 <span class="badge-required">必須</span></label>
           <div class="voice-input-wrapper">
             <input type="text" class="item-name" placeholder="品名・内容など">
@@ -1310,9 +1311,17 @@
         card.querySelectorAll('.breakdown-row').forEach((row, index) => {
           const name = row.querySelector('.item-name').value.trim();
           const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
-          const unit = row.querySelector('.item-unit').value.trim() || '式';
+          
+          // ✨【修正】勝手に '式' に書き換わらないよう、選択されている値をそのまま取得
+          const unit = row.querySelector('.item-unit').value; 
+          
           const price = parseFloat(row.querySelector('.item-price').value) || 0;
           const remarks = row.querySelector('.item-remarks').value.trim();
+          
+          // ✨【修正】再計算（qty * price）を廃止！
+          // 画面上のスパン（dataset.value）に保存されている正しい金額をそのまま吸い上げます
+          const amountSpan = row.querySelector('.item-amount');
+          const amount = parseFloat(amountSpan.dataset.value) || 0;
           
           if(name !== "" || finalCategory !== "") {
             details.push({
@@ -1322,7 +1331,7 @@
               itemQty: qty,
               itemUnit: unit,
               itemPrice: price,
-              itemAmount: Math.floor(qty * price),
+              itemAmount: amount, // 🔥 画面の正しい金額（合計値など）が入ります
               itemRemarks: remarks
             });
           }
@@ -1425,107 +1434,97 @@
       });
     }
      
-    // =====================================
-    // 【共通】見積・下書きデータ送信関数
-    // =====================================
-    async function executeSaveProcess(actionType) {
-      // 🌟【修正】毎回エラーで弾くのではなく、自動復元関数を呼び出すだけ
-      const userName = getCurrentUserName();
-      if (!userName) {
-        Swal.fire({ icon: 'error', title: '認証エラー', text: 'ログイン情報が確認できません。再度ログインしてください。', confirmButtonText: '了解' });
-        return;
-      }
+    // =====================================
+    // 【共通】見積・下書きデータ送信関数
+    // =====================================
+    async function executeSaveProcess(actionType) {
+      // 🌟【修正】毎回エラーで弾くのではなく、自動復元関数を呼び出すだけ
+      const userName = getCurrentUserName();
+      if (!userName) {
+        Swal.fire({ icon: 'error', title: '認証エラー', text: 'ログイン情報が確認できません。再度ログインしてください。', confirmButtonText: '了解' });
+        return;
+      }
 
-      // 1. 画面から入力データを取得
-      const data = getFormData();
-      
-      // 🔥【追加：GASの気絶・CORSエラー対策】
-      // 明細の中に NaN や null（空欄が原因）が混ざっていた場合、安全に「0」に変換してGASのクラッシュを防ぎます。
-      if (data.details && Array.isArray(data.details)) {
-        data.details = data.details.map(item => ({
-          ...item,
-          price: (item.price === '' || item.price === null || item.price === undefined || isNaN(item.price)) ? 0 : Number(item.price)
-        }));
-      }
-      
-      // 2. 共通の入力チェック
-      if (!data.clientName) {
-        Swal.fire({ icon: 'warning', title: '入力不足', text: '取引先を選択してください。', confirmButtonText: '了解' });
-        return;
-      }
-      if (data.details.length === 0) {
-        Swal.fire({ icon: 'warning', title: '入力不足', text: '明細を1件以上入力してください。', confirmButtonText: '了解' });
-        return;
-      }
-      
-      // 3. アクションごとの個別設定（文字の切り替えなど）
-      const isDraft = actionType === 'saveDraft';
-      const loaderMsg = isDraft ? '下書きを保存中...' : '見積書を確定保存中...';
-      const successTitle = isDraft ? '下書き保存完了！' : '見積確定保存完了！';
-      
-      document.getElementById('loader').style.display = 'flex';
-      document.getElementById('loaderText').textContent = loaderMsg;
-      
-      try {
-        // 4. GASへ通信
-        const response = await fetch(GAS_WEB_APP_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain' },
-          body: JSON.stringify({
-            action: actionType,
-            payload: {
-              clientName: data.clientName,
-              clientAddress: data.clientAddress,
-              estimateDate: data.estimateDate,
-              subject: data.subject,
-              paymentTerms: data.paymentTerms,
-              validity: data.validity,
-              remarks: data.remarks,
-              totalAmount: data.total,
-              details: data.details, // 🔥 ここで綺麗になったデータが送られます
-              currentUserName: userName
-            }
-          })
-        });
-        
-        const result = await response.json();
-        
-        if (result.status === 'success') {
-          // 5. 戻ってきたIDの判定
-          const generatedId = isDraft ? result.data.draftId : result.data.estimateNo;
-          const idLabel = isDraft ? '下書きID' : '見積番号';
-          const pdfMsg = isDraft ? '' : '<br>PDFを生成しました。';
-          
-          if (!isDraft) {
-            const placeholder = document.getElementById('numberPlaceholder');
-            if (placeholder) {
-              placeholder.textContent = generatedId;
-            }
-          }
-          
-          // 成功ポップアップ
-          Swal.fire({
-            icon: 'success',
-            title: successTitle,
-            html: `${idLabel}: <strong>${generatedId}</strong>${pdfMsg}`,
-            confirmButtonText: '閉じる'
-          }).then(() => {
-            // フォームのリセット処理
-            document.getElementById('estimateForm').reset();
-            document.getElementById('detailsContainer').innerHTML = '';
-            for(let i=0; i<2; i++) addTableRow();
-            updateTotalSummary(); 
-          });
-          
-        } else {
-          Swal.fire({ icon: 'error', title: 'エラー', text: result.message });
-        }
-      } catch (error) {
-        Swal.fire({ icon: 'error', title: '通信エラー', text: error.message });
-      } finally {
-        document.getElementById('loader').style.display = 'none';
-      }
-    }
-  </script>
+      // 1. 画面から入力データを取得
+      const data = getFormData();
+      
+      // 2. 共通の入力チェック
+      if (!data.clientName) {
+        Swal.fire({ icon: 'warning', title: '入力不足', text: '取引先を選択してください。', confirmButtonText: '了解' });
+        return;
+      }
+      if (data.details.length === 0) {
+        Swal.fire({ icon: 'warning', title: '入力不足', text: '明細を1件以上入力してください。', confirmButtonText: '了解' });
+        return;
+      }
+      
+      // 3. アクションごとの個別設定（文字の切り替えなど）
+      const isDraft = actionType === 'saveDraft';
+      const loaderMsg = isDraft ? '下書きを保存中...' : '見積書を確定保存中...';
+      const successTitle = isDraft ? '下書き保存完了！' : '見積確定保存完了！';
+      
+      document.getElementById('loader').style.display = 'flex';
+      document.getElementById('loaderText').textContent = loaderMsg;
+      
+      try {
+        // 4. GASへ通信
+        const response = await fetch(GAS_WEB_APP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({
+            action: actionType,
+            payload: {
+              clientName: data.clientName,
+              clientAddress: data.clientAddress,
+              estimateDate: data.estimateDate,
+              subject: data.subject,
+              paymentTerms: data.paymentTerms,
+              validity: data.validity,
+              remarks: data.remarks,
+              totalAmount: data.total,
+              details: data.details,
+              currentUserName: userName
+            }
+          })
+        });
+        
+        const result = await response.json();
+        
+        if (result.status === 'success') {
+          // 5. 戻ってきたIDの判定
+          const generatedId = isDraft ? result.data.draftId : result.data.estimateNo;
+          const idLabel = isDraft ? '下書きID' : '見積番号';
+          const pdfMsg = isDraft ? '' : '<br>PDFを生成しました。';
+          
+          if (!isDraft) {
+            const placeholder = document.getElementById('numberPlaceholder');
+            if (placeholder) {
+              placeholder.textContent = generatedId;
+            }
+          }
+          
+          // 成功ポップアップ
+          Swal.fire({
+            icon: 'success',
+            title: successTitle,
+            html: `${idLabel}: <strong>${generatedId}</strong>${pdfMsg}`,
+            confirmButtonText: '閉じる'
+          }).then(() => {
+            // フォームのリセット処理
+            document.getElementById('estimateForm').reset();
+            document.getElementById('detailsContainer').innerHTML = '';
+            for(let i=0; i<2; i++) addTableRow();
+            updateTotalSummary(); 
+          });
+          
+        } else {
+          Swal.fire({ icon: 'error', title: 'エラー', text: result.message });
+        }
+      } catch (error) {
+        Swal.fire({ icon: 'error', title: '通信エラー', text: error.message });
+      } finally {
+        document.getElementById('loader').style.display = 'none';
+      }
+    }  </script>
 </body>
 </html>
