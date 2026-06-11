@@ -982,7 +982,7 @@
       // 🌟【新構造】親項目の中に内訳行（子）が複数入るHTML構造にアップデート
       card.innerHTML = `
          <div> 
-          <div style="display: flex; gap: 6px; align-items: flex-start; margin-bottom: 12px; background: #fff; padding: 12px; border-radius: 4px; border: 1px solid #e9ecef; width: 100%; box-sizing: border-box;">
+          <div ｃ gap: 6px; align-items: flex-start; margin-bottom: 12px; background: #fff; padding: 12px; border-radius: 4px; border: 1px solid #e9ecef; width: 100%; box-sizing: border-box;">
             <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 0;">
               <label style="font-weight: bold; color: #495057; display: block; margin-bottom: 4px;">親項目 <span class="badge-required">必須</span></label>
               <select class="item-category-select" style="width: 100%; box-sizing: border-box;" onchange="toggleNewCategory(this)">
@@ -1052,7 +1052,7 @@
       // 既存のCSSグリッドクラス（item-grid-row-3colなど）をそのまま内訳行の内部に流用します
       row.innerHTML = `
         <div class="card-row-upper">
-          <div class="form-group">
+          <div class="form-group" style="display: flex;>
             <label>仕様・摘要 <span class="badge-required">必須</span></label>
             <div class="voice-input-wrapper">
               <input type="text" class="item-name" placeholder="品名・内容など">
@@ -1438,6 +1438,15 @@
       // 1. 画面から入力データを取得
       const data = getFormData();
       
+      // 🔥【追加：GASの気絶・CORSエラー対策】
+      // 明細の中に NaN や null（空欄が原因）が混ざっていた場合、安全に「0」に変換してGASのクラッシュを防ぎます。
+      if (data.details && Array.isArray(data.details)) {
+        data.details = data.details.map(item => ({
+          ...item,
+          price: (item.price === '' || item.price === null || item.price === undefined || isNaN(item.price)) ? 0 : Number(item.price)
+        }));
+      }
+      
       // 2. 共通の入力チェック
       if (!data.clientName) {
         Swal.fire({ icon: 'warning', title: '入力不足', text: '取引先を選択してください。', confirmButtonText: '了解' });
@@ -1472,7 +1481,7 @@
               validity: data.validity,
               remarks: data.remarks,
               totalAmount: data.total,
-              details: data.details,
+              details: data.details, // 🔥 ここで綺麗になったデータが送られます
               currentUserName: userName
             }
           })
