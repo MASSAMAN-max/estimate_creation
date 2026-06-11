@@ -257,10 +257,10 @@
     /* 🌟 金額ボックス：他の input/select とデザイン・サイズを完全統一 */
     .amount-display-box {
       width: 100%;
-      padding: 12px;                        /* 他の入力欄と同じ余白 */
+      padding: 10px;                        /* 他の入力欄と同じ余白 */
       font-size: 16px;           /* 他の入力欄と同じ文字サイズ */
       font-weight: bold;
-      border: 2px solid var(--gray-border); /* 他の入力欄と同じ線の太さ */
+      border: 1px solid var(--gray-border);
       border-radius: var(--radius);
       box-sizing: border-box;
       background-color: #f8fafc;            /* 入力不可（自動計算）と一目でわかる上品な薄グレー */
@@ -989,17 +989,11 @@
                 <input type="text" class="item-category-input" style="width: 100%; box-sizing: border-box;" placeholder="新規項目名">
               </div>
             </div>
-            <div style="flex: 1; min-width: 0;">
-              <label style="font-weight: bold; display: block; color: #6c757d; margin-bottom: 4px;">項目合計金額</label>
-              <div class="amount-display-box" style="background: #e3f2fd; padding: 6px 12px; border-radius: 4px; border: 1px solid #b3e5fc; font-weight: bold; font-size: 16px; color: #0d47a1; text-align: right; width: 100%; box-sizing: border-box; display: flex; justify-content: space-between; align-items: center;">
-                <span>¥</span><span class="card-total-amount" data-value="0">0</span>
-              </div>
-            </div>
           </div>
           
           <div class="breakdown-container"></div>
 
-          <div style="display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; margin-top: 10px; border-top: 1px dashed #dee2e6; padding-top: 10px; width: 100%; box-sizing: border-box;">            
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-top: 10px; border-top: 1px dashed #dee2e6; padding-top: 10px; width: 100%; box-sizing: border-box;">            
             <div style="flex: 1; text-align: left;">
               <button type="button" class="btn" style="background-color: #e8f5e9; color: #2e7d32; padding: 6px 12px; font-size: 14px; font-weight: bold;" onclick="addBreakdownRow(this)">
                 <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle;">add</span> 内訳を追加
@@ -1021,14 +1015,6 @@
           </div>
         </div>
             
-          </div>
-          
-          <div>
-            <button type="button" class="btn btn-danger" style="padding: 6px 12px; font-size: 14px;" onclick="deleteTableRow(this)" >
-              <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle;">delete</span> 項目ごと削除
-            </button>
-          </div>
-        </div> 
       `;
       
       container.appendChild(card);
