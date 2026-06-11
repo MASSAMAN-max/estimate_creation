@@ -1101,9 +1101,9 @@
 
       container.appendChild(row);
       
-      // 内訳の単位はデフォルトで「式」
+      // 内訳の単位はデフォルトで「空白」
       const unitSelect = row.querySelector('.item-unit');
-      unitSelect.value = '式';
+      unitSelect.value = '';
       
       // 内訳の数に応じて「式に強制固定」するかをチェック
       checkUnitConstraint(container.closest('.detail-card'));
