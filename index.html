@@ -622,9 +622,6 @@
 
       <div class="table-section-header">
         <label>【明細項目】</label>
-        <button type="button" class="btn btn-secondary" onclick="addTableRow()">
-          <span class="material-symbols-outlined">add_circle</span>行追加
-        </button>
       </div>
       
       <div id="detailsContainer" class="details-list"></div>
@@ -634,6 +631,12 @@
           <label for="remarks">全体備考・特記事項</label>
           <textarea id="remarks" rows="4" placeholder="見積書の備考欄に記載する内容"></textarea>
         </div>
+
+      <div class="table-section-header">
+        <button type="button" class="btn btn-secondary" onclick="addTableRow()">
+          <span class="material-symbols-outlined">add_circle</span>行追加
+        </button>
+      </div>
         
         <div class="summary-box">
           <div class="summary-row">
@@ -973,7 +976,6 @@
     
       // 🌟【新構造】親項目の中に内訳行（子）が複数入るHTML構造にアップデート
       card.innerHTML = `
-        <div style="background: #f8f9fa; padding: 12px; border-radius: 6px; border: 1px solid #dee2e6; margin-bottom: 15px;">
           
           <div style="display: flex; gap: 6px; align-items: flex-start; margin-bottom: 12px; background: #fff; padding: 12px; border-radius: 4px; border: 1px solid #e9ecef; width: 100%; box-sizing: border-box;">
             <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 0;">
@@ -1003,12 +1005,12 @@
           </div>
           
           <div style="text-align: right; margin-top: 15px;">
-            <button type="button" class="btn btn-danger" style="padding: 6px 12px; font-size: 12px;" onclick="deleteTableRow(this)">
-              <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle;">delete</span> 項目ごと削除
+            <button type="button" class="btn btn-danger" style="padding: 6px 12px; font-size: 14px;" onclick="deleteTableRow(this)">
+              <span class="material-symbols-outlined" style="font-size: 12px; vertical-align: middle;">delete</span> 項目ごと削除
             </button>
           </div>
           
-        </div>
+
       `;
       
       container.appendChild(card);
@@ -1080,13 +1082,13 @@
         </div>
         ${!isFirst ? `
         <div style="text-align: left; margin-top: 2px; margin-bottom: 2px;">
-          <button type="button" class="btn btn-sm btn-danger" onclick="deleteBreakdownRow(this)" style="padding: 2px 8px; font-size: 14px; height: auto; line-height: 1;">
-            <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle;">delete</span> 内訳を削除
+          <button type="button" class="btn btn-sm btn-danger" onclick="deleteBreakdownRow(this)" style="padding: 2px 8px; font-size: 14px; height: auto; line-height: 1; border-radius: 4px;">
+            <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle;">delete</span> 内訳を削除
           </button>
         </div>
         ` : ''}
       `;
-      
+
       container.appendChild(row);
       
       // 内訳の単位はデフォルトで「式」
