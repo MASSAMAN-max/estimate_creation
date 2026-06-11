@@ -575,6 +575,10 @@
     <form id="estimateForm">
       <div class="form-grid">
         <div class="form-group">
+          <label for="estimateDate">見積作成日 <span class="badge-required">必須</span></label>
+          <input type="date" id="estimateDate" required>
+        </div>
+        <div class="form-group">
           <label for="clientSelect">取引先 <span class="badge-required">必須</span></label>
           <select id="clientSelect" required onchange="toggleNewClient()">
             <option value="">-- 選択（読込中...） --</option>
@@ -585,11 +589,6 @@
           </div>
         </div>
         
-        <div class="form-group">
-          <label for="estimateDate">見積作成日 <span class="badge-required">必須</span></label>
-          <input type="date" id="estimateDate" required>
-        </div>
-
         <div class="form-group full-width">
           <label for="clientAddress">取引先 住所</label>
           <div class="voice-input-wrapper">
@@ -636,7 +635,12 @@
       <div class="footer-flex">
         <div class="bottom-remarks form-group">
           <label for="remarks">全体備考・特記事項</label>
-          <textarea id="remarks" rows="4" placeholder="見積書の備考欄に記載する内容"></textarea>
+          <div class="voice-input-wrapper">
+            <textarea id="remarks" rows="4" placeholder="見積書の備考欄に記載する内容"></textarea>
+            <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)">
+              <span class="material-symbols-outlined">mic</span>
+            </button>
+          </div>
         </div>
         
         <div class="summary-box">
@@ -1109,20 +1113,58 @@
     // =====================================
     function checkUnitConstraint(card) {
       const rows = card.querySelectorAll('.breakdown-row');
+      if (rows.length === 0) return;
+      
+      const firstRow = rows[0];
+      const firstQty = firstRow.querySelector('.item-qty');
+      const firstUnit = firstRow.querySelector('.item-unit');
+      const firstPrice = firstRow.querySelector('.item-price');
+      
       if (rows.length >= 2) {
-        // 💡 内訳2以上がある場合 1行目（内訳1）だけを「式」に強制固定してロックする
-        const firstUnitSelect = rows[0].querySelector('.item-unit');
-        firstUnitSelect.value = '式';
-        firstUnitSelect.disabled = true;
+        // 💡 内訳2以上がある場合：内容1（1行目）を「一式・空白合計行」としてロック
         
-        // 2行目以降（内訳2、3...）は選択制にしたいので、ロックをかけない（もしdisabledになっていれば解除）
+        // ① 単位を「空白」にする（選択肢になければ先頭に一時的に追加）
+        if (!firstUnit.querySelector('option[value=""]')) {
+          const blankOpt = document.createElement('option');
+          blankOpt.value = '';
+          blankOpt.textContent = '（空白）';
+          firstUnit.insertBefore(blankOpt, firstUnit.firstChild);
+        }
+        firstUnit.value = '';
+        firstUnit.disabled = true;
+        
+        // ② 数量を「1」に固定してロック
+        firstQty.value = '1';
+        firstQty.disabled = true;
+        
+        // ③ 単価を「空欄」にしてロック
+        firstPrice.value = '';
+        firstPrice.disabled = true;
+        
+        // 内訳2以降（2行目以降）はすべて入力可能な状態を維持（もしdisabledなら解除）
         for (let i = 1; i < rows.length; i++) {
+          rows[i].querySelector('.item-qty').disabled = false;
           rows[i].querySelector('.item-unit').disabled = false;
+          rows[i].querySelector('.item-price').disabled = false;
         }
         
       } else if (rows.length === 1) {
-        // 💡 内訳が1つだけに戻った場合 内訳1のロックを解除して、自由に選択できるように戻す
-        rows[0].querySelector('.item-unit').disabled = false;
+        // 💡 内訳が1つだけに戻った場合：すべてのロックを解除して通常に戻す
+        firstQty.disabled = false;
+        firstUnit.disabled = false;
+        firstPrice.disabled = false;
+        
+        // 単価が空欄になっていたら初期値0に戻す
+        if (firstPrice.value === '') {
+          firstPrice.value = '0';
+        }
+        
+        // 自動追加していた「空白」の選択肢を消して、元の「式」に戻す
+        const blankOpt = firstUnit.querySelector('option[value=""]');
+        if (blankOpt) {
+          blankOpt.remove();
+          firstUnit.value = '式'; 
+        }
       }
     }
 
@@ -1144,28 +1186,64 @@
     // 🌟【新設・変更】内訳の金額計算 ＆ 親カード合計の連動関数
     // =====================================
     function calculateBreakdownAmount(element) {
+      const card = element.closest('.detail-card');
       const row = element.closest('.breakdown-row');
-      const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
-      const price = parseFloat(row.querySelector('.item-price').value) || 0;
-      const amount = Math.floor(qty * price);
       
-      const amountSpan = row.querySelector('.item-amount');
-      amountSpan.textContent = amount.toLocaleString();
-      amountSpan.dataset.value = amount;
+      if (row) {
+        const rows = card.querySelectorAll('.breakdown-row');
+        // 💡 2行以上あって、かつ自分が1行目の場合は、ここの個別掛け算をスキップ（全体の合計同期に任せる）
+        if (!(rows.length >= 2 && row === rows[0])) {
+          const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+          const price = parseFloat(row.querySelector('.item-price').value) || 0;
+          
+          // 🔥 元の仕様通り、Math.floor で端数を切り捨てます
+          const amount = Math.floor(qty * price); 
+          
+          const amountSpan = row.querySelector('.item-amount');
+          amountSpan.textContent = amount.toLocaleString();
+          
+          // 🔥 元の仕様通り、dataset.value を使って保存します
+          amountSpan.dataset.value = amount; 
+        }
+      }
       
       // 親カードの合計を更新
-      updateCardTotal(row.closest('.detail-card'));
+      updateCardTotal(card);
     }
 
+    // =====================================
+    // 💡 3. カード内の合計金額を計算・同期する関数
+    // =====================================
     function updateCardTotal(card) {
-      let cardSubtotal = 0;
-      card.querySelectorAll('.item-amount').forEach(span => {
-        cardSubtotal += parseFloat(span.dataset.value) || 0;
-      });
+      const rows = card.querySelectorAll('.breakdown-row');
+      if (rows.length === 0) return;
       
+      let cardSubtotal = 0;
+      
+      if (rows.length >= 2) {
+        // 💡 2行以上ある場合：2行目以降（内容2〜）の金額だけを合計する（金額倍増バグを防ぐ）
+        for (let i = 1; i < rows.length; i++) {
+          const span = rows[i].querySelector('.item-amount');
+          cardSubtotal += parseFloat(span.dataset.value) || 0;
+        }
+        
+        // 🔥【新条件】内容1（1行目）の金額欄に、計算した合計額をリアルタイムに同期
+        const firstAmountSpan = rows[0].querySelector('.item-amount');
+        firstAmountSpan.textContent = cardSubtotal.toLocaleString();
+        firstAmountSpan.dataset.value = cardSubtotal; // dataset形式で保存
+        
+      } else if (rows.length === 1) {
+        // 💡 1行だけの場合：その行の金額がそのまま合計になる
+        const span = rows[0].querySelector('.item-amount');
+        cardSubtotal = parseFloat(span.dataset.value) || 0;
+      }
+      
+      // 項目合計金額（右上の青いボックスなど）の表示を更新
       const totalSpan = card.querySelector('.card-total-amount');
-      totalSpan.textContent = cardSubtotal.toLocaleString();
-      totalSpan.dataset.value = cardSubtotal;
+      if (totalSpan) {
+        totalSpan.textContent = cardSubtotal.toLocaleString();
+        totalSpan.dataset.value = cardSubtotal; // dataset形式で保存
+      }
       
       // 見積書全体の合計を更新
       updateTotalSummary();
