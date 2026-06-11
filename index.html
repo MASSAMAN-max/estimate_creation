@@ -652,7 +652,7 @@
             <span>¥<span id="totalLabel">0</span></span>
           </div>
           
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%;">
+          <div style="display: flex; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%;">
             <button type="button" class="btn btn-primary" style="background-color: var(--gray-light); color: var(--text-primary); border: 1px solid var(--gray-border);" onclick="showPDFPreview()">
               <span class="material-symbols-outlined">visibility</span>プレビュー
             </button>
@@ -976,7 +976,7 @@
     
       // 🌟【新構造】親項目の中に内訳行（子）が複数入るHTML構造にアップデート
       card.innerHTML = `
-          
+         <div> 
           <div style="display: flex; gap: 6px; align-items: flex-start; margin-bottom: 12px; background: #fff; padding: 12px; border-radius: 4px; border: 1px solid #e9ecef; width: 100%; box-sizing: border-box;">
             <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 0;">
               <label style="font-weight: bold; color: #495057; display: block; margin-bottom: 4px;">親項目</label>
@@ -1009,8 +1009,7 @@
               <span class="material-symbols-outlined" style="font-size: 12px; vertical-align: middle;">delete</span> 項目ごと削除
             </button>
           </div>
-          
-
+        </div> 
       `;
       
       container.appendChild(card);
