@@ -1493,7 +1493,7 @@
       const loaderMsg = isDraft ? '下書きを保存中...' : '見積書を確定保存中...';
       const successTitle = isDraft ? '下書き保存完了！' : '見積確定保存完了！';
       
-document.getElementById('loader').style.display = 'flex';
+      document.getElementById('loader').style.display = 'flex';
       document.getElementById('loaderText').textContent = loaderMsg;
       
       try {
@@ -1535,13 +1535,17 @@ document.getElementById('loader').style.display = 'flex';
             }
           }
           
-          // 成功ポップアップ（1回目の通信が2秒で終わるので、即座にこれが表示されます！）
+          // 成功ポップアップ
           Swal.fire({
             icon: 'success',
             title: successTitle,
             html: `${idLabel}: <strong>${generatedId}</strong>${pdfMsg}`,
             confirmButtonText: '閉じる'
           }).then(() => {
+            // ⭕ 見積確定時：ポップアップブロックを回避しつつ安全にPDFを開く！
+            if (result.data.pdfDownloadUrl) {
+              window.open(result.data.pdfDownloadUrl, '_blank');
+            }
             document.getElementById('estimateForm').reset();
             document.getElementById('detailsContainer').innerHTML = '';
             for(let i=0; i<2; i++) addTableRow();
