@@ -1502,7 +1502,7 @@
           method: 'POST',
           headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify({
-            action: actionType, // 'saveEstimate'
+            action: actionType,
             payload: {
               clientName: data.clientName,
               clientAddress: data.clientAddress,
@@ -1523,37 +1523,31 @@
         if (result.status === 'success') {
           const generatedId = isDraft ? result.data.draftId : result.data.estimateNo;
           const idLabel = isDraft ? '下書きID' : '見積番号';
-          const pdfMsg = isDraft ? '' : '<br>PDFのダウンロードを開始します。';
+          // ユーザーへの案内メッセージを調整
+          const pdfMsg = isDraft ? '' : '<br><span style="font-size: 0.85em; color: #666;">※PDFはバックグラウンドでGoogleドライブに自動保存されます。</span>';
           
           if (!isDraft) {
             const placeholder = document.getElementById('numberPlaceholder');
             if (placeholder) placeholder.textContent = generatedId;
-            
-            // 🚀【新機能】GASから戻ってきた魔法のURLを使って、その場でPDFを即時ダウンロード！
-            if (result.data.pdfDownloadUrl) {
-              window.open(result.data.pdfDownloadUrl, '_blank');
-            }
           }
           
-          // 成功ポップアップ
+          // 成功ポップアップ（1回目の通信が爆速なので即座に表示されます）
           Swal.fire({
             icon: 'success',
             title: successTitle,
             html: `${idLabel}: <strong>${generatedId}</strong>${pdfMsg}`,
             confirmButtonText: '閉じる'
           }).then(() => {
-            // ⭕ 見積確定時：ポップアップブロックを回避しつつ安全にPDFを開く！
-            if (result.data.pdfDownloadUrl) {
-              window.open(result.data.pdfDownloadUrl, '_blank');
+            // 見積確定時のみフォームをリセット
+            if (!isDraft) {
+              document.getElementById('estimateForm').reset();
+              document.getElementById('detailsContainer').innerHTML = '';
+              for(let i=0; i<2; i++) addTableRow();
+              updateTotalSummary(); 
             }
-            document.getElementById('estimateForm').reset();
-            document.getElementById('detailsContainer').innerHTML = '';
-            for(let i=0; i<2; i++) addTableRow();
-            updateTotalSummary(); 
           });
           
-          // 🚀【裏技】画面が解決してローダーが消えた「裏側」で、こっそり2回目の通信を投げる
-          // 💡 先頭に「await」をつけないのが最大のポイントです。お返事を待たずにスルーします。
+          // 🚀【バックグラウンド処理】画面が動き出したら、裏側でおもむろに2回目の通信を投げる
           if (!isDraft) {
             fetch(GAS_WEB_APP_URL, {
               method: 'POST',
@@ -1574,7 +1568,7 @@
                   currentUserName: userName
                 }
               })
-            }).catch(e => console.log("バックグラウンド通信の切断（実用上100%無視してOK）:", e));
+            }).catch(e => console.log("バックグラウンド処理へのトリガー完了（応答非同期化）"));
           }
           
         } else {
