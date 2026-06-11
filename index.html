@@ -1051,15 +1051,15 @@
 
       // 既存のCSSグリッドクラス（item-grid-row-3colなど）をそのまま内訳行の内部に流用します
       row.innerHTML = `
-        <div class="card-row-upper">
-          <div class="form-group" style="display: flex;>
-            <label>仕様・摘要 <span class="badge-required">必須</span></label>
-            <div class="voice-input-wrapper">
-              <input type="text" class="item-name" placeholder="品名・内容など">
-              <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)"><span class="material-symbols-outlined">mic</span></button>
-            </div>
+
+        <div class="form-group">
+          <label>仕様・摘要 <span class="badge-required">必須</span></label>
+          <div class="voice-input-wrapper">
+            <input type="text" class="item-name" placeholder="品名・内容など">
+            <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)"><span class="material-symbols-outlined">mic</span></button>
           </div>
         </div>
+
         <div class="card-row-lower" style="margin-bottom: 4px;">
           <div class="item-grid-row-3col">
             <div class="form-group">
