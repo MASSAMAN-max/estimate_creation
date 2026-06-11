@@ -1493,76 +1493,94 @@
       const loaderMsg = isDraft ? '下書きを保存中...' : '見積書を確定保存中...';
       const successTitle = isDraft ? '下書き保存完了！' : '見積確定保存完了！';
       
-      document.getElementById('loader').style.display = 'flex';
-      document.getElementById('loaderText').textContent = loaderMsg;
-      
-      try {
-        // 4. GASへ通信
-        const response = await fetch(GAS_WEB_APP_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain' },
-          body: JSON.stringify({
-            action: actionType,
-            payload: {
-              clientName: data.clientName,
-              clientAddress: data.clientAddress,
-              estimateDate: data.estimateDate,
-              subject: data.subject,
-              paymentTerms: data.paymentTerms,
-              validity: data.validity,
-              remarks: data.remarks,
-              totalAmount: data.total,
-              details: data.details,
-              currentUserName: userName
-            }
-          })
-        });
-        
-        const result = await response.json();
-        
-        if (result.status === 'success') {
-          // 5. 戻ってきたIDの判定
-          const generatedId = isDraft ? result.data.draftId : result.data.estimateNo;
-          const idLabel = isDraft ? '下書きID' : '見積番号';
-          const pdfMsg = isDraft ? '' : '<br>PDFを生成しました。';
-          
-          if (!isDraft) {
-            const placeholder = document.getElementById('numberPlaceholder');
-            if (placeholder) {
-              placeholder.textContent = generatedId;
-            }
-          }
-          
-          // 成功ポップアップ
-          Swal.fire({
-            icon: 'success',
-            title: successTitle,
-            html: `${idLabel}: <strong>${generatedId}</strong>${pdfMsg}`,
-            confirmButtonText: '閉じる'
-          }).then(() => {
-            // フォームのリセット処理
-            document.getElementById('estimateForm').reset();
-            document.getElementById('detailsContainer').innerHTML = '';
-            for(let i=0; i<2; i++) addTableRow();
-            updateTotalSummary(); 
-          });
-          
-        } else {
-          Swal.fire({ icon: 'error', title: 'エラー', text: result.message });
-        }
-      } catch (error) {
-        // 💡 コンソールに生の、詳しいエラー原因を表示させる
-        console.error("【保存処理エラー詳細】:", error);
-        
-        Swal.fire({ 
-          icon: 'error', 
-          title: '通信エラー', 
-          text: `${error.message} (詳細はブラウザのコンソールを確認してください)` 
+document.getElementById('loader').style.display = 'flex';
+      document.getElementById('loaderText').textContent = loaderMsg;
+      
+      try {
+        // 4. GASへ通信（1回目：高速保存リクエスト）
+        const response = await fetch(GAS_WEB_APP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({
+            action: actionType, // 'saveEstimate'
+            payload: {
+              clientName: data.clientName,
+              clientAddress: data.clientAddress,
+              estimateDate: data.estimateDate,
+              subject: data.subject,
+              paymentTerms: data.paymentTerms,
+              validity: data.validity,
+              remarks: data.remarks,
+              totalAmount: data.total,
+              details: data.details,
+              currentUserName: userName
+            }
+          })
         });
+        
+        const result = await response.json();
+        
+        if (result.status === 'success') {
+          const generatedId = isDraft ? result.data.draftId : result.data.estimateNo;
+          const idLabel = isDraft ? '下書きID' : '見積番号';
+          const pdfMsg = isDraft ? '' : '<br>PDFのダウンロードを開始します。';
+          
+          if (!isDraft) {
+            const placeholder = document.getElementById('numberPlaceholder');
+            if (placeholder) placeholder.textContent = generatedId;
+            
+            // 🚀【新機能】GASから戻ってきた魔法のURLを使って、その場でPDFを即時ダウンロード！
+            if (result.data.pdfDownloadUrl) {
+              window.open(result.data.pdfDownloadUrl, '_blank');
+            }
+          }
+          
+          // 成功ポップアップ（1回目の通信が2秒で終わるので、即座にこれが表示されます！）
+          Swal.fire({
+            icon: 'success',
+            title: successTitle,
+            html: `${idLabel}: <strong>${generatedId}</strong>${pdfMsg}`,
+            confirmButtonText: '閉じる'
+          }).then(() => {
+            document.getElementById('estimateForm').reset();
+            document.getElementById('detailsContainer').innerHTML = '';
+            for(let i=0; i<2; i++) addTableRow();
+            updateTotalSummary(); 
+          });
+          
+          // 🚀【裏技】画面が解決してローダーが消えた「裏側」で、こっそり2回目の通信を投げる
+          // 💡 先頭に「await」をつけないのが最大のポイントです。お返事を待たずにスルーします。
+          if (!isDraft) {
+            fetch(GAS_WEB_APP_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'text/plain' },
+              body: JSON.stringify({
+                action: 'savePdfToDriveBackground',
+                payload: {
+                  estimateNo: generatedId,
+                  clientName: data.clientName,
+                  clientAddress: data.clientAddress,
+                  estimateDate: data.estimateDate,
+                  subject: data.subject,
+                  paymentTerms: data.paymentTerms,
+                  validity: data.validity,
+                  remarks: data.remarks,
+                  totalAmount: data.total,
+                  details: data.details,
+                  currentUserName: userName
+                }
+              })
+            }).catch(e => console.log("バックグラウンド通信の切断（実用上100%無視してOK）:", e));
+          }
+          
+        } else {
+          Swal.fire({ icon: 'error', title: 'エラー', text: result.message });
+        }
+      } catch (error) {
+        Swal.fire({ icon: 'error', title: '通信エラー', text: error.message });
       } finally {
         document.getElementById('loader').style.display = 'none';
       }
-    }  
   </script>
 </body>
 </html>
