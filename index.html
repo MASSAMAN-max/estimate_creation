@@ -1551,10 +1551,17 @@
           Swal.fire({ icon: 'error', title: 'エラー', text: result.message });
         }
       } catch (error) {
-        Swal.fire({ icon: 'error', title: '通信エラー', text: error.message });
-      } finally {
-        document.getElementById('loader').style.display = 'none';
-      }
+        // 💡 コンソールに生の、詳しいエラー原因を表示させる
+        console.error("【保存処理エラー詳細】:", error);
+        
+        Swal.fire({ 
+          icon: 'error', 
+          title: '通信エラー', 
+          text: `${error.message} (詳細はブラウザのコンソールを確認してください)` 
+        });
+      } finally {
+        document.getElementById('loader').style.display = 'none';
+      }
     }  
   </script>
 </body>
