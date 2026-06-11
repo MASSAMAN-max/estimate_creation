@@ -114,7 +114,7 @@
     .form-group select,
     .form-group textarea {
       width: 100%;
-      padding: 12px;                  /* 🌟ゆったりした押しやすいサイズに変更 */
+      padding: 10px;                  /* 🌟ゆったりした押しやすいサイズに変更 */
       font-size: 16px !important;     /* 🌟16pxに固定してスマホの自動ズームを完全防止！ */
       font-family: inherit;
       background: white;
@@ -174,14 +174,15 @@
 
     /* 【1行目】項目(1) : 仕様・摘要(2) のレスポンシブ設定 */
     .card-row-upper {
-      display: grid;
+     /* display: grid;*/
+      display: flex;
       grid-template-columns: 1fr;
       gap: 12px;
       margin-bottom: 12px;
     }
     @media (min-width: 768px) {
       .card-row-upper {
-        grid-template-columns: 1fr 2fr;
+        grid-template-columns: 1fr; /*/2fr;/*/
         align-items: flex-start;
       }
     }
