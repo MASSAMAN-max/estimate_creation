@@ -1467,32 +1467,32 @@
     // =====================================
     // 【共通】見積・下書きデータ送信関数
     // =====================================
-    async function executeSaveProcess(actionType) {
-      // 🌟【修正】毎回エラーで弾くのではなく、自動復元関数を呼び出すだけ
-      const userName = getCurrentUserName();
-      if (!userName) {
-        Swal.fire({ icon: 'error', title: '認証エラー', text: 'ログイン情報が確認できません。再度ログインしてください。', confirmButtonText: '了解' });
-        return;
-      }
+    async function executeSaveProcess(actionType) {
+      // 🌟【修正】毎回エラーで弾くのではなく、自動復元関数を呼び出すだけ
+      const userName = getCurrentUserName();
+      if (!userName) {
+        Swal.fire({ icon: 'error', title: '認証エラー', text: 'ログイン情報が確認できません。再度ログインしてください。', confirmButtonText: '了解' });
+        return;
+      }
 
-      // 1. 画面から入力データを取得
-      const data = getFormData();
-      
-      // 2. 共通の入力チェック
-      if (!data.clientName) {
-        Swal.fire({ icon: 'warning', title: '入力不足', text: '取引先を選択してください。', confirmButtonText: '了解' });
-        return;
-      }
-      if (data.details.length === 0) {
-        Swal.fire({ icon: 'warning', title: '入力不足', text: '明細を1件以上入力してください。', confirmButtonText: '了解' });
-        return;
-      }
-      
-      // 3. アクションごとの個別設定（文字の切り替えなど）
-      const isDraft = actionType === 'saveDraft';
-      const loaderMsg = isDraft ? '下書きを保存中...' : '見積書を確定保存中...';
-      const successTitle = isDraft ? '下書き保存完了！' : '見積確定保存完了！';
-      
+      // 1. 画面から入力データを取得
+      const data = getFormData();
+      
+      // 2. 共通の入力チェック
+      if (!data.clientName) {
+        Swal.fire({ icon: 'warning', title: '入力不足', text: '取引先を選択してください。', confirmButtonText: '了解' });
+        return;
+      }
+      if (data.details.length === 0) {
+        Swal.fire({ icon: 'warning', title: '入力不足', text: '明細を1件以上入力してください。', confirmButtonText: '了解' });
+        return;
+      }
+      
+      // 3. アクションごとの個別設定（文字の切り替えなど）
+      const isDraft = actionType === 'saveDraft';
+      const loaderMsg = isDraft ? '下書きを保存中...' : '見積書を確定保存中...';
+      const successTitle = isDraft ? '下書き保存完了！' : '見積確定保存完了！';
+      
       document.getElementById('loader').style.display = 'flex';
       document.getElementById('loaderText').textContent = loaderMsg;
       
@@ -1523,61 +1523,109 @@
         if (result.status === 'success') {
           const generatedId = isDraft ? result.data.draftId : result.data.estimateNo;
           const idLabel = isDraft ? '下書きID' : '見積番号';
-          // ユーザーへの案内メッセージを調整
-          const pdfMsg = isDraft ? '' : '<br><span style="font-size: 0.85em; color: #666;">※PDFはバックグラウンドでGoogleドライブに自動保存されます。</span>';
           
           if (!isDraft) {
             const placeholder = document.getElementById('numberPlaceholder');
             if (placeholder) placeholder.textContent = generatedId;
-          }
-          
-          // 成功ポップアップ（1回目の通信が爆速なので即座に表示されます）
-          Swal.fire({
-            icon: 'success',
-            title: successTitle,
-            html: `${idLabel}: <strong>${generatedId}</strong>${pdfMsg}`,
-            confirmButtonText: '閉じる'
-          }).then(() => {
-            // 見積確定時のみフォームをリセット
-            if (!isDraft) {
-              document.getElementById('estimateForm').reset();
-              document.getElementById('detailsContainer').innerHTML = '';
-              for(let i=0; i<2; i++) addTableRow();
-              updateTotalSummary(); 
+
+            // 🔄 1回目の保存成功！ローダーの文字を切り替えてPDF生成を待つ状態にする
+            const loaderText = document.getElementById('loaderText');
+            if (loaderText) {
+              loaderText.innerHTML = `データ保存完了（${generatedId}）<br><span style="color: #3085d6; font-weight: bold;">続けてPDF見積書を生成しています... (約5秒)</span>`;
             }
-          });
-          
-          // 🚀【バックグラウンド処理】画面が動き出したら、裏側でおもむろに2回目の通信を投げる
-          if (!isDraft) {
-            fetch(GAS_WEB_APP_URL, {
-              method: 'POST',
-              headers: { 'Content-Type': 'text/plain' },
-              body: JSON.stringify({
-                action: 'savePdfToDriveBackground',
-                payload: {
-                  estimateNo: generatedId,
-                  clientName: data.clientName,
-                  clientAddress: data.clientAddress,
-                  estimateDate: data.estimateDate,
-                  subject: data.subject,
-                  paymentTerms: data.paymentTerms,
-                  validity: data.validity,
-                  remarks: data.remarks,
-                  totalAmount: data.total,
-                  details: data.details,
-                  currentUserName: userName
-                }
-              })
-            }).catch(e => console.log("バックグラウンド処理へのトリガー完了（応答非同期化）"));
+
+            try {
+              // 🚀 2回目の通信：PDF生成をしっかり待つ(await)
+              const pdfResponse = await fetch(GAS_WEB_APP_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify({
+                  action: 'savePdfToDriveBackground',
+                  payload: {
+                    estimateNo: generatedId,
+                    clientName: data.clientName,
+                    clientAddress: data.clientAddress,
+                    estimateDate: data.estimateDate,
+                    subject: data.subject,
+                    paymentTerms: data.paymentTerms,
+                    validity: data.validity,
+                    remarks: data.remarks,
+                    totalAmount: data.total,
+                    details: data.details,
+                    currentUserName: userName
+                  }
+                })
+              });
+              
+              const pdfResult = await pdfResponse.json();
+              
+              // 通信が終わったのでローダーを非表示に
+              document.getElementById('loader').style.display = 'none';
+
+              // 🎉 PDFの生成まで無事に成功した場合、ダウンロードリンク付きポップアップを表示
+              if (pdfResult.status === 'success' && pdfResult.data && pdfResult.data.pdfUrl) {
+                await Swal.fire({
+                  icon: 'success',
+                  title: successTitle,
+                  html: `
+                    ${idLabel}: <strong>${generatedId}</strong><br><br>
+                    <span style="color: green; font-weight: bold;">✓ GoogleドライブへPDFを保存しました！</span><br>
+                    下のボタンを押すと、見積書PDFが別タブで開きます。
+                  `,
+                  showCancelButton: true,
+                  confirmButtonText: '📄 PDFを開く',
+                  cancelButtonText: '閉じる',
+                  confirmButtonColor: '#3085d6',
+                  cancelButtonColor: '#aaa',
+                  allowOutsideClick: false
+                }).then((alertResult) => {
+                  if (alertResult.isConfirmed) {
+                    window.open(pdfResult.data.pdfUrl, '_blank');
+                  }
+                });
+              } else {
+                // 万が一PDF側だけエラーが返ってきた場合
+                Swal.fire({
+                  icon: 'warning',
+                  title: 'データ保存完了（PDF生成エラー）',
+                  html: `${idLabel}: <strong>${generatedId}</strong><br><br>⚠️ データは正常に保存されましたが、PDFの自動生成に失敗しました。`,
+                  confirmButtonText: '閉じる'
+                });
+              }
+            } catch (pdfError) {
+              document.getElementById('loader').style.display = 'none';
+              Swal.fire({
+                icon: 'warning',
+                title: 'データ保存完了（PDF通信エラー）',
+                html: `${idLabel}: <strong>${generatedId}</strong><br><br>⚠️ データ保存は成功していますが、PDFの生成状態を追跡できませんでした。`,
+                confirmButtonText: '閉じる'
+              });
+            }
+
+            // ポップアップの処理が終わった後に、フォームを安全にリセット
+            document.getElementById('estimateForm').reset();
+            document.getElementById('detailsContainer').innerHTML = '';
+            for(let i=0; i<2; i++) addTableRow();
+            updateTotalSummary(); 
+
+          } else {
+            // 下書き保存の場合はPDFが不要なので即座に終了
+            document.getElementById('loader').style.display = 'none';
+            Swal.fire({
+              icon: 'success',
+              title: successTitle,
+              html: `${idLabel}: <strong>${generatedId}</strong>`,
+              confirmButtonText: '閉じる'
+            });
           }
           
         } else {
+          document.getElementById('loader').style.display = 'none';
           Swal.fire({ icon: 'error', title: 'エラー', text: result.message });
         }
       } catch (error) {
-        Swal.fire({ icon: 'error', title: '通信エラー', text: error.message });
-      } finally {
         document.getElementById('loader').style.display = 'none';
+        Swal.fire({ icon: 'error', title: '通信エラー', text: error.message });
       }
     }
   </script>
