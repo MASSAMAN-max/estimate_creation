@@ -1563,14 +1563,14 @@
               document.getElementById('loader').style.display = 'none';
 
               // 🎉 PDFの生成まで無事に成功した場合、ダウンロードリンク付きポップアップを表示
-              if (pdfResult.status === 'success' && pdfResult.data && pdfResult.data.pdfUrl) {
+              if (pdfResult.status === 'success' && pdfResult.data && pdfResult.data.pdfBase64) {
                 await Swal.fire({
                   icon: 'success',
                   title: successTitle,
                   html: `
                     ${idLabel}: <strong>${generatedId}</strong><br><br>
                     <span style="color: green; font-weight: bold;">✓ GoogleドライブへPDFを保存しました！</span><br>
-                    下のボタンを押すと、見積書PDFが別タブで開きます。
+                    下のボタンを押すと、見積書PDFが開きます。
                   `,
                   showCancelButton: true,
                   confirmButtonText: '📄 PDFを開く',
@@ -1580,11 +1580,31 @@
                   allowOutsideClick: false
                 }).then((alertResult) => {
                   if (alertResult.isConfirmed) {
-                    window.open(pdfResult.data.pdfUrl, '_blank');
+                    // GoogleドライブのURLではなく、Base64データからブラウザ用URL(Blob)をその場で生成
+                    const base64Data = pdfResult.data.pdfBase64;
+                    const sliceSize = 512;
+                    const byteCharacters = atob(base64Data);
+                    const byteArrays = [];
+                    
+                    for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
+                      const slice = byteCharacters.slice(offset, offset + sliceSize);
+                      const byteNumbers = new Array(slice.length);
+                      for (let i = 0; i < slice.length; i++) {
+                        byteNumbers[i] = slice.charCodeAt(i);
+                      }
+                      const byteArray = new Uint8Array(byteNumbers);
+                      byteArrays.push(byteArray);
+                    }
+                    
+                    const blob = new Blob(byteArrays, { type: 'application/pdf' });
+                    const blobURL = URL.createObjectURL(blob);
+                    
+                    // 生成した一時URLを別タブで開く（アクセス権エラーは100%起きません）
+                    window.open(blobURL, '_blank');
                   }
                 });
               } else {
-                // 万が一PDF側だけエラーが返ってきた場合
+                // 万が一PDF側だけエラーが返ってきた場合（残した部分です！）
                 Swal.fire({
                   icon: 'warning',
                   title: 'データ保存完了（PDF生成エラー）',
@@ -1593,6 +1613,7 @@
                 });
               }
             } catch (pdfError) {
+              // PDF通信自体が失敗した場合（ここも残した部分です！）
               document.getElementById('loader').style.display = 'none';
               Swal.fire({
                 icon: 'warning',
