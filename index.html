@@ -1610,8 +1610,19 @@
                     const blob = new Blob(byteArrays, { type: 'application/pdf' });
                     const blobURL = URL.createObjectURL(blob);
                     
-                    // 生成した一時URLを別タブで開く（アクセス権エラーは100%起きません）
-                    window.open(blobURL, '_blank');
+                    const link = document.createElement('a');
+                    link.href = blobURL;
+                    link.download = `御見積書_${generatedId}.pdf`; // スマホに保存される時のファイル名
+                    
+                    // 画面の裏に一瞬配置してクリックを発火（これでスマホのブロックを回避します）
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+
+                    // 使い終わったメモリを解放
+                    setTimeout(() => {
+                      URL.revokeObjectURL(blobURL);
+                    }, 200);
                   }
                 });
               } else {
