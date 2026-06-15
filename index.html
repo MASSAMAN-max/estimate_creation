@@ -588,18 +588,23 @@
     <form id="estimateForm">
       <div class="form-grid">
         <div class="form-group">
-          <label for="estimateDate">見積作成日 <span class="badge-required">必須</span></label>
-          <input type="date" id="estimateDate" required>
-        </div>
-        <div class="form-group">
-          <label for="clientSelect">取引先 <span class="badge-required">必須</span></label>
-          <select id="clientSelect" required onchange="toggleNewClient()">
-            <option value="">-- 選択（読込中...） --</option>
+          <label>取引先</label>
+          <select id="clientSelect" onchange="onClientChange(); toggleNewClient();">
+            <option value="">-- 取引先を選択してください --</option>
           </select>
-          <div id="newClientContainer" class="dynamic-input-container" style="display: none;">
-            <label for="clientName">新規取引先名 *</label>
-            <input type="text" id="clientName" placeholder="○○○○株式会社 御中">
-          </div>
+        </div>
+        <div id="newClientContainer" style="display: none;">
+          <input type="text" id="clientName" placeholder="新規取引先名を入力">
+        </div>
+        
+        <div class="form-group" style="margin-top: 12px;">
+          <label>取引先担当者</label>
+          <select id="clientManagerSelect" onchange="onClientManagerChange();">
+            <option value="">-- 先に取引先を選択してください --</option>
+          </select>
+        </div>
+        <div id="newClientManagerContainer" style="display: none; margin-top: 4px;">
+          <input type="text" id="clientManagerName" placeholder="新規担当者名を入力">
         </div>
         
         <div class="form-group full-width">
@@ -835,6 +840,9 @@
       return null;
     }
     
+    // =====================================
+    // 1. マスタデータの読み込み（アップデート版）
+    // =====================================
     async function loadMasterLists() {
       try {
         const res = await fetch(GAS_WEB_APP_URL, {
@@ -853,21 +861,26 @@
         if (result.status === 'error') throw new Error(result.message);
         
         const masterData = result.data || {};
-        MASTER_CLIENTS = masterData.clients || [];
+        // 🌟 構造化されたオブジェクト配列として保持
+        MASTER_CLIENTS = masterData.clients || []; 
         MASTER_CATEGORIES = masterData.categories || [];
         MASTER_UNITS = masterData.units || [];
-
-        //【ここにまとめる】取引先のプルダウンをその場で組み立てる
+    
+        // 取引先プルダウンを組み立てる（重複を除去してユニークな取引先名のみ抽出）
         const selectElement = document.getElementById('clientSelect');
         if (selectElement) {
           selectElement.innerHTML = '<option value="">-- 取引先を選択してください --</option>';
-          MASTER_CLIENTS.forEach(client => {
+          
+          // 重複のない取引先名リストを作成
+          const uniqueClientNames = [...new Set(MASTER_CLIENTS.map(c => c.clientName).filter(Boolean))];
+          
+          uniqueClientNames.forEach(clientName => {
             const option = document.createElement('option');
-            option.value = client;
-            option.textContent = client;
+            option.value = clientName;
+            option.textContent = clientName;
             selectElement.appendChild(option);
           });
-          // 新規追加用の選択肢もここに結合
+          // 新規追加用の選択肢
           selectElement.innerHTML += '<option value="__NEW__">（新規取引先を入力する）</option>';
         }
     
@@ -880,7 +893,6 @@
           confirmButtonText: '了解'
         });
       } finally {
-        // 既存の明細行がなければ2行追加する
         const container = document.getElementById('detailsContainer');
         if (container && container.children.length === 0) {
           for (let i = 0; i < 2; i++) addTableRow();
@@ -888,6 +900,90 @@
       }
     }
     
+    // =====================================
+    // 🌟【新規追加】取引先が変更された時の連動処理
+    // =====================================
+    function onClientChange() {
+      const clientSelect = document.getElementById('clientSelect');
+      const managerSelect = document.getElementById('clientManagerSelect');
+      const addressInput = document.getElementById('clientAddress'); // 住所入力欄のIDが clientAddress と仮定
+      
+      if (!clientSelect || !managerSelect) return;
+      
+      const selectedClient = clientSelect.value;
+      
+      // 担当者プルダウンを初期化
+      managerSelect.innerHTML = '<option value="">-- 担当者を選択してください --</option>';
+      
+      if (selectedClient && selectedClient !== '__NEW__') {
+        // 選択された取引先に一致するデータをマスタから抽出（複数ヒットする可能性あり）
+        const filtered = MASTER_CLIENTS.filter(c => c.clientName === selectedClient);
+        
+        filtered.forEach(item => {
+          if (item.clientManager) {
+            const option = document.createElement('option');
+            option.value = item.clientManager;
+            option.textContent = item.clientManager;
+            managerSelect.appendChild(option);
+          }
+        });
+        
+        // 連動して最初の候補の住所を自動セット
+        if (filtered.length > 0 && addressInput) {
+          addressInput.value = filtered[0].clientAddress || '';
+        }
+      } else if (selectedClient === '__NEW__' && addressInput) {
+        // 新規取引先の場合は住所を空にして手入力を促す
+        addressInput.value = '';
+      }
+      
+      // 新規担当者用の選択肢を追加して状態変更を通知
+      managerSelect.innerHTML += '<option value="__NEW__">（新規担当者を入力する）</option>';
+      onClientManagerChange();
+    }
+    
+    // =====================================
+    // 🌟【新規追加】担当者が変更された時の処理（住所の個別連動＆枠制御）
+    // =====================================
+    function onClientManagerChange() {
+      const clientSelect = document.getElementById('clientSelect').value;
+      const managerSelect = document.getElementById('clientManagerSelect').value;
+      const addressInput = document.getElementById('clientAddress');
+      
+      // 同じ取引先でも、担当者によって住所（支店等）が違う場合に備えて住所を上書き
+      if (clientSelect && clientSelect !== '__NEW__' && managerSelect && managerSelect !== '__NEW__') {
+        const matched = MASTER_CLIENTS.find(c => c.clientName === clientSelect && c.clientManager === managerSelect);
+        if (matched && addressInput) {
+          addressInput.value = matched.clientAddress || '';
+        }
+      }
+      
+      // 新規担当者入力ボックスの表示切り替え
+      toggleNewClientManager();
+    }
+    
+    // =====================================
+    // 🌟【新規追加】新規担当者の入力枠表示切り替え
+    // =====================================
+    function toggleNewClientManager() {
+      const select = document.getElementById('clientManagerSelect');
+      const container = document.getElementById('newClientManagerContainer');
+      const input = document.getElementById('clientManagerName');
+      
+      if (select && select.value === '__NEW__') {
+        container.style.display = 'block';
+        input.required = true;
+        input.focus();
+      } else if (container && input) {
+        container.style.display = 'none';
+        input.required = false;
+        input.value = '';
+      }
+    }
+    
+    // =====================================
+    // 2. 表示切り替え（既存の流用）
+    // =====================================
     function toggleNewClient() {
       const select = document.getElementById('clientSelect');
       const container = document.getElementById('newClientContainer');
@@ -1299,18 +1395,24 @@
     }
 
     // =====================================
-    // 【変更】画面入力値を集める関数
+    // 画面入力値を集める関数
     // =====================================
     function getFormData() {
-      const clientSelect = document.getElementById('clientSelect');
-      let finalClientName = clientSelect.value;
-      if(finalClientName === '__NEW__') {
-        finalClientName = document.getElementById('clientName').value.trim();
-      }
+      // 1. 取引先データの取得（新規か既存プルダウンか）
+      const clientSelectVal = document.getElementById('clientSelect').value;
+      const clientName = clientSelectVal === '__NEW__' ? document.getElementById('clientName').value.trim() : clientSelectVal;
+      
+      // 2. 担当者データの取得（新規か既存プルダウンか）🌟修正
+      const managerSelectVal = document.getElementById('clientManagerSelect').value;
+      const clientManager = managerSelectVal === '__NEW__' ? document.getElementById('clientManagerName').value.trim() : managerSelectVal;
+      
+      // 3. 住所の取得
+      const clientAddressElement = document.getElementById('clientAddress');
+      const clientAddress = clientAddressElement ? clientAddressElement.value.trim() : '';
       
       const details = [];
       
-      // 🌟【新ロジック】親子構造をループして、GASに優しいフラットな「パターンB」に整形
+      // 🌟親子構造をループして、GASに優しいフラットな「パターンB」に整形
       document.querySelectorAll('.detail-card').forEach(card => {
         const catSelect = card.querySelector('.item-category-select');
         let finalCategory = catSelect.value;
@@ -1342,16 +1444,15 @@
           
           if(name !== "" || finalCategory !== "") {
             // 💡【単位の空白バグ解決】
-            // 1行目で単位が空（ロック処理の value='' のせい）なら、自動的に「式」に救済する
             let finalUnit = unit;
             if (index === 0 && (unit === '' || !unit)) {
               finalUnit = '式';
             } else if (!unit) {
               finalUnit = '式'; // 2行目以降も空なら「式」にする安心ガード
             }
-
+    
             tempDetails.push({
-              _index: index, // 金額の書き換え判定用に一時的に持たせる（後で消します）
+              _index: index, // 金額の書き換え判定用に一時的に持たせる
               itemCategory: index === 0 ? finalCategory : "",
               itemName: name,
               itemQty: qty,
@@ -1364,7 +1465,7 @@
         });
         
         // 💡【金額バグ完全解決】
-        // 内訳が2つ以上ある場合、1行目（_indexが0）の金額を「2行目以降の合計金額」にガチャンと上書き
+        // 内訳が2つ以上ある場合、1行目（_indexが0）の金額を「2行目以降の合計金額」に上書き
         if (isMultiple) {
           const firstItem = tempDetails.find(d => d._index === 0);
           if (firstItem) {
@@ -1384,14 +1485,16 @@
         subtotal += item.itemAmount;
       });
       
+      // 🌟 データの詰め直し（不整合箇所をクリアに修正）
       return {
-        clientName: finalClientName,
-        clientAddress: document.getElementById('clientAddress').value.trim(),
-        estimateDate: document.getElementById('estimateDate').value,
-        subject: document.getElementById('subject').value.trim(),
-        validity: document.getElementById('validity').value.trim(),
-        paymentTerms: document.getElementById('paymentTerms').value.trim(),
-        remarks: document.getElementById('remarks').value.trim(),
+        clientName: clientName,               // 🌟 finalClientName から修正
+        clientManager: clientManager,         // 🌟 上で判定済みの変数をそのまま使用
+        clientAddress: clientAddress,         // 🌟 安全に取得した変数を使用
+        estimateDate: document.getElementById('estimateDate')?.value || '',
+        subject: document.getElementById('subject')?.value.trim() || '',
+        validity: document.getElementById('validity')?.value.trim() || '',
+        paymentTerms: document.getElementById('paymentTerms')?.value.trim() || '',
+        remarks: document.getElementById('remarks')?.value.trim() || '',
         details: details,
         subtotal: subtotal,
         tax: Math.floor(subtotal * 0.1),
@@ -1415,6 +1518,9 @@
     }
      
      
+    // =====================================
+    // 3. プレビューダイアログへの反映（アップデート版）
+    // =====================================
     function showPreviewDialog(data) {
       let detailRows = '';
       data.details.forEach(item => {
@@ -1429,12 +1535,13 @@
           </tr>
         `;
       });
-     
+      
       const previewHtml = `
         <div style="text-align: left; font-size: 12px; max-height: 500px; overflow-y: auto; background: white; padding: 16px; border-radius: 8px;">
           <h3 style="margin-bottom: 8px; border-bottom: 2px solid #1976D2; padding-bottom: 8px;">御見積書</h3>
           <p style="margin: 4px 0;"><strong>見積日:</strong> ${data.estimateDate}</p>
           <p style="margin: 4px 0;"><strong>取引先:</strong> ${htmlEscape(data.clientName)}</p>
+          <p style="margin: 4px 0;"><strong>担当者:</strong> ${htmlEscape(data.clientManager || '---')}</p>
           ${data.clientAddress ? `<p style="margin: 4px 0;"><strong>住所:</strong> ${htmlEscape(data.clientAddress)}</p>` : ''}
           <p style="margin: 4px 0;"><strong>件名:</strong> ${htmlEscape(data.subject)}</p>
           <hr style="margin: 8px 0; border: none; border-top: 1px solid #ddd;">
@@ -1458,7 +1565,7 @@
           ${data.remarks ? `<p style="margin: 8px 0;"><strong>備考:</strong> ${htmlEscape(data.remarks).replace(/\n/g, '<br>')}</p>` : ''}
         </div>
       `;
-     
+      
       Swal.fire({
         title: '見積書 簡易プレビュー',
         html: previewHtml,
@@ -1468,28 +1575,23 @@
         confirmButtonColor: '#1976D2'
       }).then((result) => {
         if (result.isConfirmed) {
-          // 確定版で保存
           executeSaveProcess('saveEstimate');
         }
-        // キャンセルの場合は何もしない（ダイアログが閉じて元の画面に戻る）
       });
     }
      
-    // =====================================
-    // 【共通】見積・下書きデータ送信関数
-    // =====================================
+    // =====================================
+    // 4. 【共通】見積・下書きデータ送信関数（アップデート版）
+    // =====================================
     async function executeSaveProcess(actionType) {
-      // 🌟【修正】毎回エラーで弾くのではなく、自動復元関数を呼び出すだけ
       const userName = getCurrentUserName();
       if (!userName) {
         Swal.fire({ icon: 'error', title: '認証エラー', text: 'ログイン情報が確認できません。再度ログインしてください。', confirmButtonText: '了解' });
         return;
       }
-
-      // 1. 画面から入力データを取得
+    
       const data = getFormData();
       
-      // 2. 共通の入力チェック
       if (!data.clientName) {
         Swal.fire({ icon: 'warning', title: '入力不足', text: '取引先を選択してください。', confirmButtonText: '了解' });
         return;
@@ -1499,7 +1601,6 @@
         return;
       }
       
-      // 3. アクションごとの個別設定（文字の切り替えなど）
       const isDraft = actionType === 'saveDraft';
       const loaderMsg = isDraft ? '下書きを保存中...' : '見積書を確定保存中...';
       const successTitle = isDraft ? '下書き保存完了！' : '見積確定保存完了！';
@@ -1508,7 +1609,7 @@
       document.getElementById('loaderText').textContent = loaderMsg;
       
       try {
-        // 4. GASへ通信（1回目：高速保存リクエスト）
+        // 🌟 1回目のリクエストの payload に clientManager を追加
         const response = await fetch(GAS_WEB_APP_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain' },
@@ -1516,6 +1617,7 @@
             action: actionType,
             payload: {
               clientName: data.clientName,
+              clientManager: data.clientManager, // 🌟 追加
               clientAddress: data.clientAddress,
               estimateDate: data.estimateDate,
               subject: data.subject,
@@ -1538,15 +1640,14 @@
           if (!isDraft) {
             const placeholder = document.getElementById('numberPlaceholder');
             if (placeholder) placeholder.textContent = generatedId;
-
-            // 🔄 1回目の保存成功！ローダーの文字を切り替えてPDF生成を待つ状態にする
+    
             const loaderText = document.getElementById('loaderText');
             if (loaderText) {
               loaderText.innerHTML = `データ保存完了（${generatedId}）<br><span style="color: #3085d6; font-weight: bold;">続けてPDF見積書を生成しています... (約5秒)</span>`;
             }
-
+    
             try {
-              // 🚀 2回目の通信：PDF生成をしっかり待つ(await)
+              // 🌟 2回目のリクエスト（PDF生成）の payload にも clientManager を追加
               const pdfResponse = await fetch(GAS_WEB_APP_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'text/plain' },
@@ -1555,6 +1656,7 @@
                   payload: {
                     estimateNo: generatedId,
                     clientName: data.clientName,
+                    clientManager: data.clientManager, // 🌟 追加
                     clientAddress: data.clientAddress,
                     estimateDate: data.estimateDate,
                     subject: data.subject,
@@ -1569,11 +1671,8 @@
               });
               
               const pdfResult = await pdfResponse.json();
-              
-              // 通信が終わったのでローダーを非表示に
               document.getElementById('loader').style.display = 'none';
-
-              // 🎉 PDFの生成まで無事に成功した場合、ダウンロードリンク付きポップアップを表示
+    
               if (pdfResult.status === 'success' && pdfResult.data && pdfResult.data.pdfBase64) {
                 await Swal.fire({
                   icon: 'success',
@@ -1591,7 +1690,6 @@
                   allowOutsideClick: false
                 }).then((alertResult) => {
                   if (alertResult.isConfirmed) {
-                    // GoogleドライブのURLではなく、Base64データからブラウザ用URL(Blob)をその場で生成
                     const base64Data = pdfResult.data.pdfBase64;
                     const sliceSize = 512;
                     const byteCharacters = atob(base64Data);
@@ -1612,21 +1710,16 @@
                     
                     const link = document.createElement('a');
                     link.href = blobURL;
-                    link.download = `御見積書_${generatedId}.pdf`; // スマホに保存される時のファイル名
+                    link.download = `御見積書_${generatedId}.pdf`;
                     
-                    // 画面の裏に一瞬配置してクリックを発火（これでスマホのブロックを回避します）
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
-
-                    // 使い終わったメモリを解放
-                    setTimeout(() => {
-                      URL.revokeObjectURL(blobURL);
-                    }, 200);
+    
+                    setTimeout(() => { URL.revokeObjectURL(blobURL); }, 200);
                   }
                 });
               } else {
-                // 万が一PDF側だけエラーが返ってきた場合（残した部分です！）
                 Swal.fire({
                   icon: 'warning',
                   title: 'データ保存完了（PDF生成エラー）',
@@ -1635,7 +1728,6 @@
                 });
               }
             } catch (pdfError) {
-              // PDF通信自体が失敗した場合（ここも残した部分です！）
               document.getElementById('loader').style.display = 'none';
               Swal.fire({
                 icon: 'warning',
@@ -1644,15 +1736,13 @@
                 confirmButtonText: '閉じる'
               });
             }
-
-            // ポップアップの処理が終わった後に、フォームを安全にリセット
+    
             document.getElementById('estimateForm').reset();
             document.getElementById('detailsContainer').innerHTML = '';
             for(let i=0; i<2; i++) addTableRow();
             updateTotalSummary(); 
-
+    
           } else {
-            // 下書き保存の場合はPDFが不要なので即座に終了
             document.getElementById('loader').style.display = 'none';
             Swal.fire({
               icon: 'success',
