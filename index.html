@@ -588,23 +588,18 @@
     <form id="estimateForm">
       <div class="form-grid">
         <div class="form-group">
-          <label>取引先</label>
-          <select id="clientSelect" onchange="onClientChange(); toggleNewClient();">
-            <option value="">-- 取引先を選択してください --</option>
+          <label for="estimateDate">見積作成日 <span class="badge-required">必須</span></label>
+          <input type="date" id="estimateDate" required>
+        </div>
+        <div class="form-group">
+          <label for="clientSelect">取引先 <span class="badge-required">必須</span></label>
+          <select id="clientSelect" required onchange="toggleNewClient()">
+            <option value="">-- 選択（読込中...） --</option>
           </select>
-        </div>
-        <div id="newClientContainer" style="display: none;">
-          <input type="text" id="clientName" placeholder="新規取引先名を入力">
-        </div>
-        
-        <div class="form-group" style="margin-top: 12px;">
-          <label>取引先担当者</label>
-          <select id="clientManagerSelect" onchange="onClientManagerChange();">
-            <option value="">-- 先に取引先を選択してください --</option>
-          </select>
-        </div>
-        <div id="newClientManagerContainer" style="display: none; margin-top: 4px;">
-          <input type="text" id="clientManagerName" placeholder="新規担当者名を入力">
+          <div id="newClientContainer" class="dynamic-input-container" style="display: none;">
+            <label for="clientName">新規取引先名 *</label>
+            <input type="text" id="clientName" placeholder="○○○○株式会社 御中">
+          </div>
         </div>
         
         <div class="form-group full-width">
@@ -693,7 +688,7 @@
     <div id="loaderText">データを保存＆PDFを作成中...</div>
   </div>
 
-<script>
+  <script>
     const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxQkNvNQblWXRtenGPoSaXbi99ftJ61j02s11rzCxwQZ4bDGddhzuDwrCRu0wYQxbNAow/exec"; 
 
     let MASTER_CLIENTS = [];
@@ -702,19 +697,16 @@
     let currentUser = null;  // ログインユーザー情報
 
     window.addEventListener('DOMContentLoaded', async () => {
+      // 🌟【修正】sessionStorage から localStorage へ変更（ログイン状態をチェック）
       const savedUser = localStorage.getItem('currentUser');
       
       if (savedUser) {
         currentUser = JSON.parse(savedUser);
         showMainApp();
         
-        // 🌟【修正】要素が存在する場合のみ日付を自動セット（nullエラーを防止）
-        const estimateDateInput = document.getElementById('estimateDate');
-        if (estimateDateInput) {
-          estimateDateInput.value = new Date().toISOString().split('T')[0];
-        }
+        // 💡 今日の日付を自動セット（重要な処理なので残します）
+        document.getElementById('estimateDate').value = new Date().toISOString().split('T')[0];
         
-        // これでエラーで止まらずにマスタが読み込まれます
         await loadMasterLists();
       } else {
         showLoginScreen();
@@ -776,14 +768,19 @@
           })
         });
         
+        // 🌟【修正】res.json() から response.json() に修正
         const result = await response.json();
         
         if (result.status === 'success') {
-          currentUser = result.data; 
+          currentUser = result.data; // { userId: "...", userName: "..." }
           
+          // ログイン状態をローカルストレージに保存
           localStorage.setItem('currentUser', JSON.stringify(currentUser));
+          
+          // 🌟【修正】showMainScreen() から showMainApp() に修正
           showMainApp();
           
+          // マスタデータの取得を開始
           await loadMasterLists();
         } else {
           Swal.fire({ icon: 'error', title: 'ログイン失敗', text: result.message });
@@ -806,6 +803,7 @@
         cancelButtonText: 'キャンセル'
       }).then((result) => {
         if (result.isConfirmed) {
+          // localStorageから削除する
           localStorage.removeItem('currentUser');
           currentUser = null;
           
@@ -823,10 +821,12 @@
       return String(text).replace(/[&<>"']/g, c => map[c]);
     }
 
+    //【新設】いつでも安全にユーザー名を取得・自動復元する共通関数
     function getCurrentUserName() {
       if (currentUser && currentUser.userName) {
         return currentUser.userName;
       }
+      // 変数が消えていたらローカルストレージから復元を試みる
       const saved = localStorage.getItem('currentUser');
       if (saved) {
         currentUser = JSON.parse(saved);
@@ -835,9 +835,6 @@
       return null;
     }
     
-    // =====================================
-    // 1. マスタデータの読み込み（アップデート版）
-    // =====================================
     async function loadMasterLists() {
       try {
         const res = await fetch(GAS_WEB_APP_URL, {
@@ -856,22 +853,21 @@
         if (result.status === 'error') throw new Error(result.message);
         
         const masterData = result.data || {};
-        MASTER_CLIENTS = masterData.clients || []; 
+        MASTER_CLIENTS = masterData.clients || [];
         MASTER_CATEGORIES = masterData.categories || [];
         MASTER_UNITS = masterData.units || [];
-    
+
+        //【ここにまとめる】取引先のプルダウンをその場で組み立てる
         const selectElement = document.getElementById('clientSelect');
         if (selectElement) {
           selectElement.innerHTML = '<option value="">-- 取引先を選択してください --</option>';
-          
-          const uniqueClientNames = [...new Set(MASTER_CLIENTS.map(c => c.clientName).filter(Boolean))];
-          
-          uniqueClientNames.forEach(clientName => {
+          MASTER_CLIENTS.forEach(client => {
             const option = document.createElement('option');
-            option.value = clientName;
-            option.textContent = clientName;
+            option.value = client;
+            option.textContent = client;
             selectElement.appendChild(option);
           });
+          // 新規追加用の選択肢もここに結合
           selectElement.innerHTML += '<option value="__NEW__">（新規取引先を入力する）</option>';
         }
     
@@ -884,6 +880,7 @@
           confirmButtonText: '了解'
         });
       } finally {
+        // 既存の明細行がなければ2行追加する
         const container = document.getElementById('detailsContainer');
         if (container && container.children.length === 0) {
           for (let i = 0; i < 2; i++) addTableRow();
@@ -891,83 +888,6 @@
       }
     }
     
-    // =====================================
-    // 取引先が変更された時の連動処理
-    // =====================================
-    function onClientChange() {
-      const clientSelect = document.getElementById('clientSelect');
-      const managerSelect = document.getElementById('clientManagerSelect');
-      const addressInput = document.getElementById('clientAddress'); 
-      
-      if (!clientSelect || !managerSelect) return;
-      
-      const selectedClient = clientSelect.value;
-      
-      managerSelect.innerHTML = '<option value="">-- 担当者を選択してください --</option>';
-      
-      if (selectedClient && selectedClient !== '__NEW__') {
-        const filtered = MASTER_CLIENTS.filter(c => c.clientName === selectedClient);
-        
-        filtered.forEach(item => {
-          if (item.clientManager) {
-            const option = document.createElement('option');
-            option.value = item.clientManager;
-            option.textContent = item.clientManager;
-            managerSelect.appendChild(option);
-          }
-        });
-        
-        if (filtered.length > 0 && addressInput) {
-          addressInput.value = filtered[0].clientAddress || '';
-        }
-      } else if (selectedClient === '__NEW__' && addressInput) {
-        addressInput.value = '';
-      }
-      
-      managerSelect.innerHTML += '<option value="__NEW__">（新規担当者を入力する）</option>';
-      onClientManagerChange();
-    }
-    
-    // =====================================
-    // 担当者が変更された時の処理
-    // =====================================
-    function onClientManagerChange() {
-      const clientSelect = document.getElementById('clientSelect').value;
-      const managerSelect = document.getElementById('clientManagerSelect').value;
-      const addressInput = document.getElementById('clientAddress');
-      
-      if (clientSelect && clientSelect !== '__NEW__' && managerSelect && managerSelect !== '__NEW__') {
-        const matched = MASTER_CLIENTS.find(c => c.clientName === clientSelect && c.clientManager === managerSelect);
-        if (matched && addressInput) {
-          addressInput.value = matched.clientAddress || '';
-        }
-      }
-      
-      toggleNewClientManager();
-    }
-    
-    // =====================================
-    // 新規担当者の入力枠表示切り替え
-    // =====================================
-    function toggleNewClientManager() {
-      const select = document.getElementById('clientManagerSelect');
-      const container = document.getElementById('newClientManagerContainer');
-      const input = document.getElementById('clientManagerName');
-      
-      if (select && select.value === '__NEW__') {
-        container.style.display = 'block';
-        input.required = true;
-        input.focus();
-      } else if (container && input) {
-        container.style.display = 'none';
-        input.required = false;
-        input.value = '';
-      }
-    }
-    
-    // =====================================
-    // 表示切り替え（既存の流用）
-    // =====================================
     function toggleNewClient() {
       const select = document.getElementById('clientSelect');
       const container = document.getElementById('newClientContainer');
@@ -1009,19 +929,23 @@
         });
         return;
       }
-      
-      const input = button.closest('.voice-input-wrapper').querySelector('input, textarea');
+     
+      const input = button.closest('.voice-input-wrapper').querySelector('input');
       const recognition = new SpeechRecognition();
       recognition.lang = 'ja-JP';
       recognition.continuous = false;
       recognition.interimResults = true;
-      
+     
       button.classList.add('recording');
       button.innerHTML = '<span class="material-symbols-outlined" style="animation: blink 1s infinite;">mic</span> 聴取中...';
       button.disabled = true;
       input.style.backgroundColor = '#FFF3E0';
       input.style.borderColor = '#FF9800';
-      
+     
+      recognition.onstart = () => {
+        // 入力中のビジュアル変更
+      };
+     
       recognition.onresult = (event) => {
         let transcript = '';
         for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -1031,16 +955,22 @@
         }
         if (transcript) {
           input.value = (input.value + transcript).trim();
+          calculateAmount(input);
         }
       };
-      
+     
       recognition.onerror = (event) => {
         button.classList.remove('recording');
         input.style.backgroundColor = '';
         input.style.borderColor = '';
-        Swal.fire({ icon: 'error', title: '音声認識失敗', text: 'もう一度お試しください。', confirmButtonText: '了解' });
+        Swal.fire({
+          icon: 'error',
+          title: '音声認識失敗',
+          text: 'もう一度お試しください。',
+          confirmButtonText: '了解'
+        });
       };
-      
+     
       recognition.onend = () => {
         button.classList.remove('recording');
         button.innerHTML = '<span class="material-symbols-outlined">mic</span>';
@@ -1048,24 +978,24 @@
         input.style.backgroundColor = '';
         input.style.borderColor = '';
       };
-      
+     
       recognition.start();
     }
 
-    // =====================================
+// =====================================
     // 明細行（親項目カード）を追加している関数
     // =====================================
     function addTableRow() {
       const container = document.getElementById('detailsContainer');
       const card = document.createElement('div');
-      card.className = 'detail-card'; 
+      card.className = 'detail-card'; // 既存のCSSを活かすためクラス名は維持します
       
       const categoryOptions = MASTER_CATEGORIES.map(cat => `<option value="${htmlEscape(cat)}">${htmlEscape(cat)}</option>`).join('') + '<option value="__NEW__">＋新規項目</option>';
     
-      // 🌟【修正】崩れていたHTML構造（style属性）を綺麗に直しました
+      // 🌟【新構造】親項目の中に内訳行（子）が複数入るHTML構造にアップデート
       card.innerHTML = `
-        <div> 
-          <div style="display: flex; gap: 6px; align-items: flex-start; margin-bottom: 12px; background: #fff; padding: 12px; border-radius: 4px; border: 1px solid #e9ecef; width: 100%; box-sizing: border-box;">
+         <div> 
+          <div ｃ gap: 6px; align-items: flex-start; margin-bottom: 12px; background: #fff; padding: 12px; border-radius: 4px; border: 1px solid #e9ecef; width: 100%; box-sizing: border-box;">
             <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 0;">
               <label style="font-weight: bold; color: #495057; display: block; margin-bottom: 4px;">親項目 <span class="badge-required">必須</span></label>
               <select class="item-category-select" style="width: 100%; box-sizing: border-box;" onchange="toggleNewCategory(this)">
@@ -1079,7 +1009,7 @@
           </div>
           
           <div class="breakdown-container"></div>
-    
+
           <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-top: 10px; border-top: 1px dashed #dee2e6; padding-top: 10px; width: 100%; box-sizing: border-box;">            
             <div style="flex: 1; text-align: left;">
               <button type="button" class="btn" style="background-color: #e8f5e9; color: #2e7d32; padding: 6px 12px; font-size: 14px; font-weight: bold;" onclick="addBreakdownRow(this)">
@@ -1100,24 +1030,26 @@
               <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle;">delete</span> 項目ごと削除
             </button>
           </div>
-        </div>    
+        </div>
+            
       `;
       
       container.appendChild(card);
       
+      // 👉 要望3：親項目を作ったとき、最初から「内訳1」を1セット自動表示する
       const breakdownContainer = card.querySelector('.breakdown-container');
-      addBreakdownRow(breakdownContainer, true); 
+      addBreakdownRow(breakdownContainer, true); // 第2引数で最初の子行であることを伝える
       
       updateTotalSummary();
     }
 
     // =====================================
-    // 子行（内訳）を追加する関数
+    // 🌟【新設】子行（内訳）を追加する関数
     // =====================================
     function addBreakdownRow(element, isFirst = false) {
       let container;
       if (isFirst) {
-        container = element; 
+        container = element; // addTableRowから直接コンテナが渡された場合
       } else {
         container = element.closest('.detail-card').querySelector('.breakdown-container');
       }
@@ -1129,17 +1061,18 @@
       const qtyOptions = Array.from({length: 99}, (_, i) => `<option value="${i+1}">${i+1}</option>`).join('');
       const unitOptions = (!MASTER_UNITS.includes('式') ? '<option value="式">式</option>' : '') + 
                           MASTER_UNITS.filter(u => u && u.trim()).map(u => `<option value="${htmlEscape(u.trim())}">${htmlEscape(u.trim())}</option>`).join('');
-    
-      // 🌟【修正】margin-top の前の style=" 抜けを修正
+
+      // 既存のCSSグリッドクラス（item-grid-row-3colなど）をそのまま内訳行の内部に流用します
       row.innerHTML = `
-        <div class="form-group" style="margin-top: 5px;">
+
+        <div class="form-group" margin-top: 5px;">
           <label>仕様・摘要 <span class="badge-required">必須</span></label>
           <div class="voice-input-wrapper">
             <input type="text" class="item-name" placeholder="品名・内容など">
             <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)"><span class="material-symbols-outlined">mic</span></button>
           </div>
         </div>
-    
+
         <div class="card-row-lower" style="margin-bottom: 4px;">
           <div class="item-grid-row-3col">
             <div class="form-group">
@@ -1160,13 +1093,13 @@
             </div>
           </div>
             
-          <div class="form-group">
-            <label>備考</label>
-            <div class="voice-input-wrapper">
-              <input type="text" class="item-remarks" placeholder="特記事項等">
-              <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)"><span class="material-symbols-outlined">mic</span></button>
+            <div class="form-group">
+              <label>備考</label>
+              <div class="voice-input-wrapper">
+                <input type="text" class="item-remarks" placeholder="特記事項等">
+                <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)"><span class="material-symbols-outlined">mic</span></button>
+              </div>
             </div>
-          </div>
         </div>
         ${!isFirst ? `
         <div style="text-align: left; margin-top: 2px; margin-bottom: 2px;">
@@ -1176,15 +1109,18 @@
         </div>
         ` : ''}
       `;
-    
+
       container.appendChild(row);
       
+      // 内訳の単位はデフォルトで「空白」
       const unitSelect = row.querySelector('.item-unit');
       unitSelect.value = '';
       
+      // 内訳の数に応じて「式に強制固定」するかをチェック
       checkUnitConstraint(container.closest('.detail-card'));
       calculateBreakdownAmount(row.querySelector('.item-qty'));
     }
+
     // =====================================
     // 内訳の数による単位制限ルールを制御する関数
     // =====================================
@@ -1198,6 +1134,9 @@
       const firstPrice = firstRow.querySelector('.item-price');
       
       if (rows.length >= 2) {
+        // 💡 内訳2以上がある場合：内容1（1行目）を「一式・空白合計行」としてロック
+        
+        // ① 単位を「式」にする（選択肢になければ先頭に一時的に追加）
         if (!firstUnit.querySelector('option[value=""]')) {
           const blankOpt = document.createElement('option');
           blankOpt.value = '';
@@ -1207,12 +1146,15 @@
         firstUnit.value = '';
         firstUnit.disabled = true;
         
+        // ② 数量を「1」に固定してロック
         firstQty.value = '1';
         firstQty.disabled = true;
         
-        firstPrice.value = '';
+        // ③ 単価を「小計」にしてロック
+        firstPrice.value = '小計';
         firstPrice.disabled = true;
         
+        // 内訳2以降（2行目以降）はすべて入力可能な状態を維持（もしdisabledなら解除）
         for (let i = 1; i < rows.length; i++) {
           rows[i].querySelector('.item-qty').disabled = false;
           rows[i].querySelector('.item-unit').disabled = false;
@@ -1220,14 +1162,17 @@
         }
         
       } else if (rows.length === 1) {
+        // 💡 内訳が1つだけに戻った場合：すべてのロックを解除して通常に戻す
         firstQty.disabled = false;
         firstUnit.disabled = false;
         firstPrice.disabled = false;
         
-        if (firstPrice.value === '' || firstPrice.value === '小計') {
+        // 単価が空欄になっていたら初期値0に戻す
+        if (firstPrice.value === '') {
           firstPrice.value = '0';
         }
         
+        // 自動追加していた「空白」の選択肢を消して、元の「式」に戻す
         const blankOpt = firstUnit.querySelector('option[value=""]');
         if (blankOpt) {
           blankOpt.remove();
@@ -1237,19 +1182,21 @@
     }
 
     // =====================================
-    // 内訳行（子）を削除する関数
+    // 🌟【新設】内訳行（子）を削除する関数
     // =====================================
     function deleteBreakdownRow(button) {
       const card = button.closest('.detail-card');
       const row = button.closest('.breakdown-row');
       row.remove();
       
+      // 🌟【要望】内訳2が消えたら選択制に戻すためのチェック
       checkUnitConstraint(card);
+      // 金額の再集計
       updateCardTotal(card);
     }
 
     // =====================================
-    // 内訳の金額計算 ＆ 親カード合計の連動関数
+    // 🌟【新設・変更】内訳の金額計算 ＆ 親カード合計の連動関数
     // =====================================
     function calculateBreakdownAmount(element) {
       const card = element.closest('.detail-card');
@@ -1257,23 +1204,28 @@
       
       if (row) {
         const rows = card.querySelectorAll('.breakdown-row');
+        // 💡 2行以上あって、かつ自分が1行目の場合は、ここの個別掛け算をスキップ（全体の合計同期に任せる）
         if (!(rows.length >= 2 && row === rows[0])) {
           const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
           const price = parseFloat(row.querySelector('.item-price').value) || 0;
           
+          // 🔥 元の仕様通り、Math.floor で端数を切り捨てます
           const amount = Math.floor(qty * price); 
           
           const amountSpan = row.querySelector('.item-amount');
           amountSpan.textContent = amount.toLocaleString();
+          
+          // 🔥 元の仕様通り、dataset.value を使って保存します
           amountSpan.dataset.value = amount; 
         }
       }
       
+      // 親カードの合計を更新
       updateCardTotal(card);
     }
 
     // =====================================
-    // カード内の合計金額を計算・同期する関数
+    // 💡 3. カード内の合計金額を計算・同期する関数
     // =====================================
     function updateCardTotal(card) {
       const rows = card.querySelectorAll('.breakdown-row');
@@ -1282,22 +1234,441 @@
       let cardSubtotal = 0;
       
       if (rows.length >= 2) {
+        // 💡 2行以上ある場合：2行目以降（内容2〜）の金額だけを合計する（金額倍増バグを防ぐ）
         for (let i = 1; i < rows.length; i++) {
           const span = rows[i].querySelector('.item-amount');
           cardSubtotal += parseFloat(span.dataset.value) || 0;
         }
         
+        // 🔥【新条件】内容1（1行目）の金額欄に、計算した合計額をリアルタイムに同期
         const firstAmountSpan = rows[0].querySelector('.item-amount');
         firstAmountSpan.textContent = cardSubtotal.toLocaleString();
-        firstAmountSpan.dataset.value = cardSubtotal; 
+        firstAmountSpan.dataset.value = cardSubtotal; // dataset形式で保存
         
       } else if (rows.length === 1) {
+        // 💡 1行だけの場合：その行の金額がそのまま合計になる
         const span = rows[0].querySelector('.item-amount');
         cardSubtotal = parseFloat(span.dataset.value) || 0;
       }
       
-      if (typeof updateTotalSummary === "function") {
-        updateTotalSummary();
+      // 項目合計金額（右上の青いボックスなど）の表示を更新
+      const totalSpan = card.querySelector('.card-total-amount');
+      if (totalSpan) {
+        totalSpan.textContent = cardSubtotal.toLocaleString();
+        totalSpan.dataset.value = cardSubtotal; // dataset形式で保存
+      }
+      
+      // 見積書全体の合計を更新
+      updateTotalSummary();
+    }
+
+    function deleteTableRow(button) {
+      button.closest('.detail-card').remove();
+      updateTotalSummary();
+    }
+
+    function calculateAmount(input) {
+      const card = input.closest('.detail-card');
+      const qty = parseFloat(card.querySelector('.item-qty').value) || 0;
+      const price = parseFloat(card.querySelector('.item-price').value) || 0;
+      
+      const amount = Math.floor(qty * price); 
+      card.querySelector('.item-amount').textContent = amount.toLocaleString();
+      card.querySelector('.item-amount').dataset.value = amount; 
+      
+      updateTotalSummary();
+    }
+    
+    // =====================================
+    // 【変更】全体の合計や消費税を計算している関数
+    // =====================================
+    function updateTotalSummary() {
+      let subtotal = 0;
+      // 各親項目の「合計金額ボックス」から値を集計します
+      document.querySelectorAll('.card-total-amount').forEach(span => {
+        subtotal += parseFloat(span.dataset.value) || 0;
+      });
+      
+      const tax = Math.floor(subtotal * 0.1);
+      const total = subtotal + tax;
+      
+      document.getElementById('subtotalLabel').textContent = subtotal.toLocaleString();
+      document.getElementById('taxLabel').textContent = tax.toLocaleString();
+      document.getElementById('totalLabel').textContent = total.toLocaleString();
+      document.getElementById('totalLabel').dataset.value = total;
+    }
+
+    // =====================================
+    // 【変更】画面入力値を集める関数
+    // =====================================
+    function getFormData() {
+      const clientSelect = document.getElementById('clientSelect');
+      let finalClientName = clientSelect.value;
+      if(finalClientName === '__NEW__') {
+        finalClientName = document.getElementById('clientName').value.trim();
+      }
+      
+      const details = [];
+      
+      // 🌟【新ロジック】親子構造をループして、GASに優しいフラットな「パターンB」に整形
+      document.querySelectorAll('.detail-card').forEach(card => {
+        const catSelect = card.querySelector('.item-category-select');
+        let finalCategory = catSelect.value;
+        if(finalCategory === '__NEW__') {
+          finalCategory = card.querySelector('.item-category-input').value.trim();
+        }
+        
+        const rows = card.querySelectorAll('.breakdown-row');
+        const isMultiple = rows.length >= 2; // 内訳が2行以上あるかどうかの判定
+        
+        let tempDetails = [];
+        let breakdownSubtotal = 0; // 2行目以降の金額の合計を蓄積する変数
+        
+        // 親カードに属する内訳たちをループ
+        rows.forEach((row, index) => {
+          const name = row.querySelector('.item-name').value.trim();
+          const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+          const unit = row.querySelector('.item-unit').value.trim();
+          const price = parseFloat(row.querySelector('.item-price').value) || 0;
+          const remarks = row.querySelector('.item-remarks').value.trim();
+          
+          // 各行の基本金額を計算（数量 × 単価）
+          let amount = Math.floor(qty * price);
+          
+          // 内訳が2行以上ある場合、2行目以降の金額を足していく
+          if (isMultiple && index > 0) {
+            breakdownSubtotal += amount;
+          }
+          
+          if(name !== "" || finalCategory !== "") {
+            // 💡【単位の空白バグ解決】
+            // 1行目で単位が空（ロック処理の value='' のせい）なら、自動的に「式」に救済する
+            let finalUnit = unit;
+            if (index === 0 && (unit === '' || !unit)) {
+              finalUnit = '式';
+            } else if (!unit) {
+              finalUnit = '式'; // 2行目以降も空なら「式」にする安心ガード
+            }
+
+            tempDetails.push({
+              _index: index, // 金額の書き換え判定用に一時的に持たせる（後で消します）
+              itemCategory: index === 0 ? finalCategory : "",
+              itemName: name,
+              itemQty: qty,
+              itemUnit: finalUnit,
+              itemPrice: price,
+              itemAmount: amount, // 1行目の場合は、後ほど合計値に上書きされます
+              itemRemarks: remarks
+            });
+          }
+        });
+        
+        // 💡【金額バグ完全解決】
+        // 内訳が2つ以上ある場合、1行目（_indexが0）の金額を「2行目以降の合計金額」にガチャンと上書き
+        if (isMultiple) {
+          const firstItem = tempDetails.find(d => d._index === 0);
+          if (firstItem) {
+            firstItem.itemAmount = breakdownSubtotal;
+          }
+        }
+        
+        // 一時的に使った _index を削除しながら、メインの details 配列に合流
+        tempDetails.forEach(d => {
+          delete d._index;
+          details.push(d);
+        });
+      });
+      
+      let subtotal = 0;
+      details.forEach(item => {
+        subtotal += item.itemAmount;
+      });
+      
+      return {
+        clientName: finalClientName,
+        clientAddress: document.getElementById('clientAddress').value.trim(),
+        estimateDate: document.getElementById('estimateDate').value,
+        subject: document.getElementById('subject').value.trim(),
+        validity: document.getElementById('validity').value.trim(),
+        paymentTerms: document.getElementById('paymentTerms').value.trim(),
+        remarks: document.getElementById('remarks').value.trim(),
+        details: details,
+        subtotal: subtotal,
+        tax: Math.floor(subtotal * 0.1),
+        total: subtotal + Math.floor(subtotal * 0.1)
+      };
+    }
+    
+    function showPDFPreview() {
+      const data = getFormData();
+      
+      if(!data.clientName) {
+        Swal.fire({ icon: 'warning', title: '入力不足', text: '取引先を選択してください。', confirmButtonText: '了解' });
+        return;
+      }
+      if(data.details.length === 0) {
+        Swal.fire({ icon: 'warning', title: '入力不足', text: '明細を1件以上入力してください。', confirmButtonText: '了解' });
+        return;
+      }
+      // プレビューダイアログを表示
+      showPreviewDialog(data);
+    }
+     
+     
+    function showPreviewDialog(data) {
+      let detailRows = '';
+      data.details.forEach(item => {
+        detailRows += `
+          <tr>
+            <td style="border: 1px solid #ddd; padding: 4px;">${htmlEscape(item.itemCategory)}</td>
+            <td style="border: 1px solid #ddd; padding: 4px;">${htmlEscape(item.itemName)}</td>
+            <td style="border: 1px solid #ddd; padding: 4px; text-align: right;">${item.itemQty}</td>
+            <td style="border: 1px solid #ddd; padding: 4px;">${htmlEscape(item.itemUnit)}</td>
+            <td style="border: 1px solid #ddd; padding: 4px; text-align: right;">¥${item.itemPrice.toLocaleString()}</td>
+            <td style="border: 1px solid #ddd; padding: 4px; text-align: right;">¥${item.itemAmount.toLocaleString()}</td>
+          </tr>
+        `;
+      });
+     
+      const previewHtml = `
+        <div style="text-align: left; font-size: 12px; max-height: 500px; overflow-y: auto; background: white; padding: 16px; border-radius: 8px;">
+          <h3 style="margin-bottom: 8px; border-bottom: 2px solid #1976D2; padding-bottom: 8px;">御見積書</h3>
+          <p style="margin: 4px 0;"><strong>見積日:</strong> ${data.estimateDate}</p>
+          <p style="margin: 4px 0;"><strong>取引先:</strong> ${htmlEscape(data.clientName)}</p>
+          ${data.clientAddress ? `<p style="margin: 4px 0;"><strong>住所:</strong> ${htmlEscape(data.clientAddress)}</p>` : ''}
+          <p style="margin: 4px 0;"><strong>件名:</strong> ${htmlEscape(data.subject)}</p>
+          <hr style="margin: 8px 0; border: none; border-top: 1px solid #ddd;">
+          <table style="width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 11px;">
+            <tr style="background: #E3F2FD;">
+              <th style="border: 1px solid #ddd; padding: 4px;">項目</th>
+              <th style="border: 1px solid #ddd; padding: 4px;">品名</th>
+              <th style="border: 1px solid #ddd; padding: 4px; text-align: right;">数量</th>
+              <th style="border: 1px solid #ddd; padding: 4px;">単位</th>
+              <th style="border: 1px solid #ddd; padding: 4px; text-align: right;">単価</th>
+              <th style="border: 1px solid #ddd; padding: 4px; text-align: right;">金額</th>
+            </tr>
+            ${detailRows}
+          </table>
+          <hr style="margin: 8px 0; border: none; border-top: 1px solid #ddd;">
+          <div style="text-align: right; margin: 8px 0;">
+            <p style="margin: 4px 0;">小計: ¥${data.subtotal.toLocaleString()}</p>
+            <p style="margin: 4px 0;">消費税(10%): ¥${data.tax.toLocaleString()}</p>
+            <p style="font-weight: 600; font-size: 13px; margin: 4px 0;">合計: ¥${data.total.toLocaleString()}</p>
+          </div>
+          ${data.remarks ? `<p style="margin: 8px 0;"><strong>備考:</strong> ${htmlEscape(data.remarks).replace(/\n/g, '<br>')}</p>` : ''}
+        </div>
+      `;
+     
+      Swal.fire({
+        title: '見積書 簡易プレビュー',
+        html: previewHtml,
+        showCancelButton: true,
+        confirmButtonText: '確定して保存',
+        cancelButtonText: 'キャンセル',
+        confirmButtonColor: '#1976D2'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          // 確定版で保存
+          executeSaveProcess('saveEstimate');
+        }
+        // キャンセルの場合は何もしない（ダイアログが閉じて元の画面に戻る）
+      });
+    }
+     
+    // =====================================
+    // 【共通】見積・下書きデータ送信関数
+    // =====================================
+    async function executeSaveProcess(actionType) {
+      // 🌟【修正】毎回エラーで弾くのではなく、自動復元関数を呼び出すだけ
+      const userName = getCurrentUserName();
+      if (!userName) {
+        Swal.fire({ icon: 'error', title: '認証エラー', text: 'ログイン情報が確認できません。再度ログインしてください。', confirmButtonText: '了解' });
+        return;
+      }
+
+      // 1. 画面から入力データを取得
+      const data = getFormData();
+      
+      // 2. 共通の入力チェック
+      if (!data.clientName) {
+        Swal.fire({ icon: 'warning', title: '入力不足', text: '取引先を選択してください。', confirmButtonText: '了解' });
+        return;
+      }
+      if (data.details.length === 0) {
+        Swal.fire({ icon: 'warning', title: '入力不足', text: '明細を1件以上入力してください。', confirmButtonText: '了解' });
+        return;
+      }
+      
+      // 3. アクションごとの個別設定（文字の切り替えなど）
+      const isDraft = actionType === 'saveDraft';
+      const loaderMsg = isDraft ? '下書きを保存中...' : '見積書を確定保存中...';
+      const successTitle = isDraft ? '下書き保存完了！' : '見積確定保存完了！';
+      
+      document.getElementById('loader').style.display = 'flex';
+      document.getElementById('loaderText').textContent = loaderMsg;
+      
+      try {
+        // 4. GASへ通信（1回目：高速保存リクエスト）
+        const response = await fetch(GAS_WEB_APP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({
+            action: actionType,
+            payload: {
+              clientName: data.clientName,
+              clientAddress: data.clientAddress,
+              estimateDate: data.estimateDate,
+              subject: data.subject,
+              paymentTerms: data.paymentTerms,
+              validity: data.validity,
+              remarks: data.remarks,
+              totalAmount: data.total,
+              details: data.details,
+              currentUserName: userName
+            }
+          })
+        });
+        
+        const result = await response.json();
+        
+        if (result.status === 'success') {
+          const generatedId = isDraft ? result.data.draftId : result.data.estimateNo;
+          const idLabel = isDraft ? '下書きID' : '見積番号';
+          
+          if (!isDraft) {
+            const placeholder = document.getElementById('numberPlaceholder');
+            if (placeholder) placeholder.textContent = generatedId;
+
+            // 🔄 1回目の保存成功！ローダーの文字を切り替えてPDF生成を待つ状態にする
+            const loaderText = document.getElementById('loaderText');
+            if (loaderText) {
+              loaderText.innerHTML = `データ保存完了（${generatedId}）<br><span style="color: #3085d6; font-weight: bold;">続けてPDF見積書を生成しています... (約5秒)</span>`;
+            }
+
+            try {
+              // 🚀 2回目の通信：PDF生成をしっかり待つ(await)
+              const pdfResponse = await fetch(GAS_WEB_APP_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify({
+                  action: 'savePdfToDriveBackground',
+                  payload: {
+                    estimateNo: generatedId,
+                    clientName: data.clientName,
+                    clientAddress: data.clientAddress,
+                    estimateDate: data.estimateDate,
+                    subject: data.subject,
+                    paymentTerms: data.paymentTerms,
+                    validity: data.validity,
+                    remarks: data.remarks,
+                    totalAmount: data.total,
+                    details: data.details,
+                    currentUserName: userName
+                  }
+                })
+              });
+              
+              const pdfResult = await pdfResponse.json();
+              
+              // 通信が終わったのでローダーを非表示に
+              document.getElementById('loader').style.display = 'none';
+
+              // 🎉 PDFの生成まで無事に成功した場合、ダウンロードリンク付きポップアップを表示
+              if (pdfResult.status === 'success' && pdfResult.data && pdfResult.data.pdfBase64) {
+                await Swal.fire({
+                  icon: 'success',
+                  title: successTitle,
+                  html: `
+                    ${idLabel}: <strong>${generatedId}</strong><br><br>
+                    <span style="color: green; font-weight: bold;">✓ GoogleドライブへPDFを保存しました！</span><br>
+                    下のボタンを押すと、見積書PDFが開きます。
+                  `,
+                  showCancelButton: true,
+                  confirmButtonText: '📄 PDFを開く',
+                  cancelButtonText: '閉じる',
+                  confirmButtonColor: '#3085d6',
+                  cancelButtonColor: '#aaa',
+                  allowOutsideClick: false
+                }).then((alertResult) => {
+                  if (alertResult.isConfirmed) {
+                    // GoogleドライブのURLではなく、Base64データからブラウザ用URL(Blob)をその場で生成
+                    const base64Data = pdfResult.data.pdfBase64;
+                    const sliceSize = 512;
+                    const byteCharacters = atob(base64Data);
+                    const byteArrays = [];
+                    
+                    for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
+                      const slice = byteCharacters.slice(offset, offset + sliceSize);
+                      const byteNumbers = new Array(slice.length);
+                      for (let i = 0; i < slice.length; i++) {
+                        byteNumbers[i] = slice.charCodeAt(i);
+                      }
+                      const byteArray = new Uint8Array(byteNumbers);
+                      byteArrays.push(byteArray);
+                    }
+                    
+                    const blob = new Blob(byteArrays, { type: 'application/pdf' });
+                    const blobURL = URL.createObjectURL(blob);
+                    
+                    const link = document.createElement('a');
+                    link.href = blobURL;
+                    link.download = `御見積書_${generatedId}.pdf`; // スマホに保存される時のファイル名
+                    
+                    // 画面の裏に一瞬配置してクリックを発火（これでスマホのブロックを回避します）
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+
+                    // 使い終わったメモリを解放
+                    setTimeout(() => {
+                      URL.revokeObjectURL(blobURL);
+                    }, 200);
+                  }
+                });
+              } else {
+                // 万が一PDF側だけエラーが返ってきた場合（残した部分です！）
+                Swal.fire({
+                  icon: 'warning',
+                  title: 'データ保存完了（PDF生成エラー）',
+                  html: `${idLabel}: <strong>${generatedId}</strong><br><br>⚠️ データは正常に保存されましたが、PDFの自動生成に失敗しました。`,
+                  confirmButtonText: '閉じる'
+                });
+              }
+            } catch (pdfError) {
+              // PDF通信自体が失敗した場合（ここも残した部分です！）
+              document.getElementById('loader').style.display = 'none';
+              Swal.fire({
+                icon: 'warning',
+                title: 'データ保存完了（PDF通信エラー）',
+                html: `${idLabel}: <strong>${generatedId}</strong><br><br>⚠️ データ保存は成功していますが、PDFの生成状態を追跡できませんでした。`,
+                confirmButtonText: '閉じる'
+              });
+            }
+
+            // ポップアップの処理が終わった後に、フォームを安全にリセット
+            document.getElementById('estimateForm').reset();
+            document.getElementById('detailsContainer').innerHTML = '';
+            for(let i=0; i<2; i++) addTableRow();
+            updateTotalSummary(); 
+
+          } else {
+            // 下書き保存の場合はPDFが不要なので即座に終了
+            document.getElementById('loader').style.display = 'none';
+            Swal.fire({
+              icon: 'success',
+              title: successTitle,
+              html: `${idLabel}: <strong>${generatedId}</strong>`,
+              confirmButtonText: '閉じる'
+            });
+          }
+          
+        } else {
+          document.getElementById('loader').style.display = 'none';
+          Swal.fire({ icon: 'error', title: 'エラー', text: result.message });
+        }
+      } catch (error) {
+        document.getElementById('loader').style.display = 'none';
+        Swal.fire({ icon: 'error', title: '通信エラー', text: error.message });
       }
     }
   </script>
