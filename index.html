@@ -1381,7 +1381,6 @@
     // =====================================
     // 画面入力値を集める関数
     // =====================================
-
     function getFormData() {
       const clientSelect = document.getElementById('clientSelect');
       let finalClientName = clientSelect.value;
@@ -1389,18 +1388,18 @@
         finalClientName = document.getElementById('clientName').value.trim();
       }
       
-      // 🌟 新設：担当者情報の取得
+      // 取引先担当者の取得
       const contactPersonSelect = document.getElementById('contactPersonSelect');
       let finalContactPerson = contactPersonSelect.value;
       if(finalContactPerson === '__NEW__') {
         finalContactPerson = document.getElementById('contactPersonName').value.trim();
       } else if (!finalContactPerson) {
-        finalContactPerson = '';  // 選択されていない場合は空文字
+        finalContactPerson = '';
       }
       
       const details = [];
       
-      // 🌟【新ロジック】親子構造をループして、GASに優しいフラットな「パターンB」に整形
+      // 🌟【新設】親子構造をループして、GASに優しいフラットな形式に整形
       document.querySelectorAll('.detail-card').forEach(card => {
         const catSelect = card.querySelector('.item-category-select');
         let finalCategory = catSelect.value;
@@ -1409,20 +1408,26 @@
         }
         
         const rows = card.querySelectorAll('.breakdown-row');
-        const isMultiple = rows.length >= 2; // 内訳が2行以上あるかどうかの判定
+        const isMultiple = rows.length >= 2;
         
         let tempDetails = [];
-        let breakdownSubtotal = 0; // 2行目以降の金額の合計を蓄積する変数
+        let breakdownSubtotal = 0;
         
-        // 親カードに属する内訳たちをループ
         rows.forEach((row, index) => {
           const name = row.querySelector('.item-name').value.trim();
           const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
           const unit = row.querySelector('.item-unit').value.trim();
-          const price = parseFloat(row.querySelector('.item-price').value) || 0;
+          let price = row.querySelector('.item-price').value.trim();  // 🌟 修正：文字列として取得
           const remarks = row.querySelector('.item-remarks').value.trim();
           
-          // 各行の基本金額を計算（数量 × 単価）
+          // 🌟【新設】単価が「小計」の場合は空文字に変換（GAS側で数値変換エラーを防ぐ）
+          if (price === '小計') {
+            price = '';  // GAS側では「単価なし」と判定される
+          } else {
+            price = parseFloat(price) || 0;  // 通常は数値に変換
+          }
+          
+          // 各行の基本金額を計算
           let amount = Math.floor(qty * price);
           
           // 内訳が2行以上ある場合、2行目以降の金額を足していく
@@ -1431,38 +1436,36 @@
           }
           
           if(name !== "" || finalCategory !== "") {
-            // 💡【単位の空白バグ解決】
-            // 1行目で単位が空（ロック処理の value='' のせい）なら、自動的に「式」に救済する
+            // 単位の空白バグ解決
             let finalUnit = unit;
             if (index === 0 && (unit === '' || !unit)) {
               finalUnit = '式';
             } else if (!unit) {
-              finalUnit = '式'; // 2行目以降も空なら「式」にする安心ガード
+              finalUnit = '式';
             }
-
+     
             tempDetails.push({
-              _index: index, // 金額の書き換え判定用に一時的に持たせる（後で消します）
+              _index: index,
               itemCategory: index === 0 ? finalCategory : "",
               itemName: name,
               itemQty: qty,
               itemUnit: finalUnit,
-              itemPrice: price,
-              itemAmount: amount, // 1行目の場合は、後ほど合計値に上書きされます
+              itemPrice: price,      // 🌟 修正：「小計」→ '' (空文字) または数値
+              itemAmount: amount,
               itemRemarks: remarks
             });
           }
         });
         
-        // 💡【金額バグ完全解決】
-        // 内訳が2つ以上ある場合、1行目（_indexが0）の金額を「2行目以降の合計金額」にガチャンと上書き
+        // 💡【重要】内訳が2つ以上ある場合、1行目の金額を上書き
         if (isMultiple) {
           const firstItem = tempDetails.find(d => d._index === 0);
           if (firstItem) {
-            firstItem.itemAmount = breakdownSubtotal;
+            firstItem.itemAmount = breakdownSubtotal;  // ← 内容2以降の合計に上書き
           }
         }
         
-        // 一時的に使った _index を削除しながら、メインの details 配列に合流
+        // _index を削除してメイン配列に追加
         tempDetails.forEach(d => {
           delete d._index;
           details.push(d);
@@ -1474,10 +1477,9 @@
         subtotal += item.itemAmount;
       });
       
-
       return {
         clientName: finalClientName,
-        contactPerson: finalContactPerson,      // 担当者情報
+        contactPerson: finalContactPerson,
         clientAddress: document.getElementById('clientAddress').value.trim(),
         estimateDate: document.getElementById('estimateDate').value,
         subject: document.getElementById('subject').value.trim(),
