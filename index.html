@@ -598,7 +598,19 @@
           </select>
           <div id="newClientContainer" class="dynamic-input-container" style="display: none;">
             <label for="clientName">新規取引先名 *</label>
-            <input type="text" id="clientName" placeholder="○○○○株式会社 御中">
+            <input type="text" id="clientName" placeholder="○○○○株式会社">
+          </div>
+        </div>
+       
+        <!-- 🌟【新設】取引先担当者選択フィールド -->
+        <div class="form-group">
+          <label for="contactPersonSelect">取引先担当者</label>
+          <select id="contactPersonSelect" onchange="toggleNewContactPerson()">
+            <option value="">-- 取引先を先に選択してください --</option>
+          </select>
+          <div id="newContactPersonContainer" class="dynamic-input-container" style="display: none;">
+            <label for="contactPersonName">新規担当者名 *</label>
+            <input type="text" id="contactPersonName" placeholder="山田太郎">
           </div>
         </div>
         
@@ -611,25 +623,25 @@
             </button>
           </div>
         </div>
-
+       
         <div class="form-group full-width">
           <label for="subject">件名 <span class="badge-required">必須</span></label>
           <div class="voice-input-wrapper">
-          <input type="text" id="subject" required placeholder="例) 工事に伴うお見積り">
+            <input type="text" id="subject" required placeholder="例) 工事に伴うお見積り">
             <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)">
               <span class="material-symbols-outlined">mic</span>
             </button>
           </div>
         </div>
-
+       
         <div class="form-group">
           <label for="validity">有効期限</label>
           <input type="text" id="validity" value="御見積作成から3ヵ月">
         </div>
-
+       
         <div class="form-group">
           <label for="paymentTerms">支払条件</label>
-          <input type="text" id="paymentTerms" value="月末締め翌月末払い">
+          <input type="text" id="paymentTerms" value="従来通り">
         </div>
       </div>
 
@@ -690,8 +702,9 @@
 
   <script>
     const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxQkNvNQblWXRtenGPoSaXbi99ftJ61j02s11rzCxwQZ4bDGddhzuDwrCRu0wYQxbNAow/exec"; 
-
+    // ===== グローバル変数 =====
     let MASTER_CLIENTS = [];
+    let MASTER_CONTACTPERSONS = {};  // { "取引先": ["担当者1", "担当者2"] }の形式
     let MASTER_CATEGORIES = [];
     let MASTER_UNITS = [];
     let currentUser = null;  // ログインユーザー情報
@@ -848,29 +861,29 @@
             }
           })
         });
-    
+     
         const result = await res.json();
         if (result.status === 'error') throw new Error(result.message);
         
         const masterData = result.data || {};
         MASTER_CLIENTS = masterData.clients || [];
+        MASTER_CONTACTPERSONS = masterData.contactPersons || {};  // 🌟 新設：担当者マスター
         MASTER_CATEGORIES = masterData.categories || [];
         MASTER_UNITS = masterData.units || [];
-
-        //【ここにまとめる】取引先のプルダウンをその場で組み立てる
-        const selectElement = document.getElementById('clientSelect');
-        if (selectElement) {
-          selectElement.innerHTML = '<option value="">-- 取引先を選択してください --</option>';
+     
+        // 取引先プルダウンを構築
+        const clientSelect = document.getElementById('clientSelect');
+        if (clientSelect) {
+          clientSelect.innerHTML = '<option value="">-- 取引先を選択してください --</option>';
           MASTER_CLIENTS.forEach(client => {
             const option = document.createElement('option');
             option.value = client;
             option.textContent = client;
-            selectElement.appendChild(option);
+            clientSelect.appendChild(option);
           });
-          // 新規追加用の選択肢もここに結合
-          selectElement.innerHTML += '<option value="__NEW__">（新規取引先を入力する）</option>';
+          clientSelect.innerHTML += '<option value="__NEW__">（新規取引先を入力する）</option>';
         }
-    
+     
       } catch (e) {
         console.error("マスタデータ取得失敗", e);
         Swal.fire({
@@ -880,7 +893,6 @@
           confirmButtonText: '了解'
         });
       } finally {
-        // 既存の明細行がなければ2行追加する
         const container = document.getElementById('detailsContainer');
         if (container && container.children.length === 0) {
           for (let i = 0; i < 2; i++) addTableRow();
@@ -888,10 +900,88 @@
       }
     }
     
+    // ===== 取引先選択時のイベントハンドラ =====
     function toggleNewClient() {
       const select = document.getElementById('clientSelect');
       const container = document.getElementById('newClientContainer');
       const input = document.getElementById('clientName');
+      const contactPersonSelect = document.getElementById('contactPersonSelect');
+      const newContactPersonContainer = document.getElementById('newContactPersonContainer');
+      
+      if(select.value === '__NEW__') {
+        container.style.display = 'block';
+        input.required = true;
+        input.focus();
+        
+        // 新規取引先の場合、担当者プルダウンをクリア
+        contactPersonSelect.innerHTML = '<option value="">-- 新規取引先の担当者を選択/入力 --</option>';
+        contactPersonSelect.innerHTML += '<option value="__NEW__">（新規担当者を入力する）</option>';
+        newContactPersonContainer.style.display = 'none';
+      } else {
+        container.style.display = 'none';
+        input.required = false;
+        input.value = '';
+        
+        // 既存取引先を選択 → 該当する担当者をプルダウンに表示
+        updateContactPersonList(select.value);
+      }
+    }
+    // ===== 取引先変更時の住所クリア処理 =====
+    // toggleNewClient() 関数の最後に以下を追加：
+    // 住所欄をクリアする処理
+    function clearClientAddress() {
+      const select = document.getElementById('clientSelect');
+      const addressInput = document.getElementById('clientAddress');
+      
+      // 取引先が選択されていない、または新規の場合は住所をクリア
+      if (!select.value || select.value === '__NEW__') {
+        addressInput.value = '';
+      }
+      // 既存取引先を選択した場合も、住所はクリアする（パターンX要件）
+      // （この項目は手動で入力するように）
+    }
+    
+    // ===== 🌟【新設】取引先に紐付く担当者リストを更新する関数 =====
+    function updateContactPersonList(selectedClient) {
+      const contactPersonSelect = document.getElementById('contactPersonSelect');
+      const newContactPersonContainer = document.getElementById('newContactPersonContainer');
+      const contactPersonInput = document.getElementById('contactPersonName');
+      
+      if (!selectedClient) {
+        contactPersonSelect.innerHTML = '<option value="">-- 取引先を先に選択してください --</option>';
+        newContactPersonContainer.style.display = 'none';
+        return;
+      }
+      
+      // マスターから該当する取引先の担当者一覧を取得
+      const contactPersons = MASTER_CONTACTPERSONS[selectedClient] || [];
+      
+      contactPersonSelect.innerHTML = '<option value="">-- 担当者を選択してください --</option>';
+      
+      // 取引先に紐付く担当者を全て追加
+      contactPersons.forEach(person => {
+        const option = document.createElement('option');
+        option.value = person;
+        option.textContent = person;
+        contactPersonSelect.appendChild(option);
+      });
+      
+      // 「新規担当者を入力する」オプションを追加
+      contactPersonSelect.innerHTML += '<option value="__NEW__">（新規担当者を入力する）</option>';
+      
+      // コンテナを非表示にして、入力欄をリセット
+      newContactPersonContainer.style.display = 'none';
+      contactPersonInput.required = false;
+      contactPersonInput.value = '';
+    }
+     
+     
+    // ===== 🌟【新設】担当者選択時のイベントハンドラ =====
+    function toggleNewContactPerson() {
+      const select = document.getElementById('contactPersonSelect');
+      const container = document.getElementById('newContactPersonContainer');
+      const input = document.getElementById('contactPersonName');
+      
       if(select.value === '__NEW__') {
         container.style.display = 'block';
         input.required = true;
@@ -1289,13 +1379,23 @@
     }
 
     // =====================================
-    // 【変更】画面入力値を集める関数
+    // 画面入力値を集める関数
     // =====================================
+
     function getFormData() {
       const clientSelect = document.getElementById('clientSelect');
       let finalClientName = clientSelect.value;
       if(finalClientName === '__NEW__') {
         finalClientName = document.getElementById('clientName').value.trim();
+      }
+      
+      // 🌟 新設：担当者情報の取得
+      const contactPersonSelect = document.getElementById('contactPersonSelect');
+      let finalContactPerson = contactPersonSelect.value;
+      if(finalContactPerson === '__NEW__') {
+        finalContactPerson = document.getElementById('contactPersonName').value.trim();
+      } else if (!finalContactPerson) {
+        finalContactPerson = '';  // 選択されていない場合は空文字
       }
       
       const details = [];
@@ -1374,8 +1474,10 @@
         subtotal += item.itemAmount;
       });
       
+
       return {
         clientName: finalClientName,
+        contactPerson: finalContactPerson,      // 担当者情報
         clientAddress: document.getElementById('clientAddress').value.trim(),
         estimateDate: document.getElementById('estimateDate').value,
         subject: document.getElementById('subject').value.trim(),
@@ -1469,17 +1571,14 @@
     // 【共通】見積・下書きデータ送信関数
     // =====================================
     async function executeSaveProcess(actionType) {
-      // 🌟【修正】毎回エラーで弾くのではなく、自動復元関数を呼び出すだけ
       const userName = getCurrentUserName();
       if (!userName) {
         Swal.fire({ icon: 'error', title: '認証エラー', text: 'ログイン情報が確認できません。再度ログインしてください。', confirmButtonText: '了解' });
         return;
       }
-
-      // 1. 画面から入力データを取得
+     
       const data = getFormData();
       
-      // 2. 共通の入力チェック
       if (!data.clientName) {
         Swal.fire({ icon: 'warning', title: '入力不足', text: '取引先を選択してください。', confirmButtonText: '了解' });
         return;
@@ -1489,7 +1588,6 @@
         return;
       }
       
-      // 3. アクションごとの個別設定（文字の切り替えなど）
       const isDraft = actionType === 'saveDraft';
       const loaderMsg = isDraft ? '下書きを保存中...' : '見積書を確定保存中...';
       const successTitle = isDraft ? '下書き保存完了！' : '見積確定保存完了！';
@@ -1498,7 +1596,6 @@
       document.getElementById('loaderText').textContent = loaderMsg;
       
       try {
-        // 4. GASへ通信（1回目：高速保存リクエスト）
         const response = await fetch(GAS_WEB_APP_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain' },
@@ -1506,6 +1603,7 @@
             action: actionType,
             payload: {
               clientName: data.clientName,
+              contactPerson: data.contactPerson,      // 担当者情報
               clientAddress: data.clientAddress,
               estimateDate: data.estimateDate,
               subject: data.subject,
@@ -1532,7 +1630,7 @@
             // 🔄 1回目の保存成功！ローダーの文字を切り替えてPDF生成を待つ状態にする
             const loaderText = document.getElementById('loaderText');
             if (loaderText) {
-              loaderText.innerHTML = `データ保存完了（${generatedId}）<br><span style="color: #3085d6; font-weight: bold;">続けてPDF見積書を生成しています... (約5秒)</span>`;
+              loaderText.innerHTML = `データ処理完了（${generatedId}）<br><span style="color: #cff5ff; font-weight: bold;">続けてPDF見積書を生成しています... (約5～10秒)</span>`;
             }
 
             try {
@@ -1570,8 +1668,8 @@
                   title: successTitle,
                   html: `
                     ${idLabel}: <strong>${generatedId}</strong><br><br>
-                    <span style="color: green; font-weight: bold;">✓ GoogleドライブへPDFを保存しました！</span><br>
-                    下のボタンを押すと、見積書PDFが開きます。
+                    <span style="color: green; font-weight: bold;">✓ 見積書PDFを保存しました！</span><br>
+                    下のボタンを押すと、見積書PDFをダウンロードします。
                   `,
                   showCancelButton: true,
                   confirmButtonText: '📄 PDFを開く',
