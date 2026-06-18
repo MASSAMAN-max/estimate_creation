@@ -1227,8 +1227,8 @@
         firstQty.value = '1';
         firstQty.disabled = true;
         
-        // ③ 単価を「小計」にしてロック
-        firstPrice.value = '小計';
+        // ③ 単価を「空白」にしてロック
+        firstPrice.value = '';
         firstPrice.disabled = true;
         
         // 内訳2以降（2行目以降）はすべて入力可能な状態を維持（もしdisabledなら解除）
@@ -1420,13 +1420,6 @@
           let price = row.querySelector('.item-price').value.trim();  // 🌟 修正：文字列として取得
           const remarks = row.querySelector('.item-remarks').value.trim();
           
-          // 🌟【新設】単価が「小計」の場合は空文字に変換（GAS側で数値変換エラーを防ぐ）
-          if (price === '小計') {
-            price = '';  // GAS側では「単価なし」と判定される
-          } else {
-            price = parseFloat(price) || 0;  // 通常は数値に変換
-          }
-          
           // 各行の基本金額を計算
           let amount = Math.floor(qty * price);
           
@@ -1450,7 +1443,7 @@
               itemName: name,
               itemQty: qty,
               itemUnit: finalUnit,
-              itemPrice: price,      // 🌟 修正：「小計」→ '' (空文字) または数値
+              itemPrice: price,
               itemAmount: amount,
               itemRemarks: remarks
             });
