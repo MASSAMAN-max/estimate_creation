@@ -1565,6 +1565,7 @@
     // =====================================
     // 【共通】見積・下書きデータ送信関数
     // =====================================
+
     async function executeSaveProcess(actionType) {
       const userName = getCurrentUserName();
       if (!userName) {
@@ -1591,6 +1592,9 @@
       document.getElementById('loaderText').textContent = loaderMsg;
       
       try {
+        // ========== 1回目: データ保存 ==========
+        console.log('📝 Saving estimate data...', { actionType, clientName: data.clientName });
+        
         const response = await fetch(GAS_WEB_APP_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain' },
@@ -1598,7 +1602,7 @@
             action: actionType,
             payload: {
               clientName: data.clientName,
-              contactPerson: data.contactPerson,      // 担当者情報
+              contactPerson: data.contactPerson,
               clientAddress: data.clientAddress,
               estimateDate: data.estimateDate,
               subject: data.subject,
@@ -1612,146 +1616,206 @@
           })
         });
         
-        const result = await response.json();
+        // 🔴 HTTP ステータスチェック（必須！）
+        if (!response.ok) {
+          throw new Error(`HTTP Error: ${response.status} ${response.statusText}`);
+        }
         
-        if (result.status === 'success') {
-          const generatedId = isDraft ? result.data.draftId : result.data.estimateNo;
-          const idLabel = isDraft ? '下書きID' : '見積番号';
-          
-          if (!isDraft) {
-            const placeholder = document.getElementById('numberPlaceholder');
-            if (placeholder) placeholder.textContent = generatedId;
-
-            // 🔄 1回目の保存成功！ローダーの文字を切り替えてPDF生成を待つ状態にする
-            const loaderText = document.getElementById('loaderText');
-            if (loaderText) {
-              loaderText.innerHTML = `データ処理完了（${generatedId}）<br><span style="color: #cff5ff; font-weight: bold;">続けてPDF見積書を生成しています... (約5～10秒)</span>`;
-            }
-
-            try {
-              // 🚀 2回目の通信：PDF生成をしっかり待つ(await)
-              const pdfResponse = await fetch(GAS_WEB_APP_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain' },
-                body: JSON.stringify({
-                  action: 'savePdfToDriveBackground',
-                  payload: {
-                    estimateNo: generatedId,
-                    clientName: data.clientName,
-                    clientAddress: data.clientAddress,
-                    estimateDate: data.estimateDate,
-                    subject: data.subject,
-                    paymentTerms: data.paymentTerms,
-                    validity: data.validity,
-                    remarks: data.remarks,
-                    totalAmount: data.total,
-                    details: data.details,
-                    currentUserName: userName
-                  }
-                })
-              });
-              
-              const pdfResult = await pdfResponse.json();
-              
-              // 通信が終わったのでローダーを非表示に
-              document.getElementById('loader').style.display = 'none';
-
-              // 🎉 PDFの生成まで無事に成功した場合、ダウンロードリンク付きポップアップを表示
-              if (pdfResult.status === 'success' && pdfResult.data && pdfResult.data.pdfBase64) {
-                await Swal.fire({
-                  icon: 'success',
-                  title: successTitle,
-                  html: `
-                    ${idLabel}: <strong>${generatedId}</strong><br><br>
-                    <span style="color: green; font-weight: bold;">✓ 見積書PDFを保存しました！</span><br>
-                    下のボタンを押すと、見積書PDFをダウンロードします。
-                  `,
-                  showCancelButton: true,
-                  confirmButtonText: '📄 PDFを開く',
-                  cancelButtonText: '閉じる',
-                  confirmButtonColor: '#3085d6',
-                  cancelButtonColor: '#aaa',
-                  allowOutsideClick: false
-                }).then((alertResult) => {
-                  if (alertResult.isConfirmed) {
-                    // GoogleドライブのURLではなく、Base64データからブラウザ用URL(Blob)をその場で生成
-                    const base64Data = pdfResult.data.pdfBase64;
-                    const sliceSize = 512;
-                    const byteCharacters = atob(base64Data);
-                    const byteArrays = [];
-                    
-                    for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
-                      const slice = byteCharacters.slice(offset, offset + sliceSize);
-                      const byteNumbers = new Array(slice.length);
-                      for (let i = 0; i < slice.length; i++) {
-                        byteNumbers[i] = slice.charCodeAt(i);
-                      }
-                      const byteArray = new Uint8Array(byteNumbers);
-                      byteArrays.push(byteArray);
-                    }
-                    
-                    const blob = new Blob(byteArrays, { type: 'application/pdf' });
-                    const blobURL = URL.createObjectURL(blob);
-                    
-                    const link = document.createElement('a');
-                    link.href = blobURL;
-                    link.download = `御見積書_${generatedId}.pdf`; // スマホに保存される時のファイル名
-                    
-                    // 画面の裏に一瞬配置してクリックを発火（これでスマホのブロックを回避します）
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-
-                    // 使い終わったメモリを解放
-                    setTimeout(() => {
-                      URL.revokeObjectURL(blobURL);
-                    }, 200);
-                  }
-                });
-              } else {
-                // 万が一PDF側だけエラーが返ってきた場合（残した部分です！）
-                Swal.fire({
-                  icon: 'warning',
-                  title: 'データ保存完了（PDF生成エラー）',
-                  html: `${idLabel}: <strong>${generatedId}</strong><br><br>⚠️ データは正常に保存されましたが、PDFの自動生成に失敗しました。`,
-                  confirmButtonText: '閉じる'
-                });
+        const result = await response.json();
+        console.log('✅ Save response:', result);
+        
+        if (result.status !== 'success') {
+          throw new Error(result.message || 'Save failed with unknown error');
+        }
+        
+        const generatedId = isDraft ? result.data?.draftId : result.data?.estimateNo;
+        if (!generatedId) {
+          throw new Error('No ID returned from server');
+        }
+     
+        // 下書きの場合は終了
+        if (isDraft) {
+          document.getElementById('loader').style.display = 'none';
+          Swal.fire({
+            icon: 'success',
+            title: successTitle,
+            html: `下書きID: <strong>${generatedId}</strong>`,
+            confirmButtonText: '閉じる'
+          });
+          return;
+        }
+     
+        // ========== 2回目: PDF生成（見積の場合のみ） ==========
+        document.getElementById('loaderText').innerHTML = 
+          `データ処理完了（${generatedId}）<br><span style="color: #cff5ff; font-weight: bold;">続けてPDF見積書を生成しています... (約5～10秒)</span>`;
+        
+        console.log('📄 Generating PDF...', { estimateNo: generatedId });
+        
+        // ⏱️ タイムアウト処理を追加（30秒で制限）
+        const timeoutId = setTimeout(() => {
+          throw new Error('PDF generation timeout (30 seconds)');
+        }, 30000);
+        
+        let pdfResponse;
+        try {
+          pdfResponse = await fetch(GAS_WEB_APP_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain' },
+            body: JSON.stringify({
+              action: 'savePdfToDriveBackground',
+              payload: {
+                estimateNo: generatedId,
+                clientName: data.clientName,
+                clientAddress: data.clientAddress,
+                estimateDate: data.estimateDate,
+                subject: data.subject,
+                paymentTerms: data.paymentTerms,
+                validity: data.validity,
+                remarks: data.remarks,
+                totalAmount: data.total,
+                details: data.details,
+                currentUserName: userName
               }
-            } catch (pdfError) {
-              // PDF通信自体が失敗した場合（ここも残した部分です！）
-              document.getElementById('loader').style.display = 'none';
-              Swal.fire({
-                icon: 'warning',
-                title: 'データ保存完了（PDF通信エラー）',
-                html: `${idLabel}: <strong>${generatedId}</strong><br><br>⚠️ データ保存は成功していますが、PDFの生成状態を追跡できませんでした。`,
-                confirmButtonText: '閉じる'
-              });
-            }
-
-            // ポップアップの処理が終わった後に、フォームを安全にリセット
-            document.getElementById('estimateForm').reset();
-            document.getElementById('detailsContainer').innerHTML = '';
-            for(let i=0; i<2; i++) addTableRow();
-            updateTotalSummary(); 
-
-          } else {
-            // 下書き保存の場合はPDFが不要なので即座に終了
-            document.getElementById('loader').style.display = 'none';
-            Swal.fire({
-              icon: 'success',
-              title: successTitle,
-              html: `${idLabel}: <strong>${generatedId}</strong>`,
-              confirmButtonText: '閉じる'
-            });
+            })
+          });
+        } finally {
+          clearTimeout(timeoutId);
+        }
+        
+        // 🔴 HTTP ステータスチェック
+        if (!pdfResponse.ok) {
+          throw new Error(`PDF API HTTP Error: ${pdfResponse.status} ${pdfResponse.statusText}`);
+        }
+        
+        // JSONパース時のエラー処理を強化
+        let pdfResult;
+        try {
+          pdfResult = await pdfResponse.json();
+        } catch (parseError) {
+          console.error('❌ JSON parse error:', parseError);
+          const responseText = await pdfResponse.text();
+          console.error('Response text:', responseText);
+          throw new Error(`PDF response was not valid JSON: ${parseError.message}`);
+        }
+        
+        console.log('✅ PDF result:', pdfResult);
+        
+        // レスポンス構造をしっかりチェック
+        if (pdfResult.status !== 'success') {
+          throw new Error(`PDF generation failed: ${pdfResult.message || 'Unknown error'}`);
+        }
+        
+        if (!pdfResult.data?.pdfBase64) {
+          throw new Error('PDF data missing in response');
+        }
+        
+        // ローダーを非表示
+        document.getElementById('loader').style.display = 'none';
+        
+        // ========== PDF処理: Base64 → Blob → ダウンロード ==========
+        try {
+          console.log('📦 Processing PDF data...', { 
+            base64Length: pdfResult.data.pdfBase64.length 
+          });
+          
+          // Base64クリーンアップ（改行・スペース削除）
+          const base64Data = pdfResult.data.pdfBase64.replace(/\s/g, '');
+          
+          // Base64デコード
+          let byteCharacters;
+          try {
+            byteCharacters = atob(base64Data);
+          } catch (decodeError) {
+            console.error('❌ Base64 decode failed:', decodeError);
+            throw new Error(`PDF format error: ${decodeError.message}`);
           }
           
-        } else {
-          document.getElementById('loader').style.display = 'none';
-          Swal.fire({ icon: 'error', title: 'エラー', text: result.message });
+          // ByteArray変換
+          const sliceSize = 512;
+          const byteArrays = [];
+          
+          for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
+            const slice = byteCharacters.slice(offset, offset + sliceSize);
+            const byteNumbers = new Array(slice.length);
+            for (let i = 0; i < slice.length; i++) {
+              byteNumbers[i] = slice.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            byteArrays.push(byteArray);
+          }
+          
+          // Blob生成
+          const blob = new Blob(byteArrays, { type: 'application/pdf' });
+          console.log('✅ Blob created:', { size: blob.size, type: blob.type });
+          
+          // ダウンロード用URL生成
+          const blobURL = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = blobURL;
+          link.download = `御見積書_${generatedId}.pdf`;
+          
+          // ダウンロード成功後、確認ダイアログを表示
+          await Swal.fire({
+            icon: 'success',
+            title: successTitle,
+            html: `
+              見積番号: <strong>${generatedId}</strong><br><br>
+              <span style="color: green; font-weight: bold;">✓ 見積書PDFを作成しました！</span><br>
+              下のボタンを押すと、見積書PDFをダウンロードします。
+            `,
+            showCancelButton: true,
+            confirmButtonText: '📄 PDFを開く',
+            cancelButtonText: '閉じる',
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#aaa',
+            allowOutsideClick: false
+          }).then((alertResult) => {
+            if (alertResult.isConfirmed) {
+              // クリック前にDOMに追加（モバイル対応）
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              
+              console.log('✅ Download triggered');
+            }
+            
+            // メモリ解放（十分な時間を取る）
+            setTimeout(() => {
+              URL.revokeObjectURL(blobURL);
+              console.log('✅ Memory released');
+            }, 1000);
+          });
+          
+          // フォーム初期化
+          document.getElementById('estimateForm').reset();
+          document.getElementById('detailsContainer').innerHTML = '';
+          for(let i = 0; i < 2; i++) addTableRow();
+          updateTotalSummary();
+          
+        } catch (blobError) {
+          console.error('❌ Blob/download error:', blobError);
+          Swal.fire({
+            icon: 'warning',
+            title: 'PDF処理エラー',
+            html: `見積番号: <strong>${generatedId}</strong><br><br>PDFの処理に失敗しました: ${blobError.message}`,
+            confirmButtonText: '閉じる'
+          });
         }
+        
       } catch (error) {
+        // エラーハンドリング（全体）
         document.getElementById('loader').style.display = 'none';
-        Swal.fire({ icon: 'error', title: '通信エラー', text: error.message });
+        
+        console.error('❌ Error in executeSaveProcess:', error);
+        console.error('Error stack:', error.stack);
+        
+        // ユーザーに詳細を表示
+        Swal.fire({
+          icon: 'error',
+          title: 'エラーが発生しました',
+          html: `<strong>${error.name}</strong><br><br><code style="font-size:11px; text-align:left;">${error.message}</code><br><br><small>詳細はブラウザのコンソール（F12）を参照してください</small>`,
+          confirmButtonText: '了解'
+        });
       }
     }
   </script>
