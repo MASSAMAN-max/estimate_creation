@@ -1178,7 +1178,7 @@
       document.getElementById('listModal').style.display = 'none';
       document.getElementById('loader').style.display = 'flex';
       document.getElementById('loaderText').textContent = 'データを復元中...';
-    
+     
       try {
         // ステップ1: データ取得
         console.log(`📥 Fetching data for ID: ${id}, mode: ${mode}`);
@@ -1219,6 +1219,11 @@
         document.getElementById('loaderText').textContent = 'マスターデータを読み込んでいます...';
         await loadMasterLists();
      
+        // ✅ 修正: マスター読み込み後に検証を追加
+        if (!MASTER_CLIENTS || MASTER_CLIENTS.length === 0) {
+          console.warn('⚠️ Master data might not have loaded completely');
+        }
+     
         // ステップ5: 日付設定
         const targetDate = mode === 'COPY_CREATE' ? new Date() : new Date(formData.main.estimateDate);
         document.getElementById('estimateDate').value = formatDateToInput(targetDate);
@@ -1228,6 +1233,7 @@
         document.getElementById('loaderText').textContent = 'クライアント情報を設定しています...';
         console.log('🏢 Setting client information...');
         
+        // ✅ 修正: clientSelect をここで定義
         const clientSelect = document.getElementById('clientSelect');
         const currentClientName = formData.main.clientSelect || formData.main.clientName;
         
@@ -1241,15 +1247,22 @@
             console.log(`✅ Client selected: ${currentClientName}`);
           } else {
             clientSelect.value = '__NEW__';
-            document.getElementById('clientName').value = currentClientName;
-            document.getElementById('newClientContainer').style.display = 'block';
+            const clientNameInput = document.getElementById('clientName');
+            if (clientNameInput) {
+              clientNameInput.value = currentClientName;
+            }
+            const newClientContainer = document.getElementById('newClientContainer');
+            if (newClientContainer) {
+              newClientContainer.style.display = 'block';
+            }
             console.log(`✅ New client added: ${currentClientName}`);
           }
         }
         
         // 反映漏れ対策
-        if (document.getElementById('clientName')) {
-          document.getElementById('clientName').value = currentClientName || '';
+        const clientNameInput = document.getElementById('clientName');
+        if (clientNameInput && !clientNameInput.value) {
+          clientNameInput.value = currentClientName || '';
         }
      
         // ========== ステップ7: 担当者情報設定 ==========
@@ -1271,11 +1284,13 @@
               console.log(`✅ Contact person selected: ${formData.main.contactPerson}`);
             } else {
               contactPersonSelect.value = '__NEW__';
-              if (document.getElementById('contactPersonName')) {
-                document.getElementById('contactPersonName').value = formData.main.contactPerson;
+              const contactPersonNameInput = document.getElementById('contactPersonName');
+              if (contactPersonNameInput) {
+                contactPersonNameInput.value = formData.main.contactPerson;
               }
-              if (document.getElementById('newContactPersonContainer')) {
-                document.getElementById('newContactPersonContainer').style.display = 'block';
+              const newContactPersonContainer = document.getElementById('newContactPersonContainer');
+              if (newContactPersonContainer) {
+                newContactPersonContainer.style.display = 'block';
               }
               console.log(`✅ New contact person added: ${formData.main.contactPerson}`);
             }
@@ -1285,21 +1300,31 @@
         // ========== ステップ8: その他の入力欄を設定 ==========
         document.getElementById('loaderText').textContent = 'フォーム詳細を設定しています...';
         
-        if (document.getElementById('clientAddress')) {
-          document.getElementById('clientAddress').value = formData.main.clientAddress || '';
+        const addressInput = document.getElementById('clientAddress');
+        if (addressInput) {
+          addressInput.value = formData.main.clientAddress || '';
         }
-        if (document.getElementById('subject')) {
-          document.getElementById('subject').value = formData.main.subject || '';
+        
+        const subjectInput = document.getElementById('subject');
+        if (subjectInput) {
+          subjectInput.value = formData.main.subject || '';
         }
-        if (document.getElementById('paymentTerms')) {
-          document.getElementById('paymentTerms').value = formData.main.paymentTerms || '';
+        
+        const paymentTermsInput = document.getElementById('paymentTerms');
+        if (paymentTermsInput) {
+          paymentTermsInput.value = formData.main.paymentTerms || '';
         }
-        if (document.getElementById('validity')) {
-          document.getElementById('validity').value = formData.main.validity || '';
+        
+        const validityInput = document.getElementById('validity');
+        if (validityInput) {
+          validityInput.value = formData.main.validity || '';
         }
-        if (document.getElementById('remarks')) {
-          document.getElementById('remarks').value = formData.main.remarks || '';
+        
+        const remarksInput = document.getElementById('remarks');
+        if (remarksInput) {
+          remarksInput.value = formData.main.remarks || '';
         }
+        
         console.log('✅ Form details set');
      
         // ========== ステップ9: 明細行の復元 ==========
@@ -1348,16 +1373,16 @@
           confirmButtonText: '了解'
         });
      
-        // メイン画面を表示
+        // ✅ 修正: メイン画面を表示（必須）
         showMainApp();
         console.log('✅ Main app displayed');
      
       } catch (error) {
-        // エラーハンドリング
+        // ✅ 修正: エラー時も必ずローダーを消す
+        document.getElementById('loader').style.display = 'none';
+        
         console.error('❌ データ読み込みエラー:', error);
         console.error('Error stack:', error.stack);
-        
-        document.getElementById('loader').style.display = 'none';
         
         Swal.fire({
           icon: 'error',
