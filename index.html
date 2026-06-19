@@ -569,6 +569,72 @@
 
   </div>
 </div>
+
+
+
+<!-- =====================================
+     🌟【新設】メニュー画面：ログイン後の機能選択
+     ===================================== -->
+<div id="menuScreen" style="display:none;">
+  <div class="app-container">
+    <!-- ヘッダー -->
+    <header style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; padding-bottom:12px; border-bottom:2px solid var(--gray-border);">
+      <h1 style="font-size:18px; font-weight:600; color:var(--primary);">📋 見積フォーム</h1>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <span id="userDisplayLabel" style="font-size:12px; color:var(--text-secondary); font-weight:bold; background:var(--gray-light); padding:6px 12px; border-radius:var(--radius);"></span>
+        <button type="button" id="logoutBtn" class="mini-logout-btn" style="padding:6px 10px; font-size:12px;" onclick="handleLogout()">
+          <span class="material-symbols-outlined" style="font-size:18px;">logout</span>
+        </button>
+      </div>
+    </header>
+ 
+    <!-- メニューコンテンツ -->
+    <div style="display:flex; flex-direction:column; gap:16px; max-width:600px; margin:0 auto;">
+      <div style="text-align:center; margin-bottom:20px;">
+        <p style="font-size:14px; color:var(--text-secondary); margin:0;">以下の操作を選択してください</p>
+      </div>
+ 
+      <!-- 新規見積書作成 -->
+      <button type="button" class="btn btn-primary" style="width:100%; padding:20px; font-size:16px; text-align:left; display:flex; align-items:center; gap:12px;" onclick="handleMenuClick('NEW_ESTIMATE')">
+        <span class="material-symbols-outlined" style="font-size:32px;">add_circle</span>
+        <div>
+          <div style="font-weight:bold;">新規見積書を作成</div>
+          <div style="font-size:12px; opacity:0.9;">最初から新しく見積書を作成します</div>
+        </div>
+      </button>
+ 
+      <!-- 過去の見積書から作成 -->
+      <button type="button" class="btn btn-primary" style="width:100%; padding:20px; font-size:16px; text-align:left; display:flex; align-items:center; gap:12px; background-color:var(--primary-light);" onclick="handleMenuClick('PAST_ESTIMATE')">
+        <span class="material-symbols-outlined" style="font-size:32px;">content_copy</span>
+        <div>
+          <div style="font-weight:bold;">過去の見積書から作成</div>
+          <div style="font-size:12px; opacity:0.9;">保存済みの見積書をコピーして新規作成</div>
+        </div>
+      </button>
+ 
+      <!-- 見積書確認 -->
+      <button type="button" class="btn btn-primary" style="width:100%; padding:20px; font-size:16px; text-align:left; display:flex; align-items:center; gap:12px; background-color:var(--success);" onclick="handleMenuClick('VIEW_ESTIMATE')">
+        <span class="material-symbols-outlined" style="font-size:32px;">visibility</span>
+        <div>
+          <div style="font-weight:bold;">見積書を確認</div>
+          <div style="font-size:12px; opacity:0.9;">保存済みの見積書PDFを表示</div>
+        </div>
+      </button>
+ 
+      <!-- 下書きを編集 -->
+      <button type="button" class="btn btn-primary" style="width:100%; padding:20px; font-size:16px; text-align:left; display:flex; align-items:center; gap:12px; background-color:var(--warning);" onclick="handleMenuClick('EDIT_DRAFT')">
+        <span class="material-symbols-outlined" style="font-size:32px;">edit</span>
+        <div>
+          <div style="font-weight:bold;">下書きを編集</div>
+          <div style="font-size:12px; opacity:0.9;">保存中の下書きを再開して編集</div>
+        </div>
+      </button>
+    </div>
+  </div>
+</div>
+
+  
+  
  
 <!-- メインアプリ画面：認証後の表示 -->
 <div id="mainApp" style="display:none;" padding: 12px;">
@@ -578,6 +644,10 @@
     <header style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; padding-bottom:12px; border-bottom:2px solid var(--gray-border);">
       <h1 style="font-size:18px; font-weight:600; color:var(--primary);">📋 見積フォーム</h1>
       <div style="display:flex; align-items:center; gap:12px;">
+        <button type="button" class="mini-logout-btn" style="padding:6px 10px; font-size:12px;" onclick="handleBackToMenu()">
+          <span class="material-symbols-outlined" style="font-size:18px;">arrow_back</span>
+          メニューに戻る
+        </button>
         <span id="userDisplayLabel" style="font-size:12px; color:var(--text-secondary); font-weight:bold; background:var(--gray-light); padding:6px 12px; border-radius:var(--radius);"></span>
         <button type="button" id="logoutBtn" class="mini-logout-btn" style="padding:6px 10px; font-size:12px;" onclick="handleLogout()">
           <span class="material-symbols-outlined" style="font-size:18px;">logout</span>
@@ -709,6 +779,8 @@
     let MASTER_UNITS = [];
     let currentUser = null;  // ログインユーザー情報
     // 現在のフォームの状態を追跡する管理変数
+    let appMode = 'NEW';  // 'MENU' | 'NEW_ESTIMATE' | 'PAST_ESTIMATE' | 'VIEW_ESTIMATE' | 'EDIT_DRAFT'
+    let currentUser = null;
     let currentMode = 'NEW';        // 'NEW'(新規), 'DRAFT_EDIT'(下書き編集), 'COPY_CREATE'(過去コピーから作成)
     let currentOriginId = '';       // 編集元・コピー元となったデータのIDを保持
 
@@ -718,29 +790,35 @@
       
       if (savedUser) {
         currentUser = JSON.parse(savedUser);
-        showMainApp();
-        
         // 💡 今日の日付を自動セット（重要な処理なので残します）
         document.getElementById('estimateDate').value = new Date().toISOString().split('T')[0];
-        
-        await loadMasterLists();
+        showMenuScreen();  // 🌟【修正】mainApp直後ではなく、メニュー画面を表示
       } else {
         showLoginScreen();
       }
     });
 
     // =====================================
-    // ログイン関連関数
+    // メニュー画面の表示切り替え関数群
     // =====================================
+    function showMenuScreen() {
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('mainApp').style.display = 'none';
+      document.getElementById('menuScreen').style.display = 'flex';
+      document.getElementById('userDisplayLabel').textContent = `ログイン: ${currentUser.userName}`;
+    }
+     
+    function showMainApp() {
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('menuScreen').style.display = 'none';
+      document.getElementById('mainApp').style.display = 'block';
+      document.getElementById('userDisplayLabel').textContent = `ログイン: ${currentUser.userName}`;
+    }
+     
     function showLoginScreen() {
       document.getElementById('loginScreen').style.display = 'flex';
       document.getElementById('mainApp').style.display = 'none';
-    }
-      
-    function showMainApp() {
-      document.getElementById('loginScreen').style.display = 'none';
-      document.getElementById('mainApp').style.display = 'block';
-      document.getElementById('userDisplayLabel').textContent = `ログイン: ${currentUser.userName}`;
+      document.getElementById('menuScreen').style.display = 'none';
     }
       
     function togglePasswordVisibility() {
@@ -808,7 +886,383 @@
         loginBtn.textContent = 'ログイン';
       }
     }
+
+
+
+
+
+    // =====================================
+    // 🌟【新設】メニューボタンのハンドラ関数
+    // =====================================
+    async function handleMenuClick(menuType) {
+      document.getElementById('loader').style.display = 'flex';
+      
+      try {
+        switch(menuType) {
+          case 'NEW_ESTIMATE':
+            appMode = 'NEW_ESTIMATE';
+            await initializeEstimateForm();
+            showMainApp();
+            break;
+            
+          case 'PAST_ESTIMATE':
+            appMode = 'PAST_ESTIMATE';
+            document.getElementById('loader').style.display = 'flex';
+            document.getElementById('loaderText').textContent = '過去の見積書を読み込んでいます...';
+            await openEstimateListModal('estimate');
+            break;
+            
+          case 'VIEW_ESTIMATE':
+            appMode = 'VIEW_ESTIMATE';
+            document.getElementById('loader').style.display = 'flex';
+            document.getElementById('loaderText').textContent = '確定見積書を読み込んでいます...';
+            await openEstimateListModal('view');
+            break;
+            
+          case 'EDIT_DRAFT':
+            appMode = 'EDIT_DRAFT';
+            document.getElementById('loader').style.display = 'flex';
+            document.getElementById('loaderText').textContent = '下書きデータを読み込んでいます...';
+            await openEstimateListModal('draft');
+            break;
+            
+          default:
+            throw new Error('不正なメニュータイプです。');
+        }
+      } catch (error) {
+        console.error('メニュー処理エラー:', error);
+        Swal.fire({
+          icon: 'error',
+          title: 'エラー',
+          text: error.message,
+          confirmButtonText: '了解'
+        });
+      } finally {
+        document.getElementById('loader').style.display = 'none';
+      }
+    }
      
+    // =====================================
+    // 🌟【新設】新規見積フォームの初期化
+    // =====================================
+    async function initializeEstimateForm() {
+      try {
+        document.getElementById('loader').style.display = 'flex';
+        document.getElementById('loaderText').textContent = 'マスターデータを読み込んでいます...';
+        
+        // リセット
+        currentMode = 'NEW';
+        currentOriginId = '';
+        document.getElementById('estimateForm').reset();
+        document.getElementById('detailsContainer').innerHTML = '';
+        
+        // マスターデータ取得
+        await loadMasterLists();
+        
+        // 今日の日付をセット
+        document.getElementById('estimateDate').value = new Date().toISOString().split('T')[0];
+        
+        // 初期行を2行追加
+        for(let i = 0; i < 2; i++) addTableRow();
+        
+        updateTotalSummary();
+        
+      } catch (error) {
+        console.error('フォーム初期化エラー:', error);
+        Swal.fire({
+          icon: 'error',
+          title: 'エラー',
+          text: 'フォームの初期化に失敗しました。',
+          confirmButtonText: '了解'
+        });
+        showMenuScreen();
+      } finally {
+        document.getElementById('loader').style.display = 'none';
+      }
+    }
+     
+    // =====================================
+    // 🌟【新設】見積書リストモーダル（複数用途対応版）
+    // =====================================
+    async function openEstimateListModal(listType) {
+      try {
+        const response = await fetch(GAS_WEB_APP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({
+            action: 'loadRecentList',
+            payload: {}
+          })
+        });
+        
+        const result = await response.json();
+        
+        if (result.status !== 'success') {
+          throw new Error(result.message || 'リスト取得に失敗しました。');
+        }
+        
+        window.cachedListData = result.data;
+        
+        // モーダルのタイトルを動的に変更
+        const modalTitle = document.getElementById('listModalTitle');
+        const tabContainer = document.getElementById('listModalTabs');
+        
+        if (listType === 'view') {
+          // 見積書確認：確定見積のみ表示、URLクリック可能
+          modalTitle.textContent = '見積書を選択（確定見積のみ）';
+          tabContainer.style.display = 'none';  // タブを非表示
+          displayViewEstimateList(result.data.estimates);
+        } else if (listType === 'estimate') {
+          // 過去から作成：確定見積のみ表示
+          modalTitle.textContent = '過去の見積書を選択';
+          tabContainer.style.display = 'none';
+          displayCopyEstimateList(result.data.estimates);
+        } else if (listType === 'draft') {
+          // 下書き編集：下書きのみ表示
+          modalTitle.textContent = '下書きを選択';
+          tabContainer.style.display = 'none';
+          displayDraftList(result.data.drafts);
+        }
+        
+        document.getElementById('listModal').style.display = 'flex';
+        
+      } catch (error) {
+        console.error('リスト取得エラー:', error);
+        Swal.fire({
+          icon: 'error',
+          title: 'エラー',
+          text: error.message,
+          confirmButtonText: '了解'
+        });
+        showMenuScreen();
+      } finally {
+        document.getElementById('loader').style.display = 'none';
+      }
+    }
+     
+    // =====================================
+    // 🌟【新設】見積書確認リストの表示（URLハイパーリンク）
+    // =====================================
+    function displayViewEstimateList(estimates) {
+      const container = document.getElementById('modalListContainer');
+      container.innerHTML = '';
+      
+      if (estimates.length === 0) {
+        container.innerHTML = '<div style="padding:16px; text-align:center; color:var(--text-secondary);">見積書データはありません。</div>';
+        return;
+      }
+      
+      estimates.forEach(item => {
+        const row = document.createElement('div');
+        row.style = 'background:white; padding:12px; margin-bottom:8px; border-radius:6px; border:1px solid var(--gray-border); display:flex; flex-direction:column; gap:6px;';
+        
+        // URLが存在する場合のみリンク表示
+        const fileUrlSection = item.fileUrl 
+          ? `<a href="${item.fileUrl}" target="_blank" style="color:#1976D2; text-decoration:underline; font-weight:bold;">📄 見積書PDFを表示</a>`
+          : '<span style="color:#999;">（PDFはまだ作成されていません）</span>';
+        
+        row.innerHTML = `
+          <div style="display:flex; justify-content:between; font-size:12px; color:var(--text-secondary);">
+            <span>ID: <b>${item.id}</b></span>
+            <span>作成日: ${formatDateToInput(item.date)}</span>
+          </div>
+          <div style="font-weight:600; color:var(--text-primary); font-size:14px;">${item.client || '取引先名なし'} — <span style="font-weight:500; font-size:13px;">${item.subject || '（件名なし）'}</span></div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+            <span style="color:var(--primary); font-weight:bold;">¥${Number(item.amount).toLocaleString()}</span>
+            ${fileUrlSection}
+          </div>
+        `;
+        container.appendChild(row);
+      });
+    }
+     
+    // =====================================
+    // 🌟【新設】過去見積から作成用リストの表示
+    // =====================================
+    function displayCopyEstimateList(estimates) {
+      const container = document.getElementById('modalListContainer');
+      container.innerHTML = '';
+      
+      if (estimates.length === 0) {
+        container.innerHTML = '<div style="padding:16px; text-align:center; color:var(--text-secondary);">見積書データはありません。</div>';
+        return;
+      }
+      
+      estimates.forEach(item => {
+        const row = document.createElement('div');
+        row.style = 'background:white; padding:12px; margin-bottom:8px; border-radius:6px; border:1px solid var(--gray-border); display:flex; flex-direction:column; gap:6px;';
+        row.innerHTML = `
+          <div style="display:flex; justify-content:between; font-size:12px; color:var(--text-secondary);">
+            <span>ID: <b>${item.id}</b></span>
+            <span>作成日: ${formatDateToInput(item.date)}</span>
+          </div>
+          <div style="font-weight:600; color:var(--text-primary); font-size:14px;">${item.client || '取引先名なし'} — <span style="font-weight:500; font-size:13px;">${item.subject || '（件名なし）'}</span></div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+            <span style="color:var(--primary); font-weight:bold;">¥${Number(item.amount).toLocaleString()}</span>
+            <button type="button" class="btn btn-primary" style="padding:6px 12px; font-size:13px; width:auto;" onclick="fetchAndReflectFields('${item.id}', 'COPY_CREATE')">[コピーして新規作成]</button>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+    }
+     
+    // =====================================
+    // 🌟【新設】下書き編集リストの表示
+    // =====================================
+    function displayDraftList(drafts) {
+      const container = document.getElementById('modalListContainer');
+      container.innerHTML = '';
+      
+      if (drafts.length === 0) {
+        container.innerHTML = '<div style="padding:16px; text-align:center; color:var(--text-secondary);">下書きデータはありません。</div>';
+        return;
+      }
+      
+      drafts.forEach(item => {
+        const row = document.createElement('div');
+        row.style = 'background:white; padding:12px; margin-bottom:8px; border-radius:6px; border:1px solid var(--gray-border); display:flex; flex-direction:column; gap:6px;';
+        row.innerHTML = `
+          <div style="display:flex; justify-content:between; font-size:12px; color:var(--text-secondary);">
+            <span>ID: <b>${item.id}</b></span>
+            <span>作成日: ${formatDateToInput(item.date)}</span>
+          </div>
+          <div style="font-weight:600; color:var(--text-primary); font-size:14px;">${item.client || '取引先名なし'} — <span style="font-weight:500; font-size:13px;">${item.subject || '（件名なし）'}</span></div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+            <span style="color:var(--primary); font-weight:bold;">¥${Number(item.amount).toLocaleString()}</span>
+            <button type="button" class="btn btn-primary" style="padding:6px 12px; font-size:13px; width:auto;" onclick="fetchAndReflectFields('${item.id}', 'DRAFT_EDIT')">[この下書きを編集]</button>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+    }
+     
+    // =====================================
+    // 🌟【修正】データ読み込みと画面反映の統一
+    // =====================================
+    async function fetchAndReflectFields(id, mode) {
+      document.getElementById('listModal').style.display = 'none';
+      document.getElementById('loader').style.display = 'flex';
+      document.getElementById('loaderText').textContent = 'データを復元中...';
+     
+      try {
+        const response = await fetch(GAS_WEB_APP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({
+            action: 'loadFormData',
+            payload: { targetId: id }
+          })
+        });
+     
+        const result = await response.json();
+        
+        if (result.status !== 'success') {
+          throw new Error(result.message || 'データの読み込みに失敗しました。');
+        }
+     
+        const formData = result.data;
+        
+        // 状態を設定
+        currentMode = mode;
+        currentOriginId = id;
+        appMode = (mode === 'COPY_CREATE') ? 'NEW_ESTIMATE' : 'NEW_ESTIMATE';
+     
+        // フォーム初期化
+        document.getElementById('estimateForm').reset();
+        document.getElementById('detailsContainer').innerHTML = '';
+     
+        // マスターデータ取得
+        await loadMasterLists();
+     
+        // メイン入力欄に反映
+        if (document.getElementById('estimateDate')) {
+          document.getElementById('estimateDate').value = formatDateToInput(
+            mode === 'COPY_CREATE' ? new Date() : formData.main.estimateDate
+          );
+        }
+     
+        // クライアント選択処理
+        const clientSelect = document.getElementById('clientSelect');
+        if (clientSelect) {
+          const clientExists = Array.from(clientSelect.options).some(opt => opt.value === formData.main.clientName);
+          
+          if (clientExists) {
+            clientSelect.value = formData.main.clientName;
+          } else {
+            clientSelect.value = '__NEW__';
+            document.getElementById('clientName').value = formData.main.clientName;
+            document.getElementById('newClientContainer').style.display = 'block';
+          }
+        }
+     
+        // 担当者処理
+        const contactPersonSelect = document.getElementById('contactPersonSelect');
+        if (contactPersonSelect && formData.main.clientName) {
+          updateContactPersonList(formData.main.clientName);
+          
+          if (formData.main.contactPerson) {
+            const personExists = Array.from(contactPersonSelect.options).some(opt => opt.value === formData.main.contactPerson);
+            
+            if (personExists) {
+              contactPersonSelect.value = formData.main.contactPerson;
+            } else {
+              contactPersonSelect.value = '__NEW__';
+              document.getElementById('contactPersonName').value = formData.main.contactPerson;
+              document.getElementById('newContactPersonContainer').style.display = 'block';
+            }
+          }
+        }
+     
+        // その他の入力欄
+        if (document.getElementById('clientAddress')) document.getElementById('clientAddress').value = formData.main.clientAddress;
+        if (document.getElementById('subject')) document.getElementById('subject').value = formData.main.subject;
+        if (document.getElementById('paymentTerms')) document.getElementById('paymentTerms').value = formData.main.paymentTerms;
+        if (document.getElementById('validity')) document.getElementById('validity').value = formData.main.validity;
+        if (document.getElementById('remarks')) document.getElementById('remarks').value = formData.main.remarks;
+     
+        // 明細行の復元
+        const detailsContainer = document.getElementById('detailsContainer');
+        if (detailsContainer && formData.details && formData.details.length > 0) {
+          formData.details.forEach(item => {
+            addDetailCardWithData(item);
+          });
+        } else {
+          // 明細データがない場合は空行を2行追加
+          for(let i = 0; i < 2; i++) addTableRow();
+        }
+     
+        updateTotalSummary();
+        
+        Swal.fire({
+          icon: 'success',
+          title: 'データ読み込み完了',
+          text: mode === 'DRAFT_EDIT' ? '下書きを読み込みました。' : '見積書をコピーしました。',
+          confirmButtonText: '了解'
+        });
+     
+        showMainApp();
+     
+      } catch (error) {
+        console.error('データ読み込みエラー:', error);
+        Swal.fire({
+          icon: 'error',
+          title: 'エラー',
+          text: error.message,
+          confirmButtonText: '了解'
+        });
+        showMenuScreen();
+      } finally {
+        document.getElementById('loader').style.display = 'none';
+      }
+    }
+
+
+
+    
+     
+    // =====================================
+    // 🌟【修正】ログアウト後メニュー画面に戻る
+    // =====================================
     function handleLogout() {
       Swal.fire({
         icon: 'question',
@@ -819,7 +1273,6 @@
         cancelButtonText: 'キャンセル'
       }).then((result) => {
         if (result.isConfirmed) {
-          // localStorageから削除する
           localStorage.removeItem('currentUser');
           currentUser = null;
           
@@ -828,6 +1281,26 @@
           document.getElementById('loginIdInput').value = '';
           document.getElementById('loginPasswordInput').value = '';
           showLoginScreen();
+        }
+      });
+    }
+     
+    // =====================================
+    // 🌟【新設】戻るボタンハンドラ（作成画面からメニューへ）
+    // =====================================
+    function handleBackToMenu() {
+      Swal.fire({
+        icon: 'question',
+        title: '確認',
+        text: 'メニュー画面に戻ります。入力中のデータは失われます。',
+        showCancelButton: true,
+        confirmButtonText: '戻る',
+        cancelButtonText: 'キャンセル'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          document.getElementById('estimateForm').reset();
+          document.getElementById('detailsContainer').innerHTML = '';
+          showMenuScreen();
         }
       });
     }
@@ -1025,21 +1498,132 @@
           body: JSON.stringify({ action: 'deleteDraft', payload: { draftId: currentOriginId } })
         });
       }
-      
       // 保存完了後は状態を新規に戻す
       currentMode = 'NEW';
       currentOriginId = '';
     }
-    
+
+    // =====================================
+    // 日付フォーマット関数
+    // =====================================
     function formatDateToInput(dateVal) {
       if (!dateVal) return '';
       const date = new Date(dateVal);
       if (isNaN(date.getTime())) return dateVal;
       return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     }
-    
-    
-    
+
+    // =====================================
+    // 🌟【新設】復元用の明細カード生成（新形式対応）
+    // =====================================
+    function addDetailCardWithData(item) {
+      const container = document.getElementById('detailsContainer');
+      if (!container) return;
+     
+      const card = document.createElement('div');
+      card.className = 'detail-card';
+      
+      const categoryOptions = MASTER_CATEGORIES.map(cat => `<option value="${htmlEscape(cat)}">${htmlEscape(cat)}</option>`).join('') + '<option value="__NEW__">＋新規項目</option>';
+     
+      // 単位の値を決定
+      const displayUnit = item.itemUnit ? item.itemUnit : '式';
+     
+      card.innerHTML = `
+        <div style="display: flex; gap: 6px; align-items: flex-start; margin-bottom: 12px; background: #fff; padding: 12px; border-radius: 4px; border: 1px solid #e9ecef; width: 100%; box-sizing: border-box;">
+          <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 0;">
+            <label style="font-weight: bold; color: #495057; display: block; margin-bottom: 4px;">親項目 <span class="badge-required">必須</span></label>
+            <select class="item-category-select" style="width: 100%; box-sizing: border-box;" onchange="toggleNewCategory(this)">
+              <option value="${htmlEscape(item.itemCategory || '')}" selected>${htmlEscape(item.itemCategory || '')}</option>
+              ${categoryOptions}
+            </select>
+            <div class="dynamic-input-container" style="display:none; margin-top: 5px;">
+              <input type="text" class="item-category-input" style="width: 100%; box-sizing: border-box;" placeholder="新規項目名">
+            </div>
+          </div>
+        </div>
+        
+        <div class="breakdown-container"></div>
+     
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-top: 10px; border-top: 1px dashed #dee2e6; padding-top: 10px; width: 100%; box-sizing: border-box;">            
+          <div style="flex: 1; text-align: left;">
+            <button type="button" class="btn" style="background-color: #e8f5e9; color: #2e7d32; padding: 6px 12px; font-size: 14px; font-weight: bold;" onclick="addBreakdownRow(this.closest('.detail-card'), this.closest('.detail-card').querySelector('.breakdown-container'), false)">
+              <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle;">add</span> 内訳を追加
+            </button>
+          </div> 
+          <div style="flex: 1; max-width: 50%; min-width: 0; text-align: right;">
+            <label style="font-weight: bold; display: block; font-size: 12px; color: #6c757d; margin-bottom: 4px;">項目合計金額</label>
+            <div class="amount-display-box" style="background: #e3f2fd; padding: 6px 12px; border-radius: 4px; border: 1px solid #b3e5fc; font-weight: bold; font-size: 15px; color: #0d47a1; text-align: right; width: 100%; box-sizing: border-box; display: flex; justify-content: space-between; align-items: center;">
+              <span>¥</span>
+              <span class="card-total-amount" data-value="${item.itemAmount || 0}">${Number(item.itemAmount || 0).toLocaleString()}</span>
+            </div>
+          </div>
+        </div>
+        
+        <div style="text-align: right; margin-top: 12px;">
+          <button type="button" class="btn btn-danger" style="padding: 6px 12px; font-size: 14px;" onclick="deleteTableRow(this)">
+            <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle;">delete</span> 項目ごと削除
+          </button>
+        </div>
+      `;
+      
+      container.appendChild(card);
+      
+      const breakdownContainer = card.querySelector('.breakdown-container');
+      
+      // 復元データから内訳行を追加
+      const breakdownRow = document.createElement('div');
+      breakdownRow.className = 'breakdown-row';
+      breakdownRow.style = 'border: 1px solid #f1f3f5; padding: 8px; margin-bottom: 8px; border-radius: 4px; background: #fff;';
+      
+      const qtyOptions = Array.from({length: 99}, (_, i) => `<option value="${i+1}" ${(i+1) === item.itemQty ? 'selected' : ''}>${i+1}</option>`).join('');
+      const unitOptions = (!MASTER_UNITS.includes('式') ? '<option value="式">式</option>' : '') + 
+                          MASTER_UNITS.filter(u => u && u.trim()).map(u => `<option value="${htmlEscape(u.trim())}" ${u === displayUnit ? 'selected' : ''}>${htmlEscape(u.trim())}</option>`).join('');
+     
+      breakdownRow.innerHTML = `
+        <div class="form-group" style="margin-top: 5px;">
+          <label>仕様・摘要 <span class="badge-required">必須</span></label>
+          <div class="voice-input-wrapper">
+            <input type="text" class="item-name" placeholder="品名・内容など" value="${htmlEscape(item.itemName || '')}">
+            <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)"><span class="material-symbols-outlined">mic</span></button>
+          </div>
+        </div>
+     
+        <div class="card-row-lower" style="margin-bottom: 4px;">
+          <div class="item-grid-row-3col">
+            <div class="form-group">
+              <label>数量</label>
+              <select class="item-qty" onchange="calculateBreakdownAmount(this)">${qtyOptions}</select>
+            </div>
+            <div class="form-group">
+              <label>単位</label>
+              <select class="item-unit" onchange="checkUnitConstraint(this.closest('.detail-card'))">${unitOptions}</select>
+            </div>
+            <div class="form-group">
+              <label>単価</label>
+              <input type="number" class="item-price" min="0" value="${item.itemPrice || 0}" oninput="calculateBreakdownAmount(this)">
+            </div>
+            <div class="form-group">
+              <label>金額</label>
+              <div class="amount-display-box"><span>¥</span><span class="item-amount" data-value="${item.itemAmount || 0}">${Number(item.itemAmount || 0).toLocaleString()}</span></div>
+            </div>
+          </div>
+            
+          <div class="form-group">
+            <label>備考</label>
+            <div class="voice-input-wrapper">
+              <input type="text" class="item-remarks" placeholder="特記事項等" value="${htmlEscape(item.itemRemarks || '')}">
+              <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)"><span class="material-symbols-outlined">mic</span></button>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      breakdownContainer.appendChild(breakdownRow);
+      checkUnitConstraint(card);
+      updateCardTotal(card);
+      updateTotalSummary();
+    }
+
     async function loadMasterLists() {
       try {
         const res = await fetch(GAS_WEB_APP_URL, {
@@ -2159,20 +2743,26 @@
     }
   </script>
 
+<!-- =====================================
+     【修正】リストモーダル：URL表示対応版
+     ===================================== -->
 <div id="listModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.5); z-index:9998; justify-content:center; align-items:center; padding:12px; box-sizing:border-box;">
   <div style="background:white; width:100%; max-width:800px; height:85vh; border-radius:var(--radius); padding:20px; box-sizing:border-box; display:flex; flex-direction:column; gap:16px;">
     <div style="display:flex; justify-content:between; align-items:center; border-bottom:2px solid var(--gray-border); padding-bottom:10px;">
-      <h3 style="color:var(--primary); font-size:18px;">データ読込（直近50件）</h3>
+      <h3 id="listModalTitle" style="color:var(--primary); font-size:18px;">データを選択</h3>
       <button type="button" class="mini-logout-btn" onclick="document.getElementById('listModal').style.display='none';">✕ 閉じる</button>
     </div>
     
-    <div style="display:flex; gap:8px;">
+    <!-- タブ操作（不要な場合は非表示） -->
+    <div id="listModalTabs" style="display:flex; gap:8px;">
       <button type="button" id="tabDraftBtn" class="btn btn-secondary" style="flex:1; padding:8px;" onclick="switchModalTab('draft')">下書き一覧</button>
       <button type="button" id="tabEstBtn" class="btn btn-secondary" style="flex:1; padding:8px;" onclick="switchModalTab('estimate')">確定見積一覧</button>
     </div>
-
+ 
+    <!-- リスト表示エリア -->
     <div id="modalListContainer" style="flex:1; overflow-y:auto; border:1px solid var(--gray-border); border-radius:var(--radius); padding:8px; background:#f8fafc;">
-      </div>
+      <!-- リスト内容がここに動的に挿入される -->
+    </div>
   </div>
 </div>
   
