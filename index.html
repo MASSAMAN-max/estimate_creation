@@ -1486,6 +1486,9 @@
       })
       .then(res => res.json())
       .then(res => {
+        // 💡 アラートで止まる前に、まずローダーを消せるようにここで一度消す、または各ルートで制御します
+        document.getElementById('loader').style.display = 'none';
+
         if (res.status === 'success') {
           const formData = res.data;
           
@@ -1500,37 +1503,66 @@
             if (document.getElementById('estimateDate')) document.getElementById('estimateDate').value = formatDateToInput(formData.main.estimateDate);
           } else if (mode === 'COPY_CREATE') {
             if (noDisp) noDisp.innerText = "新規作成中 (過去見積をコピー)";
-            // 【要件：過去から作成時は日付を「今日」に自動更新・クリア】
             if (document.getElementById('estimateDate')) document.getElementById('estimateDate').value = formatDateToInput(new Date());
           }
     
-          // メイン入力欄への反映 
-          if (document.getElementById('clientName')) document.getElementById('clientName').value = formData.main.clientName;
-          if (document.getElementById('contactPerson')) document.getElementById('contactPerson').value = formData.main.contactPerson;
-          if (document.getElementById('clientAddress')) document.getElementById('clientAddress').value = formData.main.clientAddress;
-          if (document.getElementById('subject')) document.getElementById('subject').value = formData.main.subject;
-          if (document.getElementById('paymentTerms')) document.getElementById('paymentTerms').value = formData.main.paymentTerms;
-          if (document.getElementById('validity')) document.getElementById('validity').value = formData.main.validity;
-          if (document.getElementById('remarks')) document.getElementById('remarks').value = formData.main.remarks;
+          // --- メイン入力欄への反映 ---
+          
+          // ⭕ 取引先セレクトボックスへの反映と連動処理
+          if (document.getElementById('clientSelect')) {
+            document.getElementById('clientSelect').value = formData.main.clientSelect || '';
+            // 連動して「新規取引先入力欄」の表示/非表示を切り替える関数を呼ぶ
+            if (typeof toggleNewClient === 'function') toggleNewClient();
+          }
+          if (document.getElementById('clientName')) document.getElementById('clientName').value = formData.main.clientName || '';
+          
+          // ⭕ 担当者セレクトボックス（IDを HTMLに合わせて 'contactPersonSelect' に修正）
+          if (document.getElementById('contactPersonSelect')) {
+            document.getElementById('contactPersonSelect').value = formData.main.contactPerson || '';
+            if (typeof toggleNewContactPerson === 'function') toggleNewContactPerson();
+          }
+          // もしテキスト入力の contactPerson もHTML側にあれば残す
+          if (document.getElementById('contactPerson')) document.getElementById('contactPerson').value = formData.main.contactPerson || '';
+          
+          if (document.getElementById('clientAddress')) document.getElementById('clientAddress').value = formData.main.clientAddress || '';
+          if (document.getElementById('subject')) document.getElementById('subject').value = formData.main.subject || '';
+          if (document.getElementById('paymentTerms')) document.getElementById('paymentTerms').value = formData.main.paymentTerms || '';
+          if (document.getElementById('validity')) document.getElementById('validity').value = formData.main.validity || '';
+          if (document.getElementById('remarks')) document.getElementById('remarks').value = formData.main.remarks || '';
     
           // 動的明細行のクリア＆完全復元 
           const detailsContainer = document.querySelector('.details-list');
           if (detailsContainer) {
             detailsContainer.innerHTML = '';
-            formData.details.forEach((item, index) => {
-              // 既存の明細カード追加ロジックにデータを流し込む 
-              addDetailCardWithValues(item);
-            });
+            if (formData.details && Array.isArray(formData.details)) {
+              formData.details.forEach((item) => {
+                // 既存の明細カード追加ロジックにデータを流し込む 
+                if (typeof addDetailCardWithValues === 'function') {
+                  addDetailCardWithValues(item);
+                } else if (typeof addTableRow === 'function') {
+                  addTableRow(); // 代替案
+                }
+              });
+            }
           }
     
           if (typeof calculateTotalAmount === 'function') calculateTotalAmount();
+          
+          // ⭕ アプリのメイン画面（#mainApp）を表示する処理がもしあればここに追記
+          if (document.getElementById('mainApp')) document.getElementById('mainApp').style.display = 'block';
+          if (document.getElementById('menuScreen')) document.getElementById('menuScreen').style.display = 'none';
+
           Swal.fire('読み込み完了', 'データをフォームに展開しました。', 'success');
         } else {
-          Swal.fire('エラー', 'データの読み込みに失敗しました。', 'error');
+          Swal.fire('エラー', 'データの読み込みに失敗しました。: ' + (res.message || ''), 'error');
         }
       })
-      .catch(() => Swal.fire('通信エラー', 'データの取得に失敗しました。', 'error'))
-      .finally(() => document.getElementById('loader').style.display = 'none');
+      .catch((err) => {
+        // 原因を突き止めるためにコンソールにエラーを出す
+        console.error("復元処理エラー:", err);
+        document.getElementById('loader').style.display = 'none';
+        Swal.fire('通信エラー', 'データの取得または画面への展開に失敗しました。', 'error');
+      });
     }
     
     /**
