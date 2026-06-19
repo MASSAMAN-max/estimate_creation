@@ -777,12 +777,12 @@
     let MASTER_CONTACTPERSONS = {};  // { "取引先": ["担当者1", "担当者2"] }の形式
     let MASTER_CATEGORIES = [];
     let MASTER_UNITS = [];
-    let currentUser = null;  // ログインユーザー情報
+    
     // 現在のフォームの状態を追跡する管理変数
-    let appMode = 'NEW';  // 'MENU' | 'NEW_ESTIMATE' | 'PAST_ESTIMATE' | 'VIEW_ESTIMATE' | 'EDIT_DRAFT'
-    let currentUser = null;
-    let currentMode = 'NEW';        // 'NEW'(新規), 'DRAFT_EDIT'(下書き編集), 'COPY_CREATE'(過去コピーから作成)
-    let currentOriginId = '';       // 編集元・コピー元となったデータのIDを保持
+    let appMode = 'NEW';      // 'MENU' | 'NEW_ESTIMATE' | 'PAST_ESTIMATE' | 'VIEW_ESTIMATE' | 'EDIT_DRAFT'
+    let currentUser = null;   // ログインユーザー情報
+    let currentMode = 'NEW';  // 'NEW'(新規), 'DRAFT_EDIT'(下書き編集), 'COPY_CREATE'(過去コピーから作成)
+    let currentOriginId = ''; // 編集元・コピー元となったデータのIDを保持
 
     window.addEventListener('DOMContentLoaded', async () => {
       // 🌟【修正】sessionStorage から localStorage へ変更（ログイン状態をチェック）
