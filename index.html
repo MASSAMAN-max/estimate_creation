@@ -920,11 +920,17 @@
       // ローダー表示
       document.getElementById('loader').style.display = 'flex';
       document.getElementById('loaderText').textContent = '読み込み中...';
-     
+      
+      // 💡【重要】ブラウザにローダーの表示（レンダリング）を確実に完了させるため、一瞬だけ処理を譲る
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
       try {
         switch(menuType) {
           case 'NEW_ESTIMATE':
             document.getElementById('loaderText').textContent = 'マスターデータを読み込んでいます...';
+            // 💡 テキスト変更を反映させるため、ここでも一瞬譲るのが安全です
+            await new Promise(resolve => setTimeout(resolve, 20));
+            
             await initializeEstimateForm();
             // ここでローダーを消す（showMainApp()の前に）
             document.getElementById('loader').style.display = 'none';
@@ -934,6 +940,8 @@
           case 'PAST_ESTIMATE':
             appMode = 'PAST_ESTIMATE';
             document.getElementById('loaderText').textContent = '過去の見積書を読み込んでいます...';
+            await new Promise(resolve => setTimeout(resolve, 20));
+            
             await openEstimateListModal('estimate');
             // ローダーはopenEstimateListModal内で消す
             break;
@@ -941,6 +949,8 @@
           case 'VIEW_ESTIMATE':
             appMode = 'VIEW_ESTIMATE';
             document.getElementById('loaderText').textContent = '見積書を読み込んでいます...';
+            await new Promise(resolve => setTimeout(resolve, 20));
+            
             await openEstimateListModal('view');
             // ローダーはopenEstimateListModal内で消す
             break;
@@ -948,6 +958,8 @@
           case 'EDIT_DRAFT':
             appMode = 'EDIT_DRAFT';
             document.getElementById('loaderText').textContent = '下書きデータを読み込んでいます...';
+            await new Promise(resolve => setTimeout(resolve, 20));
+            
             await openEstimateListModal('draft');
             // ローダーはopenEstimateListModal内で消す
             break;
