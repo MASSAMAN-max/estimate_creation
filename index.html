@@ -540,8 +540,6 @@
   </style>
 </head>
 <body>
-
-
 <!-- =====================================
      🌟【新設】メニュー画面：ログイン後の機能選択
      ===================================== -->
@@ -663,7 +661,7 @@
 </div>
  
 <!-- メインアプリ画面：認証後の表示 -->
-<div id="mainApp" style="display:none;" padding: 12px;">
+<div id="mainApp" style="display:none; padding: 12px;">
   <!-- 【以下、既存のapp-container全体】 -->
   <div class="app-container">
     <!-- ユーザーラベル（header内に統合） -->
@@ -790,11 +788,12 @@
       </div>
     </form>
   </div>
-
-  <div id="loader">
-    <div class="spinner"></div>
-    <div id="loaderText">データを保存＆PDFを作成中...</div>
-  </div>
+</div> 
+  
+<div id="loader">
+  <div class="spinner"></div>
+  <div id="loaderText">データを保存＆PDFを作成中...</div>
+</div>
 
   <script>
     const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxQkNvNQblWXRtenGPoSaXbi99ftJ61j02s11rzCxwQZ4bDGddhzuDwrCRu0wYQxbNAow/exec"; 
