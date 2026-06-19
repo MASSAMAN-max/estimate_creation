@@ -1178,7 +1178,7 @@
       document.getElementById('listModal').style.display = 'none';
       document.getElementById('loader').style.display = 'flex';
       document.getElementById('loaderText').textContent = 'データを復元中...';
-     
+
       try {
         // ステップ1: フォームデータを取得
         console.log(`📥 Fetching data for ID: ${id}, mode: ${mode}`);
@@ -1216,40 +1216,59 @@
         document.getElementById('estimateForm').reset();
         document.getElementById('detailsContainer').innerHTML = '';
      
-        // ステップ4: マスターデータ取得
+        // ステップ4: マスターデータ取得と同期完了の待機
         document.getElementById('loaderText').textContent = 'マスターデータを読み込んでいます...';
         console.log('📋 Loading master lists...');
-        await loadMasterLists();
-        console.log('✅ Master lists loaded');
+        
+        // 💡 元の処理通りマスタ読み込みを起動して待つ
+        await loadMasterLists(); 
+        
+        // 💡 【追加：確実な同期】HTMLへの描写完了イベント（合図）が飛んでくるまで数歩待つ
+        const clientSelect = document.getElementById('clientSelect');
+        if (!clientSelect || clientSelect.options.length <= 1) {
+          document.getElementById('loaderText').textContent = 'マスタの同期完了を待っています...';
+          await new Promise(resolve => {
+            window.addEventListener('masterListsLoaded', resolve, { once: true });
+          });
+        }
+        console.log('✅ Master lists loaded and rendered');
      
         // ステップ5: 日付設定
         const targetDate = mode === 'COPY_CREATE' ? new Date() : new Date(formData.main.estimateDate);
         document.getElementById('estimateDate').value = formatDateToInput(targetDate);
         console.log(`📅 Date set: ${formatDateToInput(targetDate)}`);
      
-        // ステップ6: クライアント情報の設定
+        // ステップ6: クライアント情報の設定（マスタに存在するかチェックする重要ロジック）
         document.getElementById('loaderText').textContent = 'クライアント情報を設定しています...';
         console.log('🏢 Setting client information...');
         
-        const clientSelect = document.getElementById('clientSelect');
-        const clientExists = clientSelect && Array.from(clientSelect.options).some(opt => opt.value === formData.main.clientName);
+        const currentClientName = formData.main.clientSelect || formData.main.clientName; // どちらのキーでも対応できるように
+        const clientExists = clientSelect && Array.from(clientSelect.options).some(opt => opt.value === currentClientName);
         
         if (clientSelect) {
           if (clientExists) {
-            clientSelect.value = formData.main.clientName;
-            console.log(`✅ Client selected: ${formData.main.clientName}`);
+            clientSelect.value = currentClientName;
+            console.log(`✅ Client selected: ${currentClientName}`);
           } else {
             clientSelect.value = '__NEW__';
-            document.getElementById('clientName').value = formData.main.clientName;
+            document.getElementById('clientName').value = currentClientName;
             document.getElementById('newClientContainer').style.display = 'block';
-            console.log(`✅ New client added: ${formData.main.clientName}`);
+            console.log(`✅ New client added: ${currentClientName}`);
           }
+        }
+        // 反映漏れ対策
+        if (document.getElementById('clientName') && !document.getElementById('clientName').value) {
+          document.getElementById('clientName').value = currentClientName || '';
         }
      
         // ステップ7: 担当者情報の設定
         const contactPersonSelect = document.getElementById('contactPersonSelect');
-        if (contactPersonSelect && formData.main.clientName) {
-          updateContactPersonList(formData.main.clientName);
+        const activeClientName = currentClientName;
+        
+        if (contactPersonSelect && activeClientName) {
+          if (typeof updateContactPersonList === 'function') {
+            updateContactPersonList(activeClientName);
+          }
           
           if (formData.main.contactPerson) {
             const personExists = Array.from(contactPersonSelect.options).some(opt => opt.value === formData.main.contactPerson);
@@ -1259,8 +1278,16 @@
               console.log(`✅ Contact person selected: ${formData.main.contactPerson}`);
             } else {
               contactPersonSelect.value = '__NEW__';
-              document.getElementById('contactPersonName').value = formData.main.contactPerson;
-              document.getElementById('newContactPersonContainer').style.display = 'block';
+              if (document.getElementById('contactPersonName')) {
+                document.getElementById('contactPersonName').value = formData.main.contactPerson;
+              }
+              // テキスト入力の contactPerson もあれば対応
+              if (document.getElementById('contactPerson')) {
+                document.getElementById('contactPerson').value = formData.main.contactPerson;
+              }
+              if (document.getElementById('newContactPersonContainer')) {
+                document.getElementById('newContactPersonContainer').style.display = 'block';
+              }
               console.log(`✅ New contact person added: ${formData.main.contactPerson}`);
             }
           }
@@ -1283,7 +1310,14 @@
         if (detailsContainer && formData.details && formData.details.length > 0) {
           formData.details.forEach((item, index) => {
             try {
-              addDetailCardWithData(item);
+              // 💡 元の関数名に準拠
+              if (typeof addDetailCardWithData === 'function') {
+                addDetailCardWithData(item);
+              } else if (typeof addDetailCardWithValues === 'function') {
+                addDetailCardWithValues(item);
+              } else if (typeof addTableRow === 'function') {
+                addTableRow();
+              }
               console.log(`✅ Detail row ${index + 1} added`);
             } catch (detailError) {
               console.error(`❌ Error adding detail row ${index + 1}:`, detailError);
@@ -1291,14 +1325,19 @@
             }
           });
         } else {
-          // 明細データがない場合は空行を2行追加
-          for(let i = 0; i < 2; i++) addTableRow();
+          for(let i = 0; i < 2; i++) {
+            if (typeof addTableRow === 'function') addTableRow();
+          }
           console.log('✅ Empty detail rows created');
         }
      
         // ステップ10: 合計を再計算
         console.log('🔢 Updating totals...');
-        updateTotalSummary();
+        if (typeof updateTotalSummary === 'function') {
+          updateTotalSummary();
+        } else if (typeof calculateTotalAmount === 'function') {
+          calculateTotalAmount();
+        }
         console.log('✅ Totals updated');
      
         // ローダーを消す
@@ -1313,7 +1352,7 @@
         });
      
         // メイン画面を表示
-        showMainApp();
+        if (typeof showMainApp === 'function') showMainApp();
         console.log('✅ Main app displayed');
      
       } catch (error) {
@@ -1329,7 +1368,7 @@
           confirmButtonText: '了解'
         });
         
-        showMenuScreen();
+        if (typeof showMenuScreen === 'function') showMenuScreen();
       }
     }
 
@@ -1752,16 +1791,16 @@
             }
           })
         });
-     
+      
         const result = await res.json();
         if (result.status === 'error') throw new Error(result.message);
         
         const masterData = result.data || {};
         MASTER_CLIENTS = masterData.clients || [];
-        MASTER_CONTACTPERSONS = masterData.contactPersons || {};  // 🌟 新設：担当者マスター
+        MASTER_CONTACTPERSONS = masterData.contactPersons || {};  // 担当者マスター
         MASTER_CATEGORIES = masterData.categories || [];
         MASTER_UNITS = masterData.units || [];
-     
+      
         // 取引先プルダウンを構築
         const clientSelect = document.getElementById('clientSelect');
         if (clientSelect) {
@@ -1774,6 +1813,9 @@
           });
           clientSelect.innerHTML += '<option value="__NEW__">（新規取引先を入力する）</option>';
         }
+        // ※ 他に「担当者」や「品目」などのプルダウンをHTMLに組み立てる処理がこの下にあれば、その後に追記してください
+        // マスタの読み込みとHTMLへの描写が「すべて終わったよ！」という合図をブラウザ全体に通知する
+        window.dispatchEvent(new CustomEvent('masterListsLoaded'));
      
       } catch (e) {
         console.error("マスタデータ取得失敗", e);
