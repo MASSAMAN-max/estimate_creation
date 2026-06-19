@@ -540,36 +540,6 @@
   </style>
 </head>
 <body>
-<!-- ログイン画面：初期表示（認証前） -->
-<div id="loginScreen" style="display:none;">
-  <div class="login-box">
-    <h2 style="text-align:center; margin-bottom:35px;">見積フォーム ログイン</h2>
-    
-    <form onsubmit="handleLoginSubmit(); return false;">
-      
-      <div style="margin-bottom:35px;">
-        <label for="loginIdInput" style="display:block; margin-bottom:8px; font-weight:bold;">ログインID</label>
-        <input type="text" id="loginIdInput" name="username" autocomplete="username"
-          style="width:100%; padding:12px; box-sizing: border-box; border:1px solid var(--gray-border);
-          border-radius: var(--radius); font-size:16px;" placeholder="IDを入力してください">
-      </div>
-      
-      <div style="margin-bottom:35px; position:relative;">
-        <label for="loginPasswordInput" style="display:block; margin-bottom:8px; font-weight:bold;">パスワード</label>
-        <input type="password" id="loginPasswordInput" name="password" autocomplete="current-password"
-          style="width:100%; padding:12px; box-sizing: border-box; border:1px solid var(--gray-border); padding-right:50px;
-          border-radius: var(--radius); font-size:16px;" placeholder="パスワードを入力してください">
-        
-        <span onclick="togglePasswordVisibility()" style="position:absolute; right:12px; bottom: 0; height: 50px; display: flex; align-items: center; cursor:pointer; color:var(--text-secondary); user-select:none;">
-          <span id="eyeIcon" class="material-symbols-outlined" style="font-size: 22px; vertical-align: middle;">visibility_off</span>
-        </span>
-      </div>
-      <button id="loginBtn" type="submit" class="btn btn-primary" style="width:100%; padding:12px; font-size:14px; font-weight:600;">ログイン</button>
-    </form>
-
-  </div>
-</div>
-
 
 
 <!-- =====================================
@@ -581,6 +551,10 @@
     <header style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; padding-bottom:12px; border-bottom:2px solid var(--gray-border);">
       <h1 style="font-size:18px; font-weight:600; color:var(--primary);">📋 見積フォーム</h1>
       <div style="display:flex; align-items:center; gap:12px;">
+        <button type="button" class="mini-logout-btn" style="padding:6px 10px; font-size:12px;" onclick="handleBackToMenu()">
+          <span class="material-symbols-outlined" style="font-size:18px;">arrow_back</span>
+          メニューに戻る
+        </button>
         <span id="userDisplayLabel" style="font-size:12px; color:var(--text-secondary); font-weight:bold; background:var(--gray-light); padding:6px 12px; border-radius:var(--radius);"></span>
         <button type="button" id="logoutBtn" class="mini-logout-btn" style="padding:6px 10px; font-size:12px;" onclick="handleLogout()">
           <span class="material-symbols-outlined" style="font-size:18px;">logout</span>
@@ -632,9 +606,61 @@
     </div>
   </div>
 </div>
+ 
+<!-- =====================================
+     リストモーダル（URL表示対応版）
+     ===================================== -->
+<div id="listModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.5); z-index:9998; justify-content:center; align-items:center; padding:12px; box-sizing:border-box;">
+  <div style="background:white; width:100%; max-width:800px; height:85vh; border-radius:var(--radius); padding:20px; box-sizing:border-box; display:flex; flex-direction:column; gap:16px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid var(--gray-border); padding-bottom:10px;">
+      <h3 id="listModalTitle" style="color:var(--primary); font-size:18px;">データを選択</h3>
+      <button type="button" class="mini-logout-btn" onclick="document.getElementById('listModal').style.display='none';">✕ 閉じる</button>
+    </div>
+    
+    <!-- タブ操作（不要な場合は非表示） -->
+    <div id="listModalTabs" style="display:flex; gap:8px;">
+      <button type="button" id="tabDraftBtn" class="btn btn-secondary" style="flex:1; padding:8px;" onclick="switchModalTab('draft')">下書き一覧</button>
+      <button type="button" id="tabEstBtn" class="btn btn-secondary" style="flex:1; padding:8px;" onclick="switchModalTab('estimate')">確定見積一覧</button>
+    </div>
+ 
+    <!-- リスト表示エリア -->
+    <div id="modalListContainer" style="flex:1; overflow-y:auto; border:1px solid var(--gray-border); border-radius:var(--radius); padding:8px; background:#f8fafc;">
+      <!-- リスト内容がここに動的に挿入される -->
+    </div>
+  </div>
+</div>
+  
 
   
-  
+<!-- ログイン画面：初期表示（認証前） -->
+<div id="loginScreen" style="display:none;">
+  <div class="login-box">
+    <h2 style="text-align:center; margin-bottom:35px;">見積フォーム ログイン</h2>
+    
+    <form onsubmit="handleLoginSubmit(); return false;">
+      
+      <div style="margin-bottom:35px;">
+        <label for="loginIdInput" style="display:block; margin-bottom:8px; font-weight:bold;">ログインID</label>
+        <input type="text" id="loginIdInput" name="username" autocomplete="username"
+          style="width:100%; padding:12px; box-sizing: border-box; border:1px solid var(--gray-border);
+          border-radius: var(--radius); font-size:16px;" placeholder="IDを入力してください">
+      </div>
+      
+      <div style="margin-bottom:35px; position:relative;">
+        <label for="loginPasswordInput" style="display:block; margin-bottom:8px; font-weight:bold;">パスワード</label>
+        <input type="password" id="loginPasswordInput" name="password" autocomplete="current-password"
+          style="width:100%; padding:12px; box-sizing: border-box; border:1px solid var(--gray-border); padding-right:50px;
+          border-radius: var(--radius); font-size:16px;" placeholder="パスワードを入力してください">
+        
+        <span onclick="togglePasswordVisibility()" style="position:absolute; right:12px; bottom: 0; height: 50px; display: flex; align-items: center; cursor:pointer; color:var(--text-secondary); user-select:none;">
+          <span id="eyeIcon" class="material-symbols-outlined" style="font-size: 22px; vertical-align: middle;">visibility_off</span>
+        </span>
+      </div>
+      <button id="loginBtn" type="submit" class="btn btn-primary" style="width:100%; padding:12px; font-size:14px; font-weight:600;">ログイン</button>
+    </form>
+
+  </div>
+</div>
  
 <!-- メインアプリ画面：認証後の表示 -->
 <div id="mainApp" style="display:none;" padding: 12px;">
