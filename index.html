@@ -11,14 +11,10 @@
 
   <!-- ベースURL設定：リンクを新タブで開かない -->
   <base target="_top">
-  
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  
   <!-- Googleの Material Design アイコン読み込み -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
-  
   <!-- SweetAlert2：モーダルダイアログ・アラート用ライブラリ -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
@@ -202,17 +198,6 @@
     .card-row-lower {
       display: block;
     }
-
-    /* 【2行目】数量(1) : 単位(1) : 単価(2) の比率設定 
-    .item-grid-row-3col {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 12px;
-    }
-    .item-grid-row-3col .form-group:nth-child(1) { flex: 1; }
-    .item-grid-row-3col .form-group:nth-child(2) { flex: 1; }
-    .item-grid-row-3col .form-group:nth-child(3) { flex: 2; }
-    */
     
     /* 【2行目】数量(1) : 単位(1) : 単価(2) の比率設定 */
     .item-grid-row-3col {
@@ -374,31 +359,17 @@
     }
      
     @keyframes pulse {
-      0%, 100% {
-        box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.7);
-      }
-      50% {
-        box-shadow: 0 0 0 8px rgba(244, 67, 54, 0);
-      }
+      0%, 100% { box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.7); }
+      50% { box-shadow: 0 0 0 8px rgba(244, 67, 54, 0); }
     }
 
-    .voice-input-wrapper {
-      display: flex;
-      gap: 6px;
-    }
-
-    .voice-input-wrapper input {
-      flex: 1;
-    }
+    .voice-input-wrapper { display: flex; gap: 6px; }
+    .voice-input-wrapper input { flex: 1; }
 
     /* マイク点滅アニメーション */
     @keyframes blink {
-      0%, 49%, 100% {
-        opacity: 1;
-      }
-      50%, 99% {
-        opacity: 0.3;
-      }
+      0%, 49%, 100% { opacity: 1; }
+      50%, 99% { opacity: 0.3; }
     }
 
     .footer-flex {
@@ -408,14 +379,10 @@
     }
 
     @media (min-width: 768px) {
-      .footer-flex {
-        grid-template-columns: 2fr 1fr;
-      }
+      .footer-flex { grid-template-columns: 2fr 1fr; }
     }
 
-    .bottom-remarks {
-      grid-column: 1 / -1;
-    }
+    .bottom-remarks {  grid-column: 1 / -1; }
 
     .summary-box {
       background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
@@ -547,7 +514,7 @@
   <div class="app-container">
     <!-- ヘッダー -->
     <header style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; padding-bottom:12px; border-bottom:2px solid var(--gray-border);">
-      <h1 style="font-size:18px; font-weight:600; color:var(--primary);">📋 見積フォーム</h1>
+      <div><h1 style="font-size:18px; font-weight:600; color:var(--primary);">📋 見積フォーム</h1></div>
       <div style="display:flex; align-items:center; gap:12px;">
         <button type="button" class="mini-logout-btn" style="padding:6px 10px; font-size:12px;" onclick="handleBackToMenu()">
           <span class="material-symbols-outlined" style="font-size:18px;">arrow_back</span>
@@ -696,7 +663,7 @@
           </div>
         </div>
        
-        <!-- 🌟【新設】取引先担当者選択フィールド -->
+        <!-- 取引先担当者選択フィールド -->
         <div class="form-group">
           <label for="contactPersonSelect">取引先担当者</label>
           <select id="contactPersonSelect" onchange="toggleNewContactPerson()">
@@ -1181,8 +1148,6 @@
      
       try {
         // ステップ1: データ取得
-        console.log(`📥 Fetching data for ID: ${id}, mode: ${mode}`);
-        
         const response = await fetch(GAS_WEB_APP_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain' },
@@ -1201,9 +1166,7 @@
         if (result.status !== 'success') {
           throw new Error(result.message || 'データの読み込みに失敗しました。');
         }
-     
-        console.log(`✅ Data loaded successfully:`, result.data);
-     
+
         const formData = result.data;
         
         // ステップ2: フォーム状態を設定
@@ -1227,13 +1190,11 @@
         // ステップ5: 日付設定
         const targetDate = mode === 'COPY_CREATE' ? new Date() : new Date(formData.main.estimateDate);
         document.getElementById('estimateDate').value = formatDateToInput(targetDate);
-        console.log(`📅 Date set: ${formatDateToInput(targetDate)}`);
      
-        // ========== ステップ6: クライアント情報設定（修正版） ==========
+        // ========== ステップ6: クライアント情報設定 ==========
         document.getElementById('loaderText').textContent = 'クライアント情報を設定しています...';
-        console.log('🏢 Setting client information...');
         
-        // ✅ 修正: clientSelect をここで定義
+        //  clientSelect をここで定義
         const clientSelect = document.getElementById('clientSelect');
         const currentClientName = formData.main.clientSelect || formData.main.clientName;
         
@@ -1244,7 +1205,6 @@
           
           if (clientExists) {
             clientSelect.value = currentClientName;
-            console.log(`✅ Client selected: ${currentClientName}`);
           } else {
             clientSelect.value = '__NEW__';
             const clientNameInput = document.getElementById('clientName');
@@ -1255,7 +1215,6 @@
             if (newClientContainer) {
               newClientContainer.style.display = 'block';
             }
-            console.log(`✅ New client added: ${currentClientName}`);
           }
         }
         
@@ -1281,7 +1240,6 @@
             
             if (personExists) {
               contactPersonSelect.value = formData.main.contactPerson;
-              console.log(`✅ Contact person selected: ${formData.main.contactPerson}`);
             } else {
               contactPersonSelect.value = '__NEW__';
               const contactPersonNameInput = document.getElementById('contactPersonName');
@@ -1292,7 +1250,6 @@
               if (newContactPersonContainer) {
                 newContactPersonContainer.style.display = 'block';
               }
-              console.log(`✅ New contact person added: ${formData.main.contactPerson}`);
             }
           }
         }
@@ -1324,12 +1281,9 @@
         if (remarksInput) {
           remarksInput.value = formData.main.remarks || '';
         }
-        
-        console.log('✅ Form details set');
      
         // ========== ステップ9: 明細行の復元 ==========
         document.getElementById('loaderText').textContent = '明細データを復元しています...';
-        console.log(`📊 Loading ${formData.details ? formData.details.length : 0} detail rows...`);
         
         const detailsContainer = document.getElementById('detailsContainer');
         if (detailsContainer && formData.details && formData.details.length > 0) {
@@ -1340,7 +1294,6 @@
               } else if (typeof addTableRow === 'function') {
                 addTableRow();
               }
-              console.log(`✅ Detail row ${index + 1} added`);
             } catch (detailError) {
               console.error(`❌ Error adding detail row ${index + 1}:`, detailError);
             }
@@ -1355,12 +1308,9 @@
         }
      
         // ========== ステップ10: 合計を再計算 ==========
-        console.log('🔢 Updating totals...');
         if (typeof updateTotalSummary === 'function') {
           updateTotalSummary();
         }
-        console.log('✅ Totals updated');
-     
         // ローダーを消す
         document.getElementById('loader').style.display = 'none';
         
@@ -1373,12 +1323,11 @@
           confirmButtonText: '了解'
         });
      
-        // ✅ 修正: メイン画面を表示（必須）
+        //  メイン画面を表示（必須）
         showMainApp();
-        console.log('✅ Main app displayed');
      
       } catch (error) {
-        // ✅ 修正: エラー時も必ずローダーを消す
+        //  エラー時も必ずローダーを消す
         document.getElementById('loader').style.display = 'none';
         
         console.error('❌ データ読み込みエラー:', error);
@@ -1421,7 +1370,7 @@
     }
      
     // =====================================
-    // 🌟【新設】戻るボタンハンドラ（作成画面からメニューへ）
+    // 戻るボタンハンドラ（作成画面からメニューへ）
     // =====================================
     function handleBackToMenu() {
       Swal.fire({
@@ -1630,7 +1579,7 @@
         const qtyOptions = Array.from({length: 99}, (_, i) => `<option value="${i+1}" ${(i+1) === item.itemQty ? 'selected' : ''}>${i+1}</option>`).join('');
         const unitOptions = (!MASTER_UNITS.includes('式') ? '<option value="式">式</option>' : '') + 
                             MASTER_UNITS.filter(u => u && u.trim()).map(u => `<option value="${htmlEscape(u.trim())}" ${u === displayUnit ? 'selected' : ''}>${htmlEscape(u.trim())}</option>`).join('');
-     
+        
         breakdownRow.innerHTML = `
           <div class="form-group" style="margin-top: 5px;">
             <label>仕様・摘要 <span class="badge-required">必須</span></label>
@@ -1760,7 +1709,6 @@
       }
     }
     // ===== 取引先変更時の住所クリア処理 =====
-    // toggleNewClient() 関数の最後に以下を追加：
     // 住所欄をクリアする処理
     function clearClientAddress() {
       const select = document.getElementById('clientSelect');
@@ -1774,7 +1722,7 @@
       // （この項目は手動で入力するように）
     }
     
-    // ===== 🌟【新設】取引先に紐付く担当者リストを更新する関数 =====
+    // ===== 取引先に紐付く担当者リストを更新する関数 =====
     function updateContactPersonList(selectedClient) {
       const contactPersonSelect = document.getElementById('contactPersonSelect');
       const newContactPersonContainer = document.getElementById('newContactPersonContainer');
@@ -1808,8 +1756,7 @@
       contactPersonInput.value = '';
     }
      
-     
-    // ===== 🌟【新設】担当者選択時のイベントハンドラ =====
+    // ===== 担当者選択時のイベントハンドラ =====
     function toggleNewContactPerson() {
       const select = document.getElementById('contactPersonSelect');
       const container = document.getElementById('newContactPersonContainer');
@@ -1901,7 +1848,6 @@
         input.style.backgroundColor = '';
         input.style.borderColor = '';
       };
-     
       recognition.start();
     }
 
@@ -1963,7 +1909,7 @@
 
 
     // =====================================
-    // 🌟【新設】子行（内訳）を追加する関数
+    // 子行（内訳）を追加する関数
     // =====================================
     function addBreakdownRow(card, breakdownContainer, isFirst = false) {
       // 常に card と breakdownContainer を明示的に受け取る
@@ -2030,7 +1976,7 @@
       checkUnitConstraint(card);
       calculateBreakdownAmount(row.querySelector('.item-qty'));
     }
-
+    
     // =====================================
     // 内訳の数による単位制限ルールを制御する関数
     // =====================================
@@ -2072,7 +2018,7 @@
         }
         
       } else if (rows.length === 1) {
-        // 💡 内訳が1つだけに戻った場合：すべてのロックを解除して通常に戻す
+        // 内訳が1つだけに戻った場合：すべてのロックを解除して通常に戻す
         firstQty.disabled = false;
         firstUnit.disabled = false;
         firstPrice.disabled = false;
@@ -2117,18 +2063,18 @@
       
       if (row) {
         const rows = card.querySelectorAll('.breakdown-row');
-        // 💡 2行以上あって、かつ自分が1行目の場合は、ここの個別掛け算をスキップ（全体の合計同期に任せる）
+        // 2行以上あって、かつ自分が1行目の場合は、ここの個別掛け算をスキップ（全体の合計同期に任せる）
         if (!(rows.length >= 2 && row === rows[0])) {
           const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
           const price = parseFloat(row.querySelector('.item-price').value) || 0;
           
-          // 🔥 元の仕様通り、Math.floor で端数を切り捨てます
+          // 元の仕様通り、Math.floor で端数を切り捨てます
           const amount = Math.floor(qty * price); 
           
           const amountSpan = row.querySelector('.item-amount');
           amountSpan.textContent = amount.toLocaleString();
           
-          // 🔥 元の仕様通り、dataset.value を使って保存します
+          // 元の仕様通り、dataset.value を使って保存します
           amountSpan.dataset.value = amount; 
         }
       }
@@ -2138,7 +2084,7 @@
     }
 
     // =====================================
-    // 💡 3. カード内の合計金額を計算・同期する関数
+    // 3. カード内の合計金額を計算・同期する関数
     // =====================================
     function updateCardTotal(card) {
       const rows = card.querySelectorAll('.breakdown-row');
@@ -2147,19 +2093,19 @@
       let cardSubtotal = 0;
       
       if (rows.length >= 2) {
-        // 💡 2行以上ある場合：2行目以降（内容2〜）の金額だけを合計する（金額倍増バグを防ぐ）
+        // 2行以上ある場合：2行目以降（内容2〜）の金額だけを合計する（金額倍増バグを防ぐ）
         for (let i = 1; i < rows.length; i++) {
           const span = rows[i].querySelector('.item-amount');
           cardSubtotal += parseFloat(span.dataset.value) || 0;
         }
         
-        // 🔥【新条件】内容1（1行目）の金額欄に、計算した合計額をリアルタイムに同期
+        // 内容1（1行目）の金額欄に、計算した合計額をリアルタイムに同期
         const firstAmountSpan = rows[0].querySelector('.item-amount');
         firstAmountSpan.textContent = cardSubtotal.toLocaleString();
         firstAmountSpan.dataset.value = cardSubtotal; // dataset形式で保存
         
       } else if (rows.length === 1) {
-        // 💡 1行だけの場合：その行の金額がそのまま合計になる
+        // 1行だけの場合：その行の金額がそのまま合計になる
         const span = rows[0].querySelector('.item-amount');
         cardSubtotal = parseFloat(span.dataset.value) || 0;
       }
@@ -2232,7 +2178,7 @@
       
       const details = [];
       
-      // 🌟【新設】親子構造をループして、GASに優しいフラットな形式に整形
+      // 親子構造をループして、GASに優しいフラットな形式に整形
       document.querySelectorAll('.detail-card').forEach(card => {
         const catSelect = card.querySelector('.item-category-select');
         let finalCategory = catSelect.value;
@@ -2496,8 +2442,6 @@
       
       try {
         // ========== 1回目: データ保存 ==========
-        console.log('📝 Saving estimate data...', { actionType, clientName: data.clientName });
-        
         const response = await fetch(GAS_WEB_APP_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain' },
@@ -2525,7 +2469,6 @@
         }
         
         const result = await response.json();
-        console.log('✅ Save response:', result);
         
         if (result.status !== 'success') {
           throw new Error(result.message || 'Save failed with unknown error');
@@ -2551,8 +2494,6 @@
         // ========== 2回目: PDF生成（見積の場合のみ） ==========
         document.getElementById('loaderText').innerHTML = 
           `データ処理完了（${generatedId}）<br><span style="color: #cff5ff; font-weight: bold;">続けてPDF見積書を生成しています... (約5～10秒)</span>`;
-        
-        console.log('📄 Generating PDF...', { estimateNo: generatedId });
         
         // ⏱️ タイムアウト処理を追加（30秒で制限）
         const timeoutId = setTimeout(() => {
@@ -2601,8 +2542,6 @@
           throw new Error(`PDF response was not valid JSON: ${parseError.message}`);
         }
         
-        console.log('✅ PDF result:', pdfResult);
-        
         // レスポンス構造をしっかりチェック
         if (pdfResult.status !== 'success') {
           throw new Error(`PDF generation failed: ${pdfResult.message || 'Unknown error'}`);
@@ -2617,13 +2556,10 @@
         
         // ========== PDF処理: Base64 → Blob → ダウンロード ==========
         try {
-          console.log('📦 Processing PDF data...', { 
             base64Length: pdfResult.data.pdfBase64.length 
           });
-          
           // Base64クリーンアップ（改行・スペース削除）
           const base64Data = pdfResult.data.pdfBase64.replace(/\s/g, '');
-          
           // Base64デコード
           let byteCharacters;
           try {
@@ -2632,7 +2568,6 @@
             console.error('❌ Base64 decode failed:', decodeError);
             throw new Error(`PDF format error: ${decodeError.message}`);
           }
-          
           // ByteArray変換
           const sliceSize = 512;
           const byteArrays = [];
@@ -2678,14 +2613,10 @@
               document.body.appendChild(link);
               link.click();
               document.body.removeChild(link);
-              
-              console.log('✅ Download triggered');
-            }
-            
+            }            
             // メモリ解放（十分な時間を取る）
             setTimeout(() => {
               URL.revokeObjectURL(blobURL);
-              console.log('✅ Memory released');
             }, 1000);
           });
           
