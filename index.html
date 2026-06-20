@@ -706,12 +706,12 @@
        
         <div class="form-group">
           <label for="validity">有効期限</label>
-          <input type="text" id="validity" value="御見積作成から3ヵ月">
+          <input type="text" id="validity" value=" 御見積作成から1ヵ月">
         </div>
        
         <div class="form-group">
           <label for="paymentTerms">支払条件</label>
-          <input type="text" id="paymentTerms" value="従来通り">
+          <input type="text" id="paymentTerms" value=" 従来通り">
         </div>
       </div>
 
@@ -968,8 +968,8 @@
         // 今日の日付をセット
         document.getElementById('estimateDate').value = new Date().toISOString().split('T')[0];
         
-        // 初期行を2行追加
-        for(let i = 0; i < 2; i++) addTableRow();
+        // 初期行を1行追加
+        for(let i = 0; i < 1; i++) addTableRow();
         
         updateTotalSummary();
         
@@ -1801,7 +1801,7 @@
     
     
     // ============================================
-    // 【新設】カードにデータを埋め込む関数
+    // カードにデータを埋め込む関数
     // ============================================
     function populateDetailCard(card, itemData) {
       if (!card || !itemData) return;
@@ -2310,13 +2310,14 @@
           <hr style="margin: 8px 0; border: none; border-top: 1px solid #ddd;">
           <div style="text-align: right; margin: 8px 0;">
             <p style="margin: 4px 0;">小計: ¥${data.subtotal.toLocaleString()}</p>
+            <p style="margin: 4px 0;">小計: ¥${id="subtotalLabel"}</p>
             <p style="margin: 4px 0;">消費税(10%): ¥${data.tax.toLocaleString()}</p>
             <p style="font-weight: 600; font-size: 13px; margin: 4px 0;">合計: ¥${data.total.toLocaleString()}</p>
           </div>
           ${data.remarks ? `<p style="margin: 8px 0;"><strong>備考:</strong> ${htmlEscape(data.remarks).replace(/\n/g, '<br>')}</p>` : ''}
         </div>
       `;
-     
+
       Swal.fire({
         title: '見積書 簡易プレビュー',
         html: previewHtml,
@@ -2614,7 +2615,7 @@
           // フォーム初期化
           document.getElementById('estimateForm').reset();
           document.getElementById('detailsContainer').innerHTML = '';
-          for(let i = 0; i < 2; i++) addTableRow();
+          for(let i = 0; i < 1; i++) addTableRow();
           updateTotalSummary();
           
         } catch (blobError) {
