@@ -507,92 +507,7 @@
   </style>
 </head>
 <body>
-<!-- =====================================
-     メニュー画面：ログイン後の機能選択
-     ===================================== -->
-<div id="menuScreen" style="display:none;">
-  <div class="app-container">
-    <!-- ヘッダー -->
-    <header style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; padding-bottom:12px; border-bottom:2px solid var(--gray-border);">
-      <h1 style="font-size:18px; font-weight:600; color:var(--primary);">📋 見積フォーム</h1>
-      <div style="display:flex; align-items:center; gap:12px;">
-      <span id="userDisplayLabel" style="font-size:12px; color:var(--text-secondary); font-weight:bold; background:var(--gray-light); padding:6px 12px; border-radius:var(--radius);"></span>
-      <button type="button" id="logoutBtn" class="mini-logout-btn" style="padding:6px 10px; font-size:12px;" onclick="handleLogout()">
-        <span class="material-symbols-outlined" style="font-size:18px;">logout</span>
-      </button>
-      </div>
-    </header>
- 
-    <!-- メニューコンテンツ -->
-    <div style="display:flex; flex-direction:column; gap:16px; max-width:600px; margin:0 auto;">
-      <div style="text-align:center; margin-bottom:20px;">
-        <p style="font-size:14px; color:var(--text-secondary); margin:0;">以下の操作を選択してください</p>
-      </div>
- 
-      <!-- 新規見積書作成 -->
-      <button type="button" class="btn btn-primary" style="width:100%; padding:20px; font-size:16px; text-align:left; display:flex; align-items:center; gap:12px;" onclick="handleMenuClick('NEW_ESTIMATE')">
-        <span class="material-symbols-outlined" style="font-size:32px;">add_circle</span>
-        <div>
-          <div style="font-weight:bold;">新規見積書を作成</div>
-          <div style="font-size:12px; opacity:0.9;">最初から新しく見積書を作成します</div>
-        </div>
-      </button>
- 
-      <!-- 過去の見積書から作成 -->
-      <button type="button" class="btn btn-primary" style="width:100%; padding:20px; font-size:16px; text-align:left; display:flex; align-items:center; gap:12px; background-color:var(--primary-light);" onclick="handleMenuClick('PAST_ESTIMATE')">
-        <span class="material-symbols-outlined" style="font-size:32px;">content_copy</span>
-        <div>
-          <div style="font-weight:bold;">過去の見積書から作成</div>
-          <div style="font-size:12px; opacity:0.9;">保存済みの見積書をコピーして新規作成</div>
-        </div>
-      </button>
- 
-      <!-- 見積書確認 -->
-      <button type="button" class="btn btn-primary" style="width:100%; padding:20px; font-size:16px; text-align:left; display:flex; align-items:center; gap:12px; background-color:var(--success);" onclick="handleMenuClick('VIEW_ESTIMATE')">
-        <span class="material-symbols-outlined" style="font-size:32px;">visibility</span>
-        <div>
-          <div style="font-weight:bold;">見積書を確認</div>
-          <div style="font-size:12px; opacity:0.9;">保存済みの見積書PDFを表示</div>
-        </div>
-      </button>
- 
-      <!-- 下書きを編集 -->
-      <button type="button" class="btn btn-primary" style="width:100%; padding:20px; font-size:16px; text-align:left; display:flex; align-items:center; gap:12px; background-color:var(--warning);" onclick="handleMenuClick('EDIT_DRAFT')">
-        <span class="material-symbols-outlined" style="font-size:32px;">edit</span>
-        <div>
-          <div style="font-weight:bold;">下書きを編集</div>
-          <div style="font-size:12px; opacity:0.9;">保存中の下書きを再開して編集</div>
-        </div>
-      </button>
-    </div>
-  </div>
-</div>
- 
-<!-- =====================================
-     リストモーダル（URL表示対応版）
-     ===================================== -->
-<div id="listModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.5); z-index:9998; justify-content:center; align-items:center; padding:12px; box-sizing:border-box;">
-  <div style="background:white; width:100%; max-width:800px; height:85vh; border-radius:var(--radius); padding:20px; box-sizing:border-box; display:flex; flex-direction:column; gap:16px;">
-    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid var(--gray-border); padding-bottom:10px;">
-      <h3 id="listModalTitle" style="color:var(--primary); font-size:18px;">データを選択</h3>
-      <button type="button" class="mini-logout-btn" onclick="document.getElementById('listModal').style.display='none';">✕ 閉じる</button>
-    </div>
-    
-    <!-- タブ操作（不要な場合は非表示） -->
-    <div id="listModalTabs" style="display:flex; gap:8px;">
-      <button type="button" id="tabDraftBtn" class="btn btn-secondary" style="flex:1; padding:8px;" onclick="switchModalTab('draft')">下書き一覧</button>
-      <button type="button" id="tabEstBtn" class="btn btn-secondary" style="flex:1; padding:8px;" onclick="switchModalTab('estimate')">確定見積一覧</button>
-    </div>
- 
-    <!-- リスト表示エリア -->
-    <div id="modalListContainer" style="flex:1; overflow-y:auto; border:1px solid var(--gray-border); border-radius:var(--radius); padding:8px; background:#f8fafc;">
-      <!-- リスト内容がここに動的に挿入される -->
-    </div>
-  </div>
-</div>
-  
 
-  
 <!-- ログイン画面：初期表示（認証前） -->
 <div id="loginScreen" style="display:none;">
   <div class="login-box">
@@ -622,7 +537,88 @@
 
   </div>
 </div>
+
+<!-- メニュー画面：ログイン後の機能選択 -->
+<div id="menuScreen" style="display:none;">
+  <div class="app-container">
+    <!-- ヘッダー -->
+    <header style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; padding-bottom:12px; border-bottom:2px solid var(--gray-border);">
+      <h1 style="font-size:18px; font-weight:600; color:var(--primary);">📋 見積フォーム</h1>
+      <div style="display:flex; align-items:center; gap:12px;">
+      <span id="userDisplayLabel" style="font-size:12px; color:var(--text-secondary); font-weight:bold; background:var(--gray-light); padding:6px 12px; border-radius:var(--radius);"></span>
+      <button type="button" id="logoutBtn" class="mini-logout-btn" style="padding:6px 10px; font-size:12px;" onclick="handleLogout()">
+        <span class="material-symbols-outlined" style="font-size:18px;">logout</span>
+      </button>
+      </div>
+    </header>
  
+    <!-- メニューコンテンツ -->
+       <div style="text-align:center; margin-bottom:20px;">
+        <p style="font-size:14px; color:var(--text-secondary); margin:0;">以下の操作を選択してください</p>
+      </div>
+    <div style="display:flex; flex-direction:column; gap:24px; max-width:600px; margin:0 auto;">
+      <!-- 新規見積書作成 -->
+      <button type="button" class="btn btn-primary" style="width:100%; padding:20px; font-size:16px; text-align:left; display:flex; align-items:center; gap:12px;" onclick="handleMenuClick('NEW_ESTIMATE')">
+        <span class="material-symbols-outlined" style="font-size:32px;">add_circle</span>
+        <div>
+          <div style="font-weight:bold;">新規見積書を作成</div>
+          <div style="font-size:12px; opacity:0.9;">最初から新しく見積書を作成します</div>
+        </div>
+      </button>
+ 
+      <!-- 過去の見積書から作成 -->
+      <button type="button" class="btn btn-primary" style="width:100%; padding:20px; font-size:16px; text-align:left; display:flex; align-items:center; gap:12px; background-color:var(--primary-light);" onclick="handleMenuClick('PAST_ESTIMATE')">
+        <span class="material-symbols-outlined" style="font-size:32px;">content_copy</span>
+        <div>
+          <div style="font-weight:bold;">過去の見積書から作成</div>
+          <div style="font-size:12px; opacity:0.9;">保存済みの見積書をコピーして作成</div>
+        </div>
+      </button>
+ 
+      <!-- 見積書確認 -->
+      <button type="button" class="btn btn-primary" style="width:100%; padding:20px; font-size:16px; text-align:left; display:flex; align-items:center; gap:12px; background-color:var(--success);" onclick="handleMenuClick('VIEW_ESTIMATE')">
+        <span class="material-symbols-outlined" style="font-size:32px;">visibility</span>
+        <div>
+          <div style="font-weight:bold;">見積書を確認</div>
+          <div style="font-size:12px; opacity:0.9;">保存済みの見積書PDFを表示します </div>
+        </div>
+      </button>
+ 
+      <!-- 下書きを編集 -->
+      <button type="button" class="btn btn-primary" style="width:100%; padding:20px; font-size:16px; text-align:left; display:flex; align-items:center; gap:12px; background-color:var(--warning);" onclick="handleMenuClick('EDIT_DRAFT')">
+        <span class="material-symbols-outlined" style="font-size:32px;">edit</span>
+        <div>
+          <div style="font-weight:bold;">下書きを編集</div>
+          <div style="font-size:12px; opacity:0.9;">保存中の下書きを再開して編集    </div>
+        </div>
+      </button>
+    </div>
+  </div>
+</div>
+ 
+<!-- =====================================
+     リストモーダル（URL表示対応版）
+     ===================================== -->
+<div id="listModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.5); z-index:9998; justify-content:center; align-items:center; padding:12px; box-sizing:border-box;">
+  <div style="background:white; width:100%; max-width:800px; height:85vh; border-radius:var(--radius); padding:20px; box-sizing:border-box; display:flex; flex-direction:column; gap:16px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid var(--gray-border); padding-bottom:10px;">
+      <h3 id="listModalTitle" style="color:var(--primary); font-size:18px;">データを選択</h3>
+      <button type="button" class="mini-logout-btn" onclick="document.getElementById('listModal').style.display='none';">✕ 閉じる</button>
+    </div>
+    
+    <!-- タブ操作（不要な場合は非表示） -->
+    <div id="listModalTabs" style="display:flex; gap:8px;">
+      <button type="button" id="tabDraftBtn" class="btn btn-secondary" style="flex:1; padding:8px;" onclick="switchModalTab('draft')">下書き一覧</button>
+      <button type="button" id="tabEstBtn" class="btn btn-secondary" style="flex:1; padding:8px;" onclick="switchModalTab('estimate')">確定見積一覧</button>
+    </div>
+ 
+    <!-- リスト表示エリア -->
+    <div id="modalListContainer" style="flex:1; overflow-y:auto; border:1px solid var(--gray-border); border-radius:var(--radius); padding:8px; background:#f8fafc;">
+      <!-- リスト内容がここに動的に挿入される -->
+    </div>
+  </div>
+</div>
+
 <!-- メインアプリ画面：認証後の表示 -->
 <div id="mainApp" style="display:none; padding: 12px;">
   <!-- 【以下、既存のapp-container全体】 -->
@@ -631,7 +627,7 @@
     <header style="display:flex; flex-direction:column; align-items:center; gap:12px; margin-bottom:20px; padding-bottom:12px; border-bottom:2px solid var(--gray-border);">
 
       <h1 style="font-size:18px; font-weight:600; color:var(--primary); margin:0;">
-        📋 見積フォーム
+        📋 見積書作成フォーム
       </h1>
 
       <span id="userDisplayLabel"
@@ -646,7 +642,7 @@
           <span class="material-symbols-outlined" style="font-size:18px;">arrow_back</span>
           メニューに戻る
         </button>
-        <span id="userDisplayLabel" style="font-size:12px; color:var(--text-secondary); font-weight:bold; background:var(--gray-light); padding:6px 12px; border-radius:var(--radius);"></span>
+
         <button type="button"
                 id="logoutBtn"
                 class="mini-logout-btn"
@@ -790,14 +786,14 @@
     let currentOriginId = ''; // 編集元・コピー元となったデータのIDを保持
 
     window.addEventListener('DOMContentLoaded', async () => {
-      // 🌟【修正】sessionStorage から localStorage へ変更（ログイン状態をチェック）
+      // sessionStorage から localStorage へ変更（ログイン状態をチェック）
       const savedUser = localStorage.getItem('currentUser');
       
       if (savedUser) {
         currentUser = JSON.parse(savedUser);
-        // 💡 今日の日付を自動セット（重要な処理なので残します）
+        // 今日の日付を自動セット（重要な処理なので残します）
         document.getElementById('estimateDate').value = new Date().toISOString().split('T')[0];
-        showMenuScreen();  // 🌟【修正】mainApp直後ではなく、メニュー画面を表示
+        showMenuScreen();  // メニュー画面を表示
       } else {
         showLoginScreen();
       }
@@ -867,7 +863,7 @@
           })
         });
         
-        // 🌟【修正】res.json() から response.json() に修正
+        // res.json() から response.json() に修正
         const result = await response.json();
         
         if (result.status === 'success') {
@@ -876,7 +872,6 @@
           // ログイン状態をローカルストレージに保存
           localStorage.setItem('currentUser', JSON.stringify(currentUser));
           
-          // 🌟【修正】showMainScreen() から showMainApp() に修正
           showMainApp();
           
           // マスタデータの取得を開始
@@ -909,7 +904,7 @@
       try {
         switch(menuType) {
           case 'NEW_ESTIMATE':
-            loaderText.textContent = 'マスターデータを読み込んでいます...';
+            loaderText.textContent = 'データを読み込んでいます...';
             await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 20)));
             
             await initializeEstimateForm();
@@ -1092,7 +1087,7 @@
     }
      
     // =====================================
-    // 🌟【新設】過去見積から作成用リストの表示
+    // 過去見積から作成用リストの表示
     // =====================================
     function displayCopyEstimateList(estimates) {
       const container = document.getElementById('modalListContainer');
@@ -1122,7 +1117,7 @@
     }
      
     // =====================================
-    // 🌟【新設】下書き編集リストの表示
+    // 下書き編集リストの表示
     // =====================================
     function displayDraftList(drafts) {
       const container = document.getElementById('modalListContainer');
@@ -1195,7 +1190,7 @@
         document.getElementById('loaderText').textContent = 'マスターデータを読み込んでいます...';
         await loadMasterLists();
      
-        // ✅ 修正: マスター読み込み後に検証を追加
+        // マスター読み込み後に検証を追加
         if (!MASTER_CLIENTS || MASTER_CLIENTS.length === 0) {
           console.warn('⚠️ Master data might not have loaded completely');
         }
@@ -1407,7 +1402,7 @@
       return String(text).replace(/[&<>"']/g, c => map[c]);
     }
 
-    //【新設】いつでも安全にユーザー名を取得・自動復元する共通関数
+    //いつでも安全にユーザー名を取得・自動復元する共通関数
     function getCurrentUserName() {
       if (currentUser && currentUser.userName) {
         return currentUser.userName;
