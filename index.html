@@ -2556,8 +2556,7 @@
         
         // ========== PDF処理: Base64 → Blob → ダウンロード ==========
         try {
-            base64Length: pdfResult.data.pdfBase64.length 
-          });
+
           // Base64クリーンアップ（改行・スペース削除）
           const base64Data = pdfResult.data.pdfBase64.replace(/\s/g, '');
           // Base64デコード
