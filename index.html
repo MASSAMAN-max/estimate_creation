@@ -556,7 +556,7 @@
        <div style="text-align:center; margin-bottom:20px;">
         <p style="font-size:14px; color:var(--text-secondary); margin:0;">以下の操作を選択してください</p>
       </div>
-    <div style="display:flex; flex-direction:column; gap:24px; max-width:600px; margin:0 auto;">
+    <div style="display:flex; flex-direction:column; gap:32px; max-width:600px; margin:0 auto;">
       <!-- 新規見積書作成 -->
       <button type="button" class="btn btn-primary" style="width:100%; padding:20px; font-size:16px; text-align:left; display:flex; align-items:center; gap:12px;" onclick="handleMenuClick('NEW_ESTIMATE')">
         <span class="material-symbols-outlined" style="font-size:32px;">add_circle</span>
@@ -589,7 +589,7 @@
         <span class="material-symbols-outlined" style="font-size:32px;">edit</span>
         <div>
           <div style="font-weight:bold;">下書きを編集</div>
-          <div style="font-size:12px; opacity:0.9;">保存中の下書きを再開して編集    </div>
+          <div style="font-size:12px; opacity:0.9;">下書き保存中の見積書を編集</div>
         </div>
       </button>
     </div>
@@ -1297,21 +1297,16 @@
         if (detailsContainer && formData.details && formData.details.length > 0) {
           for (const [index, item] of formData.details.entries()) {
             try {
-              if (typeof addDetailCardWithData === 'function') {
-                addDetailCardWithData(item);
-              } else if (typeof addTableRow === 'function') {
-                addTableRow();
-              }
+              // addTableRow にデータを渡すだけ
+              addTableRow(item);  // これで自動的に値が埋まる
             } catch (detailError) {
               console.error(`❌ Error adding detail row ${index + 1}:`, detailError);
             }
           }
         } else {
-          // 空の場合は初期行を追加
+          // 空の場合は初期行を追加（データなし）
           for(let i = 0; i < 2; i++) {
-            if (typeof addTableRow === 'function') {
-              addTableRow();
-            }
+            addTableRow();  // データなしで呼ぶと、空の行が追加される
           }
         }
      
@@ -1514,128 +1509,6 @@
       let date = dateVal instanceof Date ? dateVal : new Date(dateVal);
       if (isNaN(date.getTime())) return String(dateVal);
       return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-    }
-
-    // =====================================
-    // 復元用の明細カード生成（エラーハンドリング強化）
-    // =====================================
-    function addDetailCardWithData(item) {
-      const container = document.getElementById('detailsContainer');
-      if (!container) {
-        throw new Error('detailsContainer が見つかりません。');
-      }
-     
-      try {
-        const card = document.createElement('div');
-        card.className = 'detail-card';
-        
-        const categoryOptions = MASTER_CATEGORIES.map(cat => `<option value="${htmlEscape(cat)}">${htmlEscape(cat)}</option>`).join('') + '<option value="__NEW__">＋新規項目</option>';
-     
-        // 単位の値を決定
-        const displayUnit = item.itemUnit ? String(item.itemUnit).trim() : '式';
-     
-        card.innerHTML = `
-          <div style="display: flex; gap: 6px; align-items: flex-start; margin-bottom: 12px; background: #fff; padding: 12px; border-radius: 4px; border: 1px solid #e9ecef; width: 100%; box-sizing: border-box;">
-            <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 0;">
-              <label style="font-weight: bold; color: #495057; display: block; margin-bottom: 4px;">親項目 <span class="badge-required">必須</span></label>
-              <select class="item-category-select" style="width: 100%; box-sizing: border-box;" onchange="toggleNewCategory(this)">
-                <option value="${htmlEscape(String(item.itemCategory || ''))}" selected>${htmlEscape(String(item.itemCategory || ''))}</option>
-                ${categoryOptions}
-              </select>
-              <div class="dynamic-input-container" style="display:none; margin-top: 5px;">
-                <input type="text" class="item-category-input" style="width: 100%; box-sizing: border-box;" placeholder="新規項目名">
-              </div>
-            </div>
-          </div>
-          
-          <div class="breakdown-container"></div>
-     
-          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-top: 10px; border-top: 1px dashed #dee2e6; padding-top: 10px; width: 100%; box-sizing: border-box;">            
-            <div style="flex: 1; text-align: left;">
-              <button type="button" class="btn" style="background-color: #e8f5e9; color: #2e7d32; padding: 6px 12px; font-size: 14px; font-weight: bold;" onclick="addBreakdownRow(this.closest('.detail-card'), this.closest('.detail-card').querySelector('.breakdown-container'), false)">
-                <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle;">add</span> 内訳を追加
-              </button>
-            </div> 
-            <div style="flex: 1; max-width: 50%; min-width: 0; text-align: right;">
-              <label style="font-weight: bold; display: block; font-size: 12px; color: #6c757d; margin-bottom: 4px;">項目合計金額</label>
-              <div class="amount-display-box" style="background: #e3f2fd; padding: 6px 12px; border-radius: 4px; border: 1px solid #b3e5fc; font-weight: bold; font-size: 15px; color: #0d47a1; text-align: right; width: 100%; box-sizing: border-box; display: flex; justify-content: space-between; align-items: center;">
-                <span>¥</span>
-                <span class="card-total-amount" data-value="${Number(item.itemAmount || 0)}">${Number(item.itemAmount || 0).toLocaleString()}</span>
-              </div>
-            </div>
-          </div>
-          
-          <div style="text-align: right; margin-top: 12px;">
-            <button type="button" class="btn btn-danger" style="padding: 6px 12px; font-size: 14px;" onclick="deleteTableRow(this)">
-              <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle;">delete</span> 項目ごと削除
-            </button>
-          </div>
-        `;
-        
-        container.appendChild(card);
-        
-        const breakdownContainer = card.querySelector('.breakdown-container');
-        if (!breakdownContainer) {
-          throw new Error('breakdown-container が見つかりません。');
-        }
-        
-        // 復元データから内訳行を追加
-        const breakdownRow = document.createElement('div');
-        breakdownRow.className = 'breakdown-row';
-        breakdownRow.style = 'border: 1px solid #f1f3f5; padding: 8px; margin-bottom: 8px; border-radius: 4px; background: #fff;';
-        
-        const qtyOptions = Array.from({length: 99}, (_, i) => `<option value="${i+1}" ${(i+1) === item.itemQty ? 'selected' : ''}>${i+1}</option>`).join('');
-        const unitOptions = (!MASTER_UNITS.includes('式') ? '<option value="式">式</option>' : '') + 
-                            MASTER_UNITS.filter(u => u && u.trim()).map(u => `<option value="${htmlEscape(u.trim())}" ${u === displayUnit ? 'selected' : ''}>${htmlEscape(u.trim())}</option>`).join('');
-        
-        breakdownRow.innerHTML = `
-          <div class="form-group" style="margin-top: 5px;">
-            <label>仕様・摘要 <span class="badge-required">必須</span></label>
-            <div class="voice-input-wrapper">
-              <input type="text" class="item-name" placeholder="品名・内容など" value="${htmlEscape(String(item.itemName || ''))}">
-              <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)"><span class="material-symbols-outlined">mic</span></button>
-            </div>
-          </div>
-     
-          <div class="card-row-lower" style="margin-bottom: 4px;">
-            <div class="item-grid-row-3col">
-              <div class="form-group">
-                <label>数量</label>
-                <select class="item-qty" onchange="calculateBreakdownAmount(this)">${qtyOptions}</select>
-              </div>
-              <div class="form-group">
-                <label>単位</label>
-                <select class="item-unit" onchange="checkUnitConstraint(this.closest('.detail-card'))">${unitOptions}</select>
-              </div>
-              <div class="form-group">
-                <label>単価</label>
-                <input type="number" class="item-price" min="0" value="${Number(item.itemPrice || 0)}" oninput="calculateBreakdownAmount(this)">
-              </div>
-              <div class="form-group">
-                <label>金額</label>
-                <div class="amount-display-box"><span>¥</span><span class="item-amount" data-value="${Number(item.itemAmount || 0)}">${Number(item.itemAmount || 0).toLocaleString()}</span></div>
-              </div>
-            </div>
-              
-            <div class="form-group">
-              <label>備考</label>
-              <div class="voice-input-wrapper">
-                <input type="text" class="item-remarks" placeholder="特記事項等" value="${htmlEscape(String(item.itemRemarks || ''))}">
-                <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)"><span class="material-symbols-outlined">mic</span></button>
-              </div>
-            </div>
-          </div>
-        `;
-        
-        breakdownContainer.appendChild(breakdownRow);
-        checkUnitConstraint(card);
-        updateCardTotal(card);
-        updateTotalSummary();
-        
-      } catch (error) {
-        console.error('❌ Error in addDetailCardWithData:', error);
-        throw error;
-      }
     }
 
     async function loadMasterLists() {
@@ -1862,7 +1735,7 @@
     // =====================================
     // 明細行（親項目カード）を追加している関数
     // =====================================
-    function addTableRow() {
+    function addTableRow(itemData = null) {
       const container = document.getElementById('detailsContainer');
       const card = document.createElement('div');
       card.className = 'detail-card';
@@ -1909,10 +1782,121 @@
       
       container.appendChild(card);
       
-      // card と breakdownContainer を明示的に渡す
-      const breakdownContainer = card.querySelector('.breakdown-container');
-      addBreakdownRow(card, breakdownContainer, true);
+      // ========== ✅ 修正: データがある場合は値を埋め込む ==========
+      if (itemData) {
+        try {
+          populateDetailCard(card, itemData);
+        } catch (error) {
+          console.error('❌ Error populating card with data:', error);
+          throw error;
+        }
+      } else {
+        // データがない場合は初期行を1つ追加
+        const breakdownContainer = card.querySelector('.breakdown-container');
+        addBreakdownRow(card, breakdownContainer, true);
+      }
+      
       updateTotalSummary();
+    }
+    
+    
+    // ============================================
+    // 【新設】カードにデータを埋め込む関数
+    // ============================================
+    function populateDetailCard(card, itemData) {
+      if (!card || !itemData) return;
+      
+      try {
+        // ステップ1: 親項目（カテゴリ）の設定
+        const categorySelect = card.querySelector('.item-category-select');
+        if (categorySelect) {
+          categorySelect.value = itemData.itemCategory || '';
+          
+          // もし選択肢にない場合は新規登録モードに
+          if (!categorySelect.value && itemData.itemCategory) {
+            categorySelect.value = '__NEW__';
+            const inputContainer = card.querySelector('.dynamic-input-container');
+            const input = card.querySelector('.item-category-input');
+            if (inputContainer && input) {
+              inputContainer.style.display = 'block';
+              input.value = itemData.itemCategory;
+              input.required = true;
+            }
+          }
+        }
+        
+        // ステップ2: 破綻コンテナの取得
+        const breakdownContainer = card.querySelector('.breakdown-container');
+        if (!breakdownContainer) {
+          throw new Error('breakdown-container が見つかりません');
+        }
+        
+        // ステップ3: 内訳行を生成してデータを埋める
+        const breakdownRow = document.createElement('div');
+        breakdownRow.className = 'breakdown-row';
+        breakdownRow.style = 'border: 1px solid #f1f3f5; padding: 8px; margin-bottom: 8px; border-radius: 4px; background: #fff;';
+        
+        const displayUnit = itemData.itemUnit ? String(itemData.itemUnit).trim() : '式';
+        const qtyOptions = Array.from({length: 99}, (_, i) => 
+          `<option value="${i+1}" ${(i+1) === itemData.itemQty ? 'selected' : ''}>${i+1}</option>`
+        ).join('');
+        
+        const unitOptions = (!MASTER_UNITS.includes('式') ? '<option value="式">式</option>' : '') + 
+                            MASTER_UNITS.filter(u => u && u.trim()).map(u => 
+                              `<option value="${htmlEscape(u.trim())}" ${u === displayUnit ? 'selected' : ''}>${htmlEscape(u.trim())}</option>`
+                            ).join('');
+        
+        breakdownRow.innerHTML = `
+          <div class="form-group" style="margin-top: 5px;">
+            <label>仕様・摘要 <span class="badge-required">必須</span></label>
+            <div class="voice-input-wrapper">
+              <input type="text" class="item-name" placeholder="品名・内容など" value="${htmlEscape(String(itemData.itemName || ''))}">
+              <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)"><span class="material-symbols-outlined">mic</span></button>
+            </div>
+          </div>
+    
+          <div class="card-row-lower" style="margin-bottom: 4px;">
+            <div class="item-grid-row-3col">
+              <div class="form-group">
+                <label>数量</label>
+                <select class="item-qty" onchange="calculateBreakdownAmount(this)">${qtyOptions}</select>
+              </div>
+              <div class="form-group">
+                <label>単位</label>
+                <select class="item-unit" onchange="checkUnitConstraint(this.closest('.detail-card'))">${unitOptions}</select>
+              </div>
+              <div class="form-group">
+                <label>単価</label>
+                <input type="number" class="item-price" min="0" value="${Number(itemData.itemPrice || 0)}" oninput="calculateBreakdownAmount(this)">
+              </div>
+              <div class="form-group">
+                <label>金額</label>
+                <div class="amount-display-box"><span>¥</span><span class="item-amount" data-value="${Number(itemData.itemAmount || 0)}">${Number(itemData.itemAmount || 0).toLocaleString()}</span></div>
+              </div>
+            </div>
+              
+            <div class="form-group">
+              <label>備考</label>
+              <div class="voice-input-wrapper">
+                <input type="text" class="item-remarks" placeholder="特記事項等" value="${htmlEscape(String(itemData.itemRemarks || ''))}">
+                <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)"><span class="material-symbols-outlined">mic</span></button>
+              </div>
+            </div>
+          </div>
+        `;
+        
+        breakdownContainer.appendChild(breakdownRow);
+        
+        // ステップ4: 単位制約チェック＆合計更新
+        checkUnitConstraint(card);
+        updateCardTotal(card);
+        
+        console.log('✅ Card populated with data:', itemData.itemCategory);
+        
+      } catch (error) {
+        console.error('❌ Error in populateDetailCard:', error);
+        throw error;
+      }
     }
 
 
