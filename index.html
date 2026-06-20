@@ -1305,7 +1305,7 @@
           }
         } else {
           // 空の場合は初期行を追加（データなし）
-          for(let i = 0; i < 2; i++) {
+          for(let i = 0; i < 1; i++) {
             addTableRow();  // データなしで呼ぶと、空の行が追加される
           }
         }
@@ -1558,7 +1558,7 @@
       } finally {
         const container = document.getElementById('detailsContainer');
         if (container && container.children.length === 0) {
-          for (let i = 0; i < 2; i++) addTableRow();
+          for (let i = 0; i < 1; i++) addTableRow();
         }
       }
     }
@@ -2310,7 +2310,6 @@
           <hr style="margin: 8px 0; border: none; border-top: 1px solid #ddd;">
           <div style="text-align: right; margin: 8px 0;">
             <p style="margin: 4px 0;">小計: ¥${data.subtotal.toLocaleString()}</p>
-            <p style="margin: 4px 0;">小計: ¥${id="subtotalLabel"}</p>
             <p style="margin: 4px 0;">消費税(10%): ¥${data.tax.toLocaleString()}</p>
             <p style="font-weight: 600; font-size: 13px; margin: 4px 0;">合計: ¥${data.total.toLocaleString()}</p>
           </div>
