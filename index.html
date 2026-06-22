@@ -898,7 +898,7 @@
       loader.style.display = 'flex';
       loaderText.textContent = '読み込み中...';
       
-      // 💡【強力な修正】ブラウザに「まずローダーを画面に描画して！」と命令し、描画が完了するのを待つ
+      // 描画が完了するのを待つ
       await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 50)));
       
       try {
@@ -2048,10 +2048,19 @@
       const firstUnit = firstRow.querySelector('.item-unit');
       const firstPrice = firstRow.querySelector('.item-price');
       
-      if (rows.length >= 2) {
-        // 💡 内訳2以上がある場合：内容1（1行目）を「一式・空白合計行」としてロック
-        
-        // ① 単位を「式」にする（選択肢になければ先頭に一時的に追加）
+      // 💡【変更】2行目以降（純粋な内訳行）で、金額が入力されている行数をカウント
+      let validBreakdownCount = 0;
+      for (let i = 1; i < rows.length; i++) {
+        const amountSpan = rows[i].querySelector('.item-amount');
+        const amount = parseFloat(amountSpan.dataset.value) || 0;
+        if (amount > 0) {
+          validBreakdownCount++;
+        }
+      }
+      
+      // 💡【変更】有効な内訳が2つ以上ある場合のみロックする
+      if (validBreakdownCount >= 2) {
+        // 内訳2以上がある場合：内容1（1行目）を「一式・空白合計行」としてロック
         if (!firstUnit.querySelector('option[value=""]')) {
           const blankOpt = document.createElement('option');
           blankOpt.value = '';
@@ -2061,33 +2070,28 @@
         firstUnit.value = '';
         firstUnit.disabled = true;
         
-        // ② 数量を「1」に固定してロック
         firstQty.value = '1';
         firstQty.disabled = true;
         
-        // ③ 単価を「空白」にしてロック
         firstPrice.value = '';
         firstPrice.disabled = true;
         
-        // 内訳2以降（2行目以降）はすべて入力可能な状態を維持（もしdisabledなら解除）
         for (let i = 1; i < rows.length; i++) {
           rows[i].querySelector('.item-qty').disabled = false;
           rows[i].querySelector('.item-unit').disabled = false;
           rows[i].querySelector('.item-price').disabled = false;
         }
         
-      } else if (rows.length === 1) {
-        // 内訳が1つだけに戻った場合：すべてのロックを解除して通常に戻す
+      } else {
+        // 💡【変更】有効な内訳が1つ以下（または0）になったらロックを解除して通常に戻す
         firstQty.disabled = false;
         firstUnit.disabled = false;
         firstPrice.disabled = false;
         
-        // 単価が空欄になっていたら初期値0に戻す
         if (firstPrice.value === '') {
           firstPrice.value = '0';
         }
         
-        // 自動追加していた「空白」の選択肢を消して、元の「式」に戻す
         const blankOpt = firstUnit.querySelector('option[value=""]');
         if (blankOpt) {
           blankOpt.remove();
@@ -2103,10 +2107,8 @@
       const card = button.closest('.detail-card');
       const row = button.closest('.breakdown-row');
       
-      // DOM から即座に削除
       row.remove();
       
-      // 次のフレームで状態チェック（DOM更新を待つ）
       requestAnimationFrame(() => {
         checkUnitConstraint(card);
         updateCardTotal(card);
@@ -2122,21 +2124,23 @@
       
       if (row) {
         const rows = card.querySelectorAll('.breakdown-row');
-        // 2行以上あって、かつ自分が1行目の場合は、ここの個別掛け算をスキップ（全体の合計同期に任せる）
-        if (!(rows.length >= 2 && row === rows[0])) {
+        // 💡【変更】行数ではなく「1行目がロックされているか」を基準にスキップを判定
+        const isLocked = rows[0].querySelector('.item-qty').disabled;
+        
+        if (!(isLocked && row === rows[0])) {
           const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
           const price = parseFloat(row.querySelector('.item-price').value) || 0;
           
-          // 元の仕様通り、Math.floor で端数を切り捨てます
           const amount = Math.floor(qty * price); 
           
           const amountSpan = row.querySelector('.item-amount');
           amountSpan.textContent = amount.toLocaleString();
-          
-          // 元の仕様通り、dataset.value を使って保存します
           amountSpan.dataset.value = amount; 
         }
       }
+      
+      // 💡【追加】金額が入力・計算されたので、その場で制限ルールをリアルタイムチェック
+      checkUnitConstraint(card);
       
       // 親カードの合計を更新
       updateCardTotal(card);
@@ -2150,9 +2154,12 @@
       if (rows.length === 0) return;
       
       let cardSubtotal = 0;
+      const firstRow = rows[0];
+      // 💡【変更】1行目がロックされているかどうかを判定フラグにする
+      const isLocked = firstRow.querySelector('.item-qty').disabled;
       
-      if (rows.length >= 2) {
-        // 2行以上ある場合：2行目以降（内容2〜）の金額だけを合計する（金額倍増バグを防ぐ）
+      if (isLocked) {
+        // 2行目以上ある場合：2行目以降（内容2〜）の金額だけを合計する（金額倍増バグを防ぐ）
         for (let i = 1; i < rows.length; i++) {
           const span = rows[i].querySelector('.item-amount');
           cardSubtotal += parseFloat(span.dataset.value) || 0;
@@ -2161,38 +2168,21 @@
         // 内容1（1行目）の金額欄に、計算した合計額をリアルタイムに同期
         const firstAmountSpan = rows[0].querySelector('.item-amount');
         firstAmountSpan.textContent = cardSubtotal.toLocaleString();
-        firstAmountSpan.dataset.value = cardSubtotal; // dataset形式で保存
+        firstAmountSpan.dataset.value = cardSubtotal;
         
-      } else if (rows.length === 1) {
-        // 1行だけの場合：その行の金額がそのまま合計になる
-        const span = rows[0].querySelector('.item-amount');
-        cardSubtotal = parseFloat(span.dataset.value) || 0;
+      } else {
+        // 💡【追加】通常モード（ロックなし）の時は、1行目も含めた全行の金額を単純合計する
+        for (let i = 0; i < rows.length; i++) {
+          const span = rows[i].querySelector('.item-amount');
+          cardSubtotal += parseFloat(span.dataset.value) || 0;
+        }
       }
       
-      // 項目合計金額（右上の青いボックスなど）の表示を更新
       const totalSpan = card.querySelector('.card-total-amount');
       if (totalSpan) {
         totalSpan.textContent = cardSubtotal.toLocaleString();
-        totalSpan.dataset.value = cardSubtotal; // dataset形式で保存
+        totalSpan.dataset.value = cardSubtotal;
       }
-      
-      // 見積書全体の合計を更新
-      updateTotalSummary();
-    }
-
-    function deleteTableRow(button) {
-      button.closest('.detail-card').remove();
-      updateTotalSummary();
-    }
-
-    function calculateAmount(input) {
-      const card = input.closest('.detail-card');
-      const qty = parseFloat(card.querySelector('.item-qty').value) || 0;
-      const price = parseFloat(card.querySelector('.item-price').value) || 0;
-      
-      const amount = Math.floor(qty * price); 
-      card.querySelector('.item-amount').textContent = amount.toLocaleString();
-      card.querySelector('.item-amount').dataset.value = amount; 
       
       updateTotalSummary();
     }
@@ -2246,26 +2236,18 @@
         }
         
         const rows = card.querySelectorAll('.breakdown-row');
-        
-        // 🌟【重要修正】単なる行数ではなく、品名が入力されている「有効な内容行」の数だけで複数内訳かを判定
-        const validRows = Array.from(rows).filter(row => {
-          const nameInput = row.querySelector('.item-name');
-          return nameInput && nameInput.value.trim() !== "";
-        });
-        const isMultiple = validRows.length >= 2;
+        const isMultiple = rows.length >= 2;
         
         let tempDetails = [];
         let breakdownSubtotal = 0;
-        let validRowCounter = 0; // 実際にデータがある有効な行のインデックスを追跡
         
         rows.forEach((row, index) => {
-          const nameInput = row.querySelector('.item-name');
-          const name = nameInput ? nameInput.value.trim() : "";
+          const name = row.querySelector('.item-name').value.trim();
           const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
           const unit = row.querySelector('.item-unit').value.trim();
           let price = row.querySelector('.item-price').value.trim();
           
-          // 配列（Array）のまま取得
+          // 🌟【変更】改行での結合（.join('\n')）をやめ、配列（Array）のまま取得
           const remarksList = row.querySelector('.remarks-list');
           const remarksArray = remarksList 
             ? Array.from(remarksList.querySelectorAll('.remark-input'))
@@ -2281,52 +2263,52 @@
           // 各行の基本金額を計算
           let amount = Math.floor(qty * price);
           
+          // 内訳が2行以上ある場合、2行目以降の金額を足していく
+          if (isMultiple && index > 0) {
+            breakdownSubtotal += amount;
+          }
+          
           if(name !== "" || finalCategory !== "") {
-            // 🌟【重要修正】有効な内容行の中で「2行目以降」の場合にのみ合計金額に加算する
-            if (isMultiple && validRowCounter > 0) {
-              breakdownSubtotal += amount;
-            }
-
             // 単位の空白バグ解決
             let finalUnit = unit;
-            if (validRowCounter === 0 && (unit === '' || !unit)) {
+            if (index === 0 && (unit === '' || !unit)) {
               finalUnit = '式';
             } else if (!unit) {
               finalUnit = '式';
             }
 
-            // 備考の数だけループを回して、データを物理的に行分割する
+            // 🌟【新設】備考の数だけループを回して、データを物理的に行分割する
             remarksArray.forEach((remark, rIndex) => {
               tempDetails.push({
-                // 金額上書き対象（最初の有効行、かつ最初の備考行）を正確に特定するためのフラグ
-                _isValidFirst: (validRowCounter === 0 && rIndex === 0), 
+                _index: index,
+                _rIndex: rIndex, // 内訳複数時の金額上書き用に一時的なインデックスを持たせる
                 
-                itemCategory: (validRowCounter === 0 && rIndex === 0) ? finalCategory : "",
+                // 最初の備考行（rIndex === 0）だけ値を入れ、2つ目以降の備考行はすべて空欄（金額は0）にする
+                itemCategory: (index === 0 && rIndex === 0) ? finalCategory : "",
                 itemName: rIndex === 0 ? name : "",
                 itemQty: rIndex === 0 ? qty : "",
                 itemUnit: rIndex === 0 ? finalUnit : "",
                 itemPrice: rIndex === 0 ? price : "",
                 itemAmount: rIndex === 0 ? amount : 0, 
-                itemRemarks: remark
+                itemRemarks: remark  // 備考を1行ずつ割り当て
               });
             });
-
-            validRowCounter++; // 有効な行を処理したときだけカウントアップ
           }
         });
         
-        // 内訳が本当に2つ以上ある場合のみ、1行目の金額を上書き
+        // 内訳が2つ以上ある場合、1行目の金額を上書き
         if (isMultiple) {
-          // 🌟【重要修正】最初の有効な内容行の、最初の備考行を狙い撃ち
-          const firstItem = tempDetails.find(d => d._isValidFirst === true);
+          // 🌟【修正】最初の内訳（_index:0）かつ最初の備考行（_rIndex:0）を正確に狙い撃ち
+          const firstItem = tempDetails.find(d => d._index === 0 && d._rIndex === 0);
           if (firstItem) {
             firstItem.itemAmount = breakdownSubtotal;
           }
         }
         
-        // 一時的な制御プロパティ（_isValidFirst）を削除してメイン配列に追加
+        // 一時的な制御プロパティ（_index, _rIndex）を削除してメイン配列に追加
         tempDetails.forEach(d => {
-          delete d._isValidFirst;
+          delete d._index;
+          delete d._rIndex;
           details.push(d);
         });
       });
