@@ -1295,21 +1295,33 @@
         
         const detailsContainer = document.getElementById('detailsContainer');
         if (detailsContainer && formData.details && formData.details.length > 0) {
-          for (const [index, item] of formData.details.entries()) {
-            try {
-              // addTableRow にデータを渡すだけ
-              addTableRow(item);  // これで自動的に値が埋まる
-            } catch (detailError) {
-              console.error(`❌ Error adding detail row ${index + 1}:`, detailError);
+          // ✅【新設】同じ親項目（itemCategory）でグループ化
+          const groupedByCategory = {};
+          
+          formData.details.forEach(item => {
+            const category = item.itemCategory || '（カテゴリなし）';
+            if (!groupedByCategory[category]) {
+              groupedByCategory[category] = [];
             }
+            groupedByCategory[category].push(item);
+          });
+          
+          // グループごとに1つのカードを作成
+          try {
+            Object.values(groupedByCategory).forEach(groupItems => {
+              addTableRow(groupItems);  // ✅ グループ（複数行）を渡す
+            });
+          } catch (detailError) {
+            console.error(`❌ Error adding detail group:`, detailError);
+            throw detailError;
           }
         } else {
-          // 空の場合は初期行を追加（データなし）
+          // 空の場合は初期行を追加
           for(let i = 0; i < 1; i++) {
-            addTableRow();  // データなしで呼ぶと、空の行が追加される
+            addTableRow();
           }
         }
-     
+        
         // ========== ステップ10: 合計を再計算 ==========
         if (typeof updateTotalSummary === 'function') {
           updateTotalSummary();
@@ -1783,15 +1795,22 @@
       container.appendChild(card);
       
       // ========== データがある場合は値を埋め込む ==========
+      const isGroupData = Array.isArray(itemData);
       if (itemData) {
         try {
-          populateDetailCard(card, itemData);
+          if (isGroupData) {
+            // グループ（複数行）の場合
+            populateDetailCardWithGroup(card, itemData);
+          } else {
+            // 単一行の場合
+            populateDetailCard(card, itemData);
+          }
         } catch (error) {
           console.error('❌ Error populating card with data:', error);
           throw error;
         }
       } else {
-        // データがない場合は初期行を1つ追加
+        // データがない場合は初期行を追加
         const breakdownContainer = card.querySelector('.breakdown-container');
         addBreakdownRow(card, breakdownContainer, true);
       }
@@ -1927,6 +1946,153 @@
         
       } catch (error) {
         console.error('❌ Error in populateDetailCard:', error);
+        throw error;
+      }
+    }
+
+    // =====================================
+    // 【新設】グループ（複数行）データを埋め込む関数
+    // populateDetailCard 関数の直後に追加
+    // =====================================
+    function populateDetailCardWithGroup(card, itemDataArray) {
+      if (!card || !itemDataArray || itemDataArray.length === 0) return;
+      
+      try {
+        const firstItem = itemDataArray[0];
+        
+        // ========== ステップ1: 親項目（カテゴリ）をセット ==========
+        const categorySelect = card.querySelector('.item-category-select');
+        if (categorySelect) {
+          const category = firstItem.itemCategory || '';
+          categorySelect.value = category;
+          
+          if (!category) {
+            categorySelect.value = '__NEW__';
+            const inputContainer = card.querySelector('.dynamic-input-container');
+            const input = card.querySelector('.item-category-input');
+            if (inputContainer && input) {
+              inputContainer.style.display = 'block';
+              input.value = '';
+              input.required = true;
+            }
+          }
+        }
+        
+        // ========== ステップ2: 破綻コンテナを取得 ==========
+        const breakdownContainer = card.querySelector('.breakdown-container');
+        if (!breakdownContainer) {
+          throw new Error('breakdown-container が見つかりません');
+        }
+        
+        // ========== ステップ3: グループ内の各行を内訳として追加 ==========
+        itemDataArray.forEach((item, rowIndex) => {
+          const breakdownRow = document.createElement('div');
+          breakdownRow.className = 'breakdown-row';
+          breakdownRow.style = 'border: 1px solid #f1f3f5; padding: 8px; margin-bottom: 8px; border-radius: 4px; background: #fff;';
+          
+          const displayQty = item.itemQty || 1;
+          const displayUnit = item.itemUnit ? String(item.itemUnit).trim() : '式';
+          
+          // 数量セレクト生成
+          const qtyOptions = Array.from({length: 99}, (_, i) => 
+            `<option value="${i+1}" ${(i+1) === displayQty ? 'selected' : ''}>${i+1}</option>`
+          ).join('');
+          
+          // 単位セレクト生成
+          const unitOptions = (!MASTER_UNITS.includes('式') ? '<option value="式">式</option>' : '') + 
+                              MASTER_UNITS.filter(u => u && u.trim()).map(u => 
+                                `<option value="${htmlEscape(u.trim())}" ${u === displayUnit ? 'selected' : ''}>${htmlEscape(u.trim())}</option>`
+                              ).join('');
+          
+          breakdownRow.innerHTML = `
+            <div class="form-group" style="margin-top: 5px;">
+              <label>仕様・摘要 <span class="badge-required">必須</span></label>
+              <div class="voice-input-wrapper">
+                <input type="text" class="item-name" placeholder="品名・内容など" value="${htmlEscape(String(item.itemName || ''))}">
+                <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)"><span class="material-symbols-outlined">mic</span></button>
+              </div>
+            </div>
+      
+            <div class="card-row-lower" style="margin-bottom: 4px;">
+              <div class="item-grid-row-3col">
+                <div class="form-group">
+                  <label>数量</label>
+                  <select class="item-qty" onchange="calculateBreakdownAmount(this)">${qtyOptions}</select>
+                </div>
+                <div class="form-group">
+                  <label>単位</label>
+                  <select class="item-unit" onchange="checkUnitConstraint(this.closest('.detail-card'))">${unitOptions}</select>
+                </div>
+                <div class="form-group">
+                  <label>単価</label>
+                  <input type="number" class="item-price" min="0" value="${Number(item.itemPrice || 0)}" oninput="calculateBreakdownAmount(this)">
+                </div>
+                <div class="form-group">
+                  <label>金額</label>
+                  <div class="amount-display-box"><span>¥</span><span class="item-amount" data-value="${Number(item.itemAmount || 0)}">${Number(item.itemAmount || 0).toLocaleString()}</span></div>
+                </div>
+              </div>
+            </div>
+      
+            <!-- 複数備考コンテナ -->
+            <div class="remarks-container" style="background: #f9f9f9; border: 1px dashed #e0e0e0; border-radius: 4px; padding: 8px; margin: 8px 0;">
+              <label style="font-size: 12px; color: #666; display: block; margin-bottom: 6px; font-weight: bold;">📝 備考（複数追加可）</label>
+              <div class="remarks-list" style="display: flex; flex-direction: column; gap: 6px;"></div>
+              <button type="button" class="btn btn-sm" style="background-color: #e8f5e9; color: #2e7d32; padding: 4px 8px; font-size: 12px; margin-top: 6px;" onclick="addRemarkRow(this)">
+                <span class="material-symbols-outlined" style="font-size: 14px;">add</span> 備考を追加
+              </button>
+            </div>
+      
+            ${rowIndex > 0 ? `
+            <div style="text-align: left; margin-top: 2px; margin-bottom: 2px;">
+              <button type="button" class="btn btn-sm btn-danger" onclick="deleteBreakdownRow(this)" style="padding: 6px 12px; font-size: 14px; height: auto; line-height: 1; border-radius: 4px;">
+                <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle;">delete</span> 内訳を削除
+              </button>
+            </div>
+            ` : ''}
+          `;
+          
+          breakdownContainer.appendChild(breakdownRow);
+          
+          // ========== ステップ4: 備考をセット ==========
+          if (item.itemRemarks) {
+            const remarksList = breakdownRow.querySelector('.remarks-list');
+            const remark = String(item.itemRemarks).trim();  // 1行分の備考
+            
+            if (remark) {
+              const remarkRow = document.createElement('div');
+              remarkRow.className = 'remark-row';
+              remarkRow.style = 'display: flex; gap: 6px; align-items: center;';
+              
+              remarkRow.innerHTML = `
+                <div class="voice-input-wrapper" style="flex: 1; display: flex; gap: 6px;">
+                  <input type="text" class="remark-input" value="${htmlEscape(remark)}" style="flex: 1;">
+                  <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)" style="padding: 4px 8px;">
+                    <span class="material-symbols-outlined" style="font-size: 14px;">mic</span>
+                  </button>
+                  <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.remark-row').remove()" style="padding: 4px 8px;">
+                    <span class="material-symbols-outlined" style="font-size: 14px;">delete</span>
+                  </button>
+                </div>
+              `;
+              
+              remarksList.appendChild(remarkRow);
+            }
+          } else {
+            // 備考がない場合は空行を追加
+            const addBtn = breakdownRow.querySelector('.remarks-container button');
+            addRemarkRow(addBtn);
+          }
+        });
+        
+        // ========== ステップ5: 単位制約チェック＆合計更新 ==========
+        checkUnitConstraint(card);
+        updateCardTotal(card);
+        
+        console.log('✅ Card populated with group:', firstItem.itemCategory);
+        
+      } catch (error) {
+        console.error('❌ Error in populateDetailCardWithGroup:', error);
         throw error;
       }
     }
