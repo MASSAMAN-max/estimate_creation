@@ -2246,18 +2246,26 @@
         }
         
         const rows = card.querySelectorAll('.breakdown-row');
-        const isMultiple = rows.length >= 2;
+        
+        // 🌟【重要修正】単なる行数ではなく、品名が入力されている「有効な内容行」の数だけで複数内訳かを判定
+        const validRows = Array.from(rows).filter(row => {
+          const nameInput = row.querySelector('.item-name');
+          return nameInput && nameInput.value.trim() !== "";
+        });
+        const isMultiple = validRows.length >= 2;
         
         let tempDetails = [];
         let breakdownSubtotal = 0;
+        let validRowCounter = 0; // 実際にデータがある有効な行のインデックスを追跡
         
         rows.forEach((row, index) => {
-          const name = row.querySelector('.item-name').value.trim();
+          const nameInput = row.querySelector('.item-name');
+          const name = nameInput ? nameInput.value.trim() : "";
           const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
           const unit = row.querySelector('.item-unit').value.trim();
           let price = row.querySelector('.item-price').value.trim();
           
-          // 🌟【変更】改行での結合（.join('\n')）をやめ、配列（Array）のまま取得
+          // 配列（Array）のまま取得
           const remarksList = row.querySelector('.remarks-list');
           const remarksArray = remarksList 
             ? Array.from(remarksList.querySelectorAll('.remark-input'))
@@ -2273,52 +2281,52 @@
           // 各行の基本金額を計算
           let amount = Math.floor(qty * price);
           
-          // 内訳が2行以上ある場合、2行目以降の金額を足していく
-          if (isMultiple && index > 0) {
-            breakdownSubtotal += amount;
-          }
-          
           if(name !== "" || finalCategory !== "") {
+            // 🌟【重要修正】有効な内容行の中で「2行目以降」の場合にのみ合計金額に加算する
+            if (isMultiple && validRowCounter > 0) {
+              breakdownSubtotal += amount;
+            }
+
             // 単位の空白バグ解決
             let finalUnit = unit;
-            if (index === 0 && (unit === '' || !unit)) {
+            if (validRowCounter === 0 && (unit === '' || !unit)) {
               finalUnit = '式';
             } else if (!unit) {
               finalUnit = '式';
             }
 
-            // 🌟【新設】備考の数だけループを回して、データを物理的に行分割する
+            // 備考の数だけループを回して、データを物理的に行分割する
             remarksArray.forEach((remark, rIndex) => {
               tempDetails.push({
-                _index: index,
-                _rIndex: rIndex, // 内訳複数時の金額上書き用に一時的なインデックスを持たせる
+                // 金額上書き対象（最初の有効行、かつ最初の備考行）を正確に特定するためのフラグ
+                _isValidFirst: (validRowCounter === 0 && rIndex === 0), 
                 
-                // 最初の備考行（rIndex === 0）だけ値を入れ、2つ目以降の備考行はすべて空欄（金額は0）にする
-                itemCategory: (index === 0 && rIndex === 0) ? finalCategory : "",
+                itemCategory: (validRowCounter === 0 && rIndex === 0) ? finalCategory : "",
                 itemName: rIndex === 0 ? name : "",
                 itemQty: rIndex === 0 ? qty : "",
                 itemUnit: rIndex === 0 ? finalUnit : "",
                 itemPrice: rIndex === 0 ? price : "",
                 itemAmount: rIndex === 0 ? amount : 0, 
-                itemRemarks: remark  // 備考を1行ずつ割り当て
+                itemRemarks: remark
               });
             });
+
+            validRowCounter++; // 有効な行を処理したときだけカウントアップ
           }
         });
         
-        // 内訳が2つ以上ある場合、1行目の金額を上書き
+        // 内訳が本当に2つ以上ある場合のみ、1行目の金額を上書き
         if (isMultiple) {
-          // 🌟【修正】最初の内訳（_index:0）かつ最初の備考行（_rIndex:0）を正確に狙い撃ち
-          const firstItem = tempDetails.find(d => d._index === 0 && d._rIndex === 0);
+          // 🌟【重要修正】最初の有効な内容行の、最初の備考行を狙い撃ち
+          const firstItem = tempDetails.find(d => d._isValidFirst === true);
           if (firstItem) {
             firstItem.itemAmount = breakdownSubtotal;
           }
         }
         
-        // 一時的な制御プロパティ（_index, _rIndex）を削除してメイン配列に追加
+        // 一時的な制御プロパティ（_isValidFirst）を削除してメイン配列に追加
         tempDetails.forEach(d => {
-          delete d._index;
-          delete d._rIndex;
+          delete d._isValidFirst;
           details.push(d);
         });
       });
