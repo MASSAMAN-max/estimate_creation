@@ -1782,7 +1782,7 @@
       
       container.appendChild(card);
       
-      // ========== ✅ 修正: データがある場合は値を埋め込む ==========
+      // ========== データがある場合は値を埋め込む ==========
       if (itemData) {
         try {
           populateDetailCard(card, itemData);
@@ -1807,12 +1807,11 @@
       if (!card || !itemData) return;
       
       try {
-        // ステップ1: 親項目（カテゴリ）の設定
+        // ステップ1: 親項目の設定
         const categorySelect = card.querySelector('.item-category-select');
         if (categorySelect) {
           categorySelect.value = itemData.itemCategory || '';
           
-          // もし選択肢にない場合は新規登録モードに
           if (!categorySelect.value && itemData.itemCategory) {
             categorySelect.value = '__NEW__';
             const inputContainer = card.querySelector('.dynamic-input-container');
@@ -1831,7 +1830,7 @@
           throw new Error('breakdown-container が見つかりません');
         }
         
-        // ステップ3: 内訳行を生成してデータを埋める
+        // ステップ3: 内訳行を生成
         const breakdownRow = document.createElement('div');
         breakdownRow.className = 'breakdown-row';
         breakdownRow.style = 'border: 1px solid #f1f3f5; padding: 8px; margin-bottom: 8px; border-radius: 4px; background: #fff;';
@@ -1874,20 +1873,53 @@
                 <div class="amount-display-box"><span>¥</span><span class="item-amount" data-value="${Number(itemData.itemAmount || 0)}">${Number(itemData.itemAmount || 0).toLocaleString()}</span></div>
               </div>
             </div>
-              
-            <div class="form-group">
-              <label>備考</label>
-              <div class="voice-input-wrapper">
-                <input type="text" class="item-remarks" placeholder="特記事項等" value="${htmlEscape(String(itemData.itemRemarks || ''))}">
-                <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)"><span class="material-symbols-outlined">mic</span></button>
-              </div>
-            </div>
+          </div>
+    
+          <!-- 🌟【新設】複数備考コンテナ -->
+          <div class="remarks-container" style="background: #f9f9f9; border: 1px dashed #e0e0e0; border-radius: 4px; padding: 8px; margin: 8px 0;">
+            <label style="font-size: 12px; color: #666; display: block; margin-bottom: 6px; font-weight: bold;">📝 備考（複数追加可）</label>
+            <div class="remarks-list" style="display: flex; flex-direction: column; gap: 6px;"></div>
+            <button type="button" class="btn btn-sm" style="background-color: #e8f5e9; color: #2e7d32; padding: 4px 8px; font-size: 12px; margin-top: 6px;" onclick="addRemarkRow(this)">
+              <span class="material-symbols-outlined" style="font-size: 14px;">add</span> 備考を追加
+            </button>
           </div>
         `;
         
         breakdownContainer.appendChild(breakdownRow);
         
-        // ステップ4: 単位制約チェック＆合計更新
+        // ステップ4: 備考データを埋め込む
+        if (itemData.itemRemarks) {
+          const remarksList = breakdownRow.querySelector('.remarks-list');
+          const remarks = Array.isArray(itemData.itemRemarks) 
+            ? itemData.itemRemarks 
+            : String(itemData.itemRemarks).split('\n').filter(r => r.trim());
+          
+          remarks.forEach(remark => {
+            const remarkRow = document.createElement('div');
+            remarkRow.className = 'remark-row';
+            remarkRow.style = 'display: flex; gap: 6px; align-items: center;';
+            
+            remarkRow.innerHTML = `
+              <div class="voice-input-wrapper" style="flex: 1; display: flex; gap: 6px;">
+                <input type="text" class="remark-input" value="${htmlEscape(String(remark))}" style="flex: 1;">
+                <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)" style="padding: 4px 8px;">
+                  <span class="material-symbols-outlined" style="font-size: 14px;">mic</span>
+                </button>
+                <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.remark-row').remove()" style="padding: 4px 8px;">
+                  <span class="material-symbols-outlined" style="font-size: 14px;">delete</span>
+                </button>
+              </div>
+            `;
+            
+            remarksList.appendChild(remarkRow);
+          });
+        } else {
+          // データがない場合は空の備考行を1つ追加
+          const addBtn = breakdownRow.querySelector('.remarks-container button');
+          addRemarkRow(addBtn);
+        }
+        
+        // ステップ5: 単位制約チェック＆合計更新
         checkUnitConstraint(card);
         updateCardTotal(card);
         
@@ -1899,12 +1931,10 @@
       }
     }
 
-
     // =====================================
     // 子行（内訳）を追加する関数
     // =====================================
     function addBreakdownRow(card, breakdownContainer, isFirst = false) {
-      // 常に card と breakdownContainer を明示的に受け取る
       const row = document.createElement('div');
       row.className = 'breakdown-row';
       row.style = 'border: 1px solid #f1f3f5; padding: 8px; margin-bottom: 8px; border-radius: 4px; background: #fff;';
@@ -1941,15 +1971,17 @@
               <div class="amount-display-box"><span>¥</span><span class="item-amount" data-value="0">0</span></div>
             </div>
           </div>
-            
-          <div class="form-group">
-            <label>備考</label>
-            <div class="voice-input-wrapper">
-              <input type="text" class="item-remarks" placeholder="特記事項等">
-              <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)"><span class="material-symbols-outlined">mic</span></button>
-            </div>
-          </div>
         </div>
+    
+        <!-- 🌟【新設】複数備考コンテナ -->
+        <div class="remarks-container" style="background: #f9f9f9; border: 1px dashed #e0e0e0; border-radius: 4px; padding: 8px; margin: 8px 0;">
+          <label style="font-size: 12px; color: #666; display: block; margin-bottom: 6px; font-weight: bold;">📝 備考（複数追加可）</label>
+          <div class="remarks-list" style="display: flex; flex-direction: column; gap: 6px;"></div>
+          <button type="button" class="btn btn-sm" style="background-color: #e8f5e9; color: #2e7d32; padding: 4px 8px; font-size: 12px; margin-top: 6px;" onclick="addRemarkRow(this)">
+            <span class="material-symbols-outlined" style="font-size: 14px;">add</span> 備考を追加
+          </button>
+        </div>
+    
         ${!isFirst ? `
         <div style="text-align: left; margin-top: 2px; margin-bottom: 2px;">
           <button type="button" class="btn btn-sm btn-danger" onclick="deleteBreakdownRow(this)" style="padding: 6px 12px; font-size: 14px; height: auto; line-height: 1; border-radius: 4px;">
@@ -1964,10 +1996,45 @@
       const unitSelect = row.querySelector('.item-unit');
       unitSelect.value = '';
       
-      // 状態チェック後に金額計算を実行（順序を統一）
+      // 最初の1行には初期備考行を1つ追加
+      const remarksList = row.querySelector('.remarks-list');
+      if (isFirst) {
+        addRemarkRow(row.querySelector('.remarks-container button'));
+      }
+      
+      // 状態チェック後に金額計算を実行
       checkUnitConstraint(card);
       calculateBreakdownAmount(row.querySelector('.item-qty'));
     }
+    
+    // =====================================
+    // 備考行を追加する関数
+    // =====================================
+    function addRemarkRow(addButton) {
+      const remarksList = addButton.closest('.remarks-container').querySelector('.remarks-list');
+      
+      const remarkRow = document.createElement('div');
+      remarkRow.className = 'remark-row';
+      remarkRow.style = 'display: flex; gap: 6px; align-items: center;';
+      
+      remarkRow.innerHTML = `
+        <div class="voice-input-wrapper" style="flex: 1; display: flex; gap: 6px;">
+          <input type="text" class="remark-input" placeholder="仕様・摘要（備考）を追加" style="flex: 1;">
+          <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)" style="padding: 4px 8px;">
+            <span class="material-symbols-outlined" style="font-size: 14px;">mic</span>
+          </button>
+          <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.remark-row').remove()" style="padding: 4px 8px;">
+            <span class="material-symbols-outlined" style="font-size: 14px;">delete</span>
+          </button>
+        </div>
+      `;
+      
+      remarksList.appendChild(remarkRow);
+      
+      // 新規追加した入力欄にフォーカス
+      remarkRow.querySelector('.remark-input').focus();
+    }
+
     
     // =====================================
     // 内訳の数による単位制限ルールを制御する関数
@@ -2213,7 +2280,7 @@
             } else if (!unit) {
               finalUnit = '式';
             }
-
+    
             tempDetails.push({
               _index: index,
               itemCategory: index === 0 ? finalCategory : "",
