@@ -2536,25 +2536,87 @@
      
      
     function showPreviewDialog(data) {
-      let detailRows = '';
+      // ========== ステップ1: グループ化処理 ==========
+      const groupedByCategory = {};
+      
       data.details.forEach(item => {
-        detailRows += `
-          <tr>
-            <td style="border: 1px solid #ddd; padding: 4px;">${htmlEscape(item.itemCategory)}</td>
-            <td style="border: 1px solid #ddd; padding: 4px;">${htmlEscape(item.itemName)}</td>
-            <td style="border: 1px solid #ddd; padding: 4px; text-align: right;">${item.itemQty}</td>
-            <td style="border: 1px solid #ddd; padding: 4px;">${htmlEscape(item.itemUnit)}</td>
-            <td style="border: 1px solid #ddd; padding: 4px; text-align: right;">¥${item.itemPrice.toLocaleString()}</td>
-            <td style="border: 1px solid #ddd; padding: 4px; text-align: right;">¥${item.itemAmount.toLocaleString()}</td>
-          </tr>
-        `;
+        const category = item.itemCategory || '（カテゴリなし）';
+        if (!groupedByCategory[category]) {
+          groupedByCategory[category] = [];
+        }
+        groupedByCategory[category].push(item);
       });
-     
+      
+      // ========== ステップ2: テーブル行の生成 ==========
+      let detailRows = '';
+      
+      Object.entries(groupedByCategory).forEach(([category, groupItems], groupIndex) => {
+        // グループ内に複数内容があるかを判定
+        const hasMultipleContents = groupItems.length >= 2;
+        
+        // 複数内容の場合、1行目の金額を2行目以降の合計に上書き
+        if (hasMultipleContents) {
+          const firstItem = groupItems[0];
+          let subtotal = 0;
+          
+          // 2行目以降の金額を合計（itemName が空のもの）
+          for (let i = 1; i < groupItems.length; i++) {
+            subtotal += groupItems[i].itemAmount || 0;
+          }
+          
+          firstItem.itemAmount = subtotal;
+        }
+        
+        // グループ内の各アイテムをテーブル行として出力
+        groupItems.forEach((item, itemIndex) => {
+          const isShiki = String(item.itemUnit || '').trim() === '式';
+          
+          // 1行目の場合のみ親項目を表示、2行目以降は空欄
+          const displayCategory = (itemIndex === 0) ? htmlEscape(item.itemCategory) : '';
+          const displayName = htmlEscape(item.itemName || '');
+          const displayQty = item.itemQty || '';
+          const displayUnit = htmlEscape(item.itemUnit || '');
+          const displayPrice = isShiki ? '' : ('¥' + (item.itemPrice || 0).toLocaleString());
+          const displayAmount = '¥' + (item.itemAmount || 0).toLocaleString();
+          
+          // 備考欄：複数内容で1行目なら「小計」、2行目以降なら当該備考を表示
+          let displayRemarks = '';
+          if (hasMultipleContents && itemIndex === 0) {
+            displayRemarks = '小計';
+          } else if (itemIndex > 0) {
+            displayRemarks = htmlEscape(item.itemRemarks || '');
+          }
+          
+          detailRows += `
+            <tr>
+              <td style="border: 1px solid #ddd; padding: 4px;">${displayCategory}</td>
+              <td style="border: 1px solid #ddd; padding: 4px;">${displayName}</td>
+              <td style="border: 1px solid #ddd; padding: 4px; text-align: right;">${displayQty}</td>
+              <td style="border: 1px solid #ddd; padding: 4px;">${displayUnit}</td>
+              <td style="border: 1px solid #ddd; padding: 4px; text-align: right;">${displayPrice}</td>
+              <td style="border: 1px solid #ddd; padding: 4px; text-align: right;">${displayAmount}</td>
+              <td style="border: 1px solid #ddd; padding: 4px; font-size: 11px; color: #666;">${displayRemarks}</td>
+            </tr>
+          `;
+        });
+        
+        // グループの間に空行を追加（見やすくするため）
+        if (groupIndex < Object.keys(groupedByCategory).length - 1) {
+          detailRows += `
+            <tr style="height: 6px;">
+              <td colspan="7" style="border: none; padding: 0;"></td>
+            </tr>
+          `;
+        }
+      });
+    
+      // ========== ステップ3: プレビューダイアログを表示 ==========
       const previewHtml = `
         <div style="text-align: left; font-size: 12px; max-height: 500px; overflow-y: auto; background: white; padding: 16px; border-radius: 8px;">
           <h3 style="margin-bottom: 8px; border-bottom: 2px solid #1976D2; padding-bottom: 8px;">御見積書</h3>
           <p style="margin: 4px 0;"><strong>見積日:</strong> ${data.estimateDate}</p>
           <p style="margin: 4px 0;"><strong>取引先:</strong> ${htmlEscape(data.clientName)}</p>
+          ${data.contactPerson ? `<p style="margin: 4px 0;"><strong>担当者:</strong> ${htmlEscape(data.contactPerson)}</p>` : ''}
           ${data.clientAddress ? `<p style="margin: 4px 0;"><strong>住所:</strong> ${htmlEscape(data.clientAddress)}</p>` : ''}
           <p style="margin: 4px 0;"><strong>件名:</strong> ${htmlEscape(data.subject)}</p>
           <hr style="margin: 8px 0; border: none; border-top: 1px solid #ddd;">
@@ -2566,6 +2628,7 @@
               <th style="border: 1px solid #ddd; padding: 4px;">単位</th>
               <th style="border: 1px solid #ddd; padding: 4px; text-align: right;">単価</th>
               <th style="border: 1px solid #ddd; padding: 4px; text-align: right;">金額</th>
+              <th style="border: 1px solid #ddd; padding: 4px;">備考</th>
             </tr>
             ${detailRows}
           </table>
@@ -2578,14 +2641,15 @@
           ${data.remarks ? `<p style="margin: 8px 0;"><strong>備考:</strong> ${htmlEscape(data.remarks).replace(/\n/g, '<br>')}</p>` : ''}
         </div>
       `;
-
+    
       Swal.fire({
         title: '見積書 簡易プレビュー',
         html: previewHtml,
         showCancelButton: true,
         confirmButtonText: '確定して保存',
         cancelButtonText: 'キャンセル',
-        confirmButtonColor: '#1976D2'
+        confirmButtonColor: '#1976D2',
+        width: '95%'
       }).then((result) => {
         if (result.isConfirmed) {
           // 確定版で保存
