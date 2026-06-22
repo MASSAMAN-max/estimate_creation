@@ -2536,78 +2536,67 @@
      
      
     function showPreviewDialog(data) {
-      // ========== ステップ1: グループ化処理 ==========
-      const groupedByCategory = {};
+      // ========== ステップ1: 複数内容の判定（テーブル表示用） ==========
+      // data.details を元にして、各カテゴリの行数をカウント
+      const categoryRowCount = {};
       
       data.details.forEach(item => {
         const category = item.itemCategory || '（カテゴリなし）';
-        if (!groupedByCategory[category]) {
-          groupedByCategory[category] = [];
-        }
-        groupedByCategory[category].push(item);
+        categoryRowCount[category] = (categoryRowCount[category] || 0) + 1;
       });
       
       // ========== ステップ2: テーブル行の生成 ==========
       let detailRows = '';
+      let lastCategory = '';
       
-      Object.entries(groupedByCategory).forEach(([category, groupItems], groupIndex) => {
-        // グループ内に複数内容があるかを判定
-        const hasMultipleContents = groupItems.length >= 2;
+      data.details.forEach((item, itemIndex) => {
+        const isShiki = String(item.itemUnit || '').trim() === '式';
         
-        // 複数内容の場合、1行目の金額を2行目以降の合計に上書き
-        if (hasMultipleContents) {
-          const firstItem = groupItems[0];
-          let subtotal = 0;
-          
-          // 2行目以降の金額を合計（itemName が空のもの）
-          for (let i = 1; i < groupItems.length; i++) {
-            subtotal += groupItems[i].itemAmount || 0;
-          }
-          
-          firstItem.itemAmount = subtotal;
-        }
-        
-        // グループ内の各アイテムをテーブル行として出力
-        groupItems.forEach((item, itemIndex) => {
-          const isShiki = String(item.itemUnit || '').trim() === '式';
-          
-          // 1行目の場合のみ親項目を表示、2行目以降は空欄
-          const displayCategory = (itemIndex === 0) ? htmlEscape(item.itemCategory) : '';
-          const displayName = htmlEscape(item.itemName || '');
-          const displayQty = item.itemQty || '';
-          const displayUnit = htmlEscape(item.itemUnit || '');
-          const displayPrice = isShiki ? '' : ('¥' + (item.itemPrice || 0).toLocaleString());
-          const displayAmount = '¥' + (item.itemAmount || 0).toLocaleString();
-          
-          // 備考欄：複数内容で1行目なら「小計」、2行目以降なら当該備考を表示
-          let displayRemarks = '';
-          if (hasMultipleContents && itemIndex === 0) {
-            displayRemarks = '小計';
-          } else if (itemIndex > 0) {
-            displayRemarks = htmlEscape(item.itemRemarks || '');
-          }
-          
-          detailRows += `
-            <tr>
-              <td style="border: 1px solid #ddd; padding: 4px;">${displayCategory}</td>
-              <td style="border: 1px solid #ddd; padding: 4px;">${displayName}</td>
-              <td style="border: 1px solid #ddd; padding: 4px; text-align: right;">${displayQty}</td>
-              <td style="border: 1px solid #ddd; padding: 4px;">${displayUnit}</td>
-              <td style="border: 1px solid #ddd; padding: 4px; text-align: right;">${displayPrice}</td>
-              <td style="border: 1px solid #ddd; padding: 4px; text-align: right;">${displayAmount}</td>
-              <td style="border: 1px solid #ddd; padding: 4px; font-size: 11px; color: #666;">${displayRemarks}</td>
-            </tr>
-          `;
-        });
-        
-        // グループの間に空行を追加（見やすくするため）
-        if (groupIndex < Object.keys(groupedByCategory).length - 1) {
+        // カテゴリが変わったら空行を挿入（見やすさ向上）
+        if (lastCategory !== '' && lastCategory !== item.itemCategory && item.itemCategory) {
           detailRows += `
             <tr style="height: 6px;">
               <td colspan="7" style="border: none; padding: 0;"></td>
             </tr>
           `;
         }
+        
+        // 表示用データの準備
+        const displayCategory = item.itemCategory ? htmlEscape(item.itemCategory) : '';
+        const displayName = htmlEscape(item.itemName || '');
+        const displayQty = item.itemQty || '';
+        const displayUnit = htmlEscape(item.itemUnit || '');
+        const displayPrice = isShiki ? '' : ('¥' + (item.itemPrice || 0).toLocaleString());
+        const displayAmount = '¥' + (item.itemAmount || 0).toLocaleString();
+        
+        // ========== 「小計」マーク判定 ==========
+        // 同じカテゴリの複数行があり、かつこれが「最初の行」なら「小計」を表示
+        let displayRemarks = htmlEscape(item.itemRemarks || '');
+        
+        if (item.itemCategory && categoryRowCount[item.itemCategory] >= 2) {
+          // 同じカテゴリで複数行がある場合
+          const sameCategory = data.details.filter(d => d.itemCategory === item.itemCategory);
+          const isFirstOfCategory = sameCategory[0] === item;
+          
+          if (isFirstOfCategory && item.itemName) {
+            // 最初の行（品名がある行）なら「小計」と表示
+            displayRemarks = '小計';
+          }
+        }
+        
+        detailRows += `
+          <tr>
+            <td style="border: 1px solid #ddd; padding: 4px;">${displayCategory}</td>
+            <td style="border: 1px solid #ddd; padding: 4px;">${displayName}</td>
+            <td style="border: 1px solid #ddd; padding: 4px; text-align: right;">${displayQty}</td>
+            <td style="border: 1px solid #ddd; padding: 4px;">${displayUnit}</td>
+            <td style="border: 1px solid #ddd; padding: 4px; text-align: right;">${displayPrice}</td>
+            <td style="border: 1px solid #ddd; padding: 4px; text-align: right;">${displayAmount}</td>
+            <td style="border: 1px solid #ddd; padding: 4px; font-size: 11px; color: #666;">${displayRemarks}</td>
+          </tr>
+        `;
+        
+        lastCategory = item.itemCategory || '';
       });
     
       // ========== ステップ3: プレビューダイアログを表示 ==========
@@ -2655,79 +2644,7 @@
           // 確定版で保存
           executeSaveProcess('saveEstimate');
         }
-        // キャンセルの場合は何もしない（ダイアログが閉じて元の画面に戻る）
       });
-    }
-
-    // 日付形式の変換補助（スプレッドシートの表記を input[type="date"] 用に変換）
-    function formatDateToInput(dateStr) {
-      if (!dateStr) return '';
-      const date = new Date(dateStr);
-      if (isNaN(date.getTime())) return dateStr;
-      const yyyy = date.getFullYear();
-      const mm = String(date.getMonth() + 1).padStart(2, '0');
-      const dd = String(date.getDate()).padStart(2, '0');
-      return `${yyyy}-${mm}-${dd}`;
-    }
-    
-    // データを保持した状態で明細カードを動的に生成しコンテナに追加する
-    function addDetailCardWithData(item, rowNum) {
-      const container = document.querySelector('.details-list');
-      if (!container) return;
-    
-      const card = document.createElement('div');
-      card.className = 'detail-card';
-      
-      // フロント（見積フロント）のHTML構造に合わせた動的HTMLの生成 
-      card.innerHTML = `
-        <div class="card-row-upper">
-          <div class="form-group" style="flex: 1;">
-            <label>項目</label>
-            <select class="item-category-select">
-              <option value="${item.itemCategory}" selected>${item.itemCategory}</option>
-            </select>
-          </div>
-          <div class="form-group" style="flex: 2;">
-            <label>品名・仕様</label>
-            <input type="text" class="item-name-input" value="${item.itemName || ''}">
-          </div>
-        </div>
-        <div class="card-row-lower">
-          <div class="item-grid-row-3col">
-            <div class="form-group">
-              <label>数量</label>
-              <input type="number" class="item-qty-input" value="${item.itemQty || 0}" onchange="updateRowAmount(this)">
-            </div>
-            <div class="form-group">
-              <label>単位</label>
-              <input type="text" class="item-unit-input" value="${item.itemUnit || '式'}">
-            </div>
-            <div class="form-group">
-              <label>単価</label>
-              <input type="number" class="item-price-input" value="${item.itemPrice || 0}" onchange="updateRowAmount(this)">
-            </div>
-            <div class="form-group">
-              <label>金額</label>
-              <div class="amount-display-box">
-                <span>¥</span>
-                <span class="row-amount-label">${Number(item.itemAmount).toLocaleString()}</span>
-              </div>
-            </div>
-          </div>
-          <div class="item-grid-row-2col">
-            <div class="form-group" style="flex: 1;">
-              <label>備考</label>
-              <input type="text" class="item-remarks-input" value="${item.itemRemarks || ''}">
-            </div>
-          </div>
-        </div>
-        <div class="item-delete-row">
-          <button type="button" class="btn btn-danger" onclick="this.closest('.detail-card').remove(); calculateTotalAmount();">
-            <span class="material-symbols-outlined">delete</span>削除
-          </button>
-        </div>
-      `;
-      container.appendChild(card);
     }
      
     // =====================================
