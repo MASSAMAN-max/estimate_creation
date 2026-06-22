@@ -2257,12 +2257,18 @@
           const unit = row.querySelector('.item-unit').value.trim();
           let price = row.querySelector('.item-price').value.trim();
           
-          // 🌟【新設】複数の備考を改行で結合
+          // 🌟【変更】改行での結合（.join('\n')）をやめ、配列（Array）のまま取得
           const remarksList = row.querySelector('.remarks-list');
-          const remarks = Array.from(remarksList.querySelectorAll('.remark-input'))
-            .map(input => input.value.trim())
-            .filter(r => r !== '')
-            .join('\n');  // 改行で結合
+          const remarksArray = remarksList 
+            ? Array.from(remarksList.querySelectorAll('.remark-input'))
+                .map(input => input.value.trim())
+                .filter(r => r !== '')
+            : [];
+          
+          // 備考が1つも入力されていない場合でも、最低1行は内訳を出力するための対策
+          if (remarksArray.length === 0) {
+            remarksArray.push('');
+          }
           
           // 各行の基本金額を計算
           let amount = Math.floor(qty * price);
@@ -2280,31 +2286,39 @@
             } else if (!unit) {
               finalUnit = '式';
             }
-    
-            tempDetails.push({
-              _index: index,
-              itemCategory: index === 0 ? finalCategory : "",
-              itemName: name,
-              itemQty: qty,
-              itemUnit: finalUnit,
-              itemPrice: price,
-              itemAmount: amount,
-              itemRemarks: remarks  // 🌟 改行で結合した複数備考
+
+            // 🌟【新設】備考の数だけループを回して、データを物理的に行分割する
+            remarksArray.forEach((remark, rIndex) => {
+              tempDetails.push({
+                _index: index,
+                _rIndex: rIndex, // 内訳複数時の金額上書き用に一時的なインデックスを持たせる
+                
+                // 最初の備考行（rIndex === 0）だけ値を入れ、2つ目以降の備考行はすべて空欄（金額は0）にする
+                itemCategory: (index === 0 && rIndex === 0) ? finalCategory : "",
+                itemName: rIndex === 0 ? name : "",
+                itemQty: rIndex === 0 ? qty : "",
+                itemUnit: rIndex === 0 ? finalUnit : "",
+                itemPrice: rIndex === 0 ? price : "",
+                itemAmount: rIndex === 0 ? amount : 0, 
+                itemRemarks: remark  // 備考を1行ずつ割り当て
+              });
             });
           }
         });
         
         // 内訳が2つ以上ある場合、1行目の金額を上書き
         if (isMultiple) {
-          const firstItem = tempDetails.find(d => d._index === 0);
+          // 🌟【修正】最初の内訳（_index:0）かつ最初の備考行（_rIndex:0）を正確に狙い撃ち
+          const firstItem = tempDetails.find(d => d._index === 0 && d._rIndex === 0);
           if (firstItem) {
             firstItem.itemAmount = breakdownSubtotal;
           }
         }
         
-        // _index を削除してメイン配列に追加
+        // 一時的な制御プロパティ（_index, _rIndex）を削除してメイン配列に追加
         tempDetails.forEach(d => {
           delete d._index;
+          delete d._rIndex;
           details.push(d);
         });
       });
