@@ -2188,8 +2188,14 @@
           const name = row.querySelector('.item-name').value.trim();
           const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
           const unit = row.querySelector('.item-unit').value.trim();
-          let price = row.querySelector('.item-price').value.trim();  // 🌟 修正：文字列として取得
-          const remarks = row.querySelector('.item-remarks').value.trim();
+          let price = row.querySelector('.item-price').value.trim();
+          
+          // 🌟【新設】複数の備考を改行で結合
+          const remarksList = row.querySelector('.remarks-list');
+          const remarks = Array.from(remarksList.querySelectorAll('.remark-input'))
+            .map(input => input.value.trim())
+            .filter(r => r !== '')
+            .join('\n');  // 改行で結合
           
           // 各行の基本金額を計算
           let amount = Math.floor(qty * price);
@@ -2207,7 +2213,7 @@
             } else if (!unit) {
               finalUnit = '式';
             }
-     
+
             tempDetails.push({
               _index: index,
               itemCategory: index === 0 ? finalCategory : "",
@@ -2216,16 +2222,16 @@
               itemUnit: finalUnit,
               itemPrice: price,
               itemAmount: amount,
-              itemRemarks: remarks
+              itemRemarks: remarks  // 🌟 改行で結合した複数備考
             });
           }
         });
         
-        // 💡【重要】内訳が2つ以上ある場合、1行目の金額を上書き
+        // 内訳が2つ以上ある場合、1行目の金額を上書き
         if (isMultiple) {
           const firstItem = tempDetails.find(d => d._index === 0);
           if (firstItem) {
-            firstItem.itemAmount = breakdownSubtotal;  // ← 内容2以降の合計に上書き
+            firstItem.itemAmount = breakdownSubtotal;
           }
         }
         
