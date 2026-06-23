@@ -2527,14 +2527,17 @@
       showPreviewDialog(data);
     }
 
-     
     function showPreviewDialog(data) {
-      // ========== ステップ1: 複数内容の判定 ==========
-      const categoryRowCount = {};
+      // ========== ステップ1: 複数内容の判定（「品名がある行」のみをカウント） ==========
+      // ✅【修正】categoryRowCount ではなく categoryNameCount に変更
+      // 品名がある行のみをカウント → 複数備考は対象外
+      const categoryNameCount = {};
       
       data.details.forEach(item => {
-        const category = item.itemCategory || '（カテゴリなし）';
-        categoryRowCount[category] = (categoryRowCount[category] || 0) + 1;
+        if (item.itemName) {  // ← 品名がある行のみカウント
+          const category = item.itemCategory || '（カテゴリなし）';
+          categoryNameCount[category] = (categoryNameCount[category] || 0) + 1;
+        }
       });
       
       // ========== ステップ2: テーブル行の生成 ==========
@@ -2569,11 +2572,12 @@
         const displayAmount = '¥' + (item.itemAmount || 0).toLocaleString();
         
         // ========== 「小計」マーク判定 ==========
-        // 複数内容で、かつ品名がある行（内容1）の場合のみ「小計」を表示
+        // ✅【修正】複数内容の判定を categoryNameCount を使用
+        // 品名がある行 かつ 同じカテゴリで品名がある行が複数ある場合のみ「小計」を表示
         let displayRemarks = '';
         
-        if (item.itemName && item.itemCategory && categoryRowCount[item.itemCategory] >= 2) {
-          // 品名がある行 かつ 同じカテゴリで複数行がある → 「小計」
+        if (item.itemName && item.itemCategory && categoryNameCount[item.itemCategory] >= 2) {
+          // 品名がある行 かつ 同じカテゴリで複数の品名行がある → 「小計」
           displayRemarks = '小計';
         }
         
