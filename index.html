@@ -2511,6 +2511,147 @@
         total: subtotal + Math.floor(subtotal * 0.1)
       };
     }
+
+
+
+
+    // getFormData() の直後に以下を追加
+    function showPreviewDialog(data) {
+      // ========== 【デバッグ】送信されるデータを確認 ==========
+      console.log('=== 📊 デバッグ：プレビュー用データ ===');
+      console.log('全体データ:', data);
+      console.log('\n詳細行（details）:');
+      
+      data.details.forEach((item, idx) => {
+        console.log(`\n--- 行 ${idx} ---`);
+        console.log(`  itemCategory: "${item.itemCategory}"`);
+        console.log(`  itemName: "${item.itemName}"`);
+        console.log(`  itemQty: ${item.itemQty}`);
+        console.log(`  itemUnit: "${item.itemUnit}"`);
+        console.log(`  itemPrice: ${item.itemPrice}`);
+        console.log(`  itemAmount: ${item.itemAmount}`);
+        console.log(`  itemRemarks: "${item.itemRemarks}"`);
+      });
+      
+      // ========== ステップ1: 複数内容の判定 ==========
+      const categoryNameCount = {};
+      
+      data.details.forEach(item => {
+        if (item.itemName) {
+          const category = item.itemCategory || '（カテゴリなし）';
+          categoryNameCount[category] = (categoryNameCount[category] || 0) + 1;
+        }
+      });
+      
+      console.log('\n--- 複数内容判定結果 ---');
+      console.log('categoryNameCount:', categoryNameCount);
+      
+      // ========== テーブル生成時の判定結果を表示 ==========
+      console.log('\n--- テーブル行の判定結果 ---');
+      data.details.forEach((item, idx) => {
+        const hasName = !!item.itemName;
+        const hasCategory = !!item.itemCategory;
+        const categoryCount = item.itemCategory ? categoryNameCount[item.itemCategory] : 0;
+        const willShowSubtotal = hasName && hasCategory && categoryCount >= 2;
+        
+        console.log(`行${idx}: itemName="${item.itemName}", itemCategory="${item.itemCategory}", categoryCount=${categoryCount}, showSubtotal=${willShowSubtotal}`);
+      });
+      
+      // ========== ステップ2: テーブル行の生成 ==========
+      let detailRows = '';
+      let lastCategory = '';
+      
+      data.details.forEach((item, itemIndex) => {
+        const isShiki = String(item.itemUnit || '').trim() === '式';
+        
+        if (lastCategory !== '' && lastCategory !== item.itemCategory && item.itemCategory) {
+          detailRows += `
+            <tr style="height: 6px;">
+              <td colspan="7" style="border: none; padding: 0;"></td>
+            </tr>
+          `;
+        }
+        
+        const displayCategory = item.itemCategory ? htmlEscape(item.itemCategory) : '';
+        
+        let displayName = htmlEscape(item.itemName || '');
+        if (!item.itemName && item.itemRemarks) {
+          displayName = htmlEscape(item.itemRemarks);
+        }
+        
+        const displayQty = item.itemQty || '';
+        const displayUnit = htmlEscape(item.itemUnit || '');
+        const displayPrice = isShiki ? '' : ('¥' + (item.itemPrice || 0).toLocaleString());
+        const displayAmount = '¥' + (item.itemAmount || 0).toLocaleString();
+        
+        let displayRemarks = '';
+        
+        if (item.itemName && item.itemCategory && categoryNameCount[item.itemCategory] >= 2) {
+          displayRemarks = '小計';
+        }
+        
+        detailRows += `
+          <tr>
+            <td style="border: 1px solid #ddd; padding: 4px;">${displayCategory}</td>
+            <td style="border: 1px solid #ddd; padding: 4px;">${displayName}</td>
+            <td style="border: 1px solid #ddd; padding: 4px; text-align: right;">${displayQty}</td>
+            <td style="border: 1px solid #ddd; padding: 4px;">${displayUnit}</td>
+            <td style="border: 1px solid #ddd; padding: 4px; text-align: right;">${displayPrice}</td>
+            <td style="border: 1px solid #ddd; padding: 4px; text-align: right;">${displayAmount}</td>
+            <td style="border: 1px solid #ddd; padding: 4px; font-size: 11px; color: #666;">${displayRemarks}</td>
+          </tr>
+        `;
+        
+        lastCategory = item.itemCategory || '';
+      });
+    
+      const previewHtml = `
+        <div style="text-align: left; font-size: 12px; max-height: 500px; overflow-y: auto; background: white; padding: 16px; border-radius: 8px;">
+          <h3 style="margin-bottom: 8px; border-bottom: 2px solid #1976D2; padding-bottom: 8px;">御見積書</h3>
+          <p style="margin: 4px 0;"><strong>見積日:</strong> ${data.estimateDate}</p>
+          <p style="margin: 4px 0;"><strong>取引先:</strong> ${htmlEscape(data.clientName)}</p>
+          ${data.contactPerson ? `<p style="margin: 4px 0;"><strong>担当者:</strong> ${htmlEscape(data.contactPerson)}</p>` : ''}
+          ${data.clientAddress ? `<p style="margin: 4px 0;"><strong>住所:</strong> ${htmlEscape(data.clientAddress)}</p>` : ''}
+          <p style="margin: 4px 0;"><strong>件名:</strong> ${htmlEscape(data.subject)}</p>
+          <hr style="margin: 8px 0; border: none; border-top: 1px solid #ddd;">
+          <table style="width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 11px;">
+            <tr style="background: #E3F2FD;">
+              <th style="border: 1px solid #ddd; padding: 4px;">項目</th>
+              <th style="border: 1px solid #ddd; padding: 4px;">品名</th>
+              <th style="border: 1px solid #ddd; padding: 4px; text-align: right;">数量</th>
+              <th style="border: 1px solid #ddd; padding: 4px;">単位</th>
+              <th style="border: 1px solid #ddd; padding: 4px; text-align: right;">単価</th>
+              <th style="border: 1px solid #ddd; padding: 4px; text-align: right;">金額</th>
+              <th style="border: 1px solid #ddd; padding: 4px;">備考</th>
+            </tr>
+            ${detailRows}
+          </table>
+          <hr style="margin: 8px 0; border: none; border-top: 1px solid #ddd;">
+          <div style="text-align: right; margin: 8px 0;">
+            <p style="margin: 4px 0;">小計: ¥${data.subtotal.toLocaleString()}</p>
+            <p style="margin: 4px 0;">消費税(10%): ¥${data.tax.toLocaleString()}</p>
+            <p style="font-weight: 600; font-size: 13px; margin: 4px 0;">合計: ¥${data.total.toLocaleString()}</p>
+          </div>
+          ${data.remarks ? `<p style="margin: 8px 0;"><strong>備考:</strong> ${htmlEscape(data.remarks).replace(/\n/g, '<br>')}</p>` : ''}
+        </div>
+      `;
+    
+      Swal.fire({
+        title: '見積書 簡易プレビュー',
+        html: previewHtml,
+        showCancelButton: true,
+        confirmButtonText: '確定して保存',
+        cancelButtonText: 'キャンセル',
+        confirmButtonColor: '#1976D2',
+        width: '95%'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          executeSaveProcess('saveEstimate');
+        }
+      });
+    }
+    
+
     
     function showPDFPreview() {
       const data = getFormData();
