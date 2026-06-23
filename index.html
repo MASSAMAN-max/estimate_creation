@@ -1112,10 +1112,8 @@
             <button type="button" class="btn btn-primary" 
                     style="padding:6px 12px; font-size:13px; width:auto;" 
                     onclick="fetchAndReflectFields('${item.id}', 'COPY_CREATE')">
-                <span class="material-symbols-outlined" style="font-size:18px; vertical-align:middle;">
-                    assignment
-                </span>
-                コピーして新規作成
+                <span class="material-symbols-outlined" style="font-size:18px; vertical-align:middle;">assignment</span>
+                コピーして作成
             </button>
           </div>
         `;
@@ -1297,59 +1295,47 @@
           remarksInput.value = formData.main.remarks || '';
         }
      
-        // ========== ステップ9: 明細行の復存 ==========
+// ========== ステップ9: 明細行の復存 ==========
         document.getElementById('loaderText').textContent = '明細データを復存しています...';
 
         const detailsContainer = document.getElementById('detailsContainer');
-
-        // ✅ 念のためもう一度クリア
-        detailsContainer.innerHTML = '';
+        detailsContainer.innerHTML = ''; // 一旦完全にクリア
 
         if (detailsContainer && formData.details && formData.details.length > 0) {
-          console.log('📊 formData.details:', formData.details);
           
-          // 連続する同一カテゴリ、または単一の明細を正しくグループ化する配列
+          // 1. まずは前と同じようにカテゴリごとにグループ化
           const groups = [];
           let currentGroup = [];
           
-          formData.details.forEach((item, index) => {
-            const category = item.itemCategory || '（カテゴリなし）';
-            
-            // 最初の1行目、または前の行とカテゴリが変わった場合は新しいグループ（カード）を開始
+          formData.details.forEach((item) => {
             if (currentGroup.length === 0 || currentGroup[0].itemCategory !== item.itemCategory) {
-              if (currentGroup.length > 0) {
-                groups.push(currentGroup); // 完成したグループを保存
-              }
-              currentGroup = [item]; // 新しいグループを作成
+              if (currentGroup.length > 0) groups.push(currentGroup);
+              currentGroup = [item];
             } else {
-              // 前の行と同じカテゴリなら、同じカード（内訳）に追加
               currentGroup.push(item);
             }
-            console.log(`📌 Item ${index}: category="${category}", itemName="${item.itemName}", itemPrice=${item.itemPrice}`);
           });
+          if (currentGroup.length > 0) groups.push(currentGroup);
           
-          // 最後のグループをプッシュ
-          if (currentGroup.length > 0) {
-            groups.push(currentGroup);
-          }
-          
-          // グループ（出現順）ごとにカード作成
-          try {
-            groups.forEach((groupItems, groupIndex) => {
-              const displayCategory = groupItems[0].itemCategory || '（カテゴリなし）';
-              console.log(`🎯 Creating card ${groupIndex} for category: ${displayCategory} (${groupItems.length} items)`);
-              addTableRow(groupItems);
-            });
-          } catch (detailError) {
-            console.error(`❌ Error adding detail group:`, detailError);
-            throw detailError;
-          }
+          // 2. 🔴【重要】計算を一切挟まず、まずはカードを「生成＋データ注入」だけ行う
+          groups.forEach((groupItems) => {
+            addTableRow(groupItems);
+          });
+
+          // 3. 🔴【最重要】すべてのカードが画面に配置し終わった「後」で、一斉に計算・検証をかける
+          console.log('🔄 すべてのカード配置完了。最終計算を実行します。');
+          const allCards = detailsContainer.querySelectorAll('.detail-card');
+          allCards.forEach(card => {
+            if (typeof checkUnitConstraint === 'function') checkUnitConstraint(card);
+            if (typeof updateCardTotal === 'function') updateCardTotal(card);
+          });
+
         } else {
           console.log('📭 No details found, adding empty row');
           addTableRow();
         }
         
-        // ========== ステップ10: 合計を再計算 ==========
+        // ========== ステップ10: 全体合計を最後に1回だけ再計算 ==========
         if (typeof updateTotalSummary === 'function') {
           updateTotalSummary();
         }
