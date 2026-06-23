@@ -1582,12 +1582,15 @@
           text: '一部のマスタ情報が読み込めませんでした。',
           confirmButtonText: '了解'
         });
-      } finally {
+      } 
+      /*
+      finally {
         const container = document.getElementById('detailsContainer');
         if (container && container.children.length === 0) {
           for (let i = 0; i < 1; i++) addTableRow();
         }
       }
+        */
     }
     
     // ===== 取引先選択時のイベントハンドラ =====
@@ -2802,7 +2805,7 @@
         // フォーム初期化
         document.getElementById('estimateForm').reset();
         document.getElementById('detailsContainer').innerHTML = '';
-        for(let i = 0; i < 1; i++) addTableRow();
+        //for(let i = 0; i < 1; i++) addTableRow();
         updateTotalSummary();
         
       } catch (error) {
