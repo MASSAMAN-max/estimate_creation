@@ -1778,7 +1778,7 @@
       card.className = 'detail-card';
       
       const categoryOptions = MASTER_CATEGORIES.map(cat => `<option value="${htmlEscape(cat)}">${htmlEscape(cat)}</option>`).join('') + '<option value="__NEW__">＋新規項目</option>';
-    
+
       card.innerHTML = `
         <div style="display: flex; gap: 6px; align-items: flex-start; margin-bottom: 12px; background: #fff; padding: 12px; border-radius: 4px; border: 1px solid #e9ecef; width: 100%; box-sizing: border-box;">
           <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 0;">
@@ -1794,8 +1794,8 @@
         </div>
         
         <div class="breakdown-container"></div>
-    
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-top: 10px; border-top: 1px dashed #dee2e6; padding-top: 10px; width: 100%; box-sizing: border-box;">            
+
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-top: 10px; border-top: 1px dashed #dee2e6; padding-top: 10px; width: 100%; box-sizing: border-box;">           
           <div style="flex: 1; text-align: left;">
             <button type="button" class="btn" style="background-color: #e8f5e9; color: #2e7d32; padding: 6px 12px; font-size: 14px; font-weight: bold;" onclick="addBreakdownRow(this.closest('.detail-card'), this.closest('.detail-card').querySelector('.breakdown-container'), false)">
               <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle;">add</span> 内訳を追加
@@ -1819,12 +1819,12 @@
       
       container.appendChild(card);
       
-      // ========== データがある場合は値を埋め込む ==========
-      const isGroupData = Array.isArray(itemData);
+      // ========== データがある場合は値を埋め込む（完全に条件分岐） ==========
       if (itemData) {
         try {
+          const isGroupData = Array.isArray(itemData);
           if (isGroupData) {
-            // グループ（複数行）の場合
+            // グループ（複数行）の場合 ➔ 内部でHTMLを直接 appendChild する（addBreakdownRowは呼ばない）
             populateDetailCardWithGroup(card, itemData);
           } else {
             // 単一行の場合
@@ -1835,12 +1835,14 @@
           throw error;
         }
       } else {
-        // データがない場合は初期行を追加
+        // 💡 データが本当にない（新規作成ボタンを押した）時だけ、空の初期行を追加する
         const breakdownContainer = card.querySelector('.breakdown-container');
-        addBreakdownRow(card, breakdownContainer, true);
+        if (typeof addBreakdownRow === 'function') {
+          addBreakdownRow(card, breakdownContainer, true);
+        }
       }
       
-      //updateTotalSummary();
+      // ※ ここでの再計算は止め、最後に一括で行うようにします
     }
     
     
