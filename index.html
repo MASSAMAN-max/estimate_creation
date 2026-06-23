@@ -1295,35 +1295,67 @@
           remarksInput.value = formData.main.remarks || '';
         }
      
-// ========== ステップ9: 明細行の復存 ==========
+        // ========== ステップ9: 明細行の復存（データ構造の適正化版） ==========
         document.getElementById('loaderText').textContent = '明細データを復存しています...';
 
         const detailsContainer = document.getElementById('detailsContainer');
         detailsContainer.innerHTML = ''; // 一旦完全にクリア
 
         if (detailsContainer && formData.details && formData.details.length > 0) {
+          console.log('📊 元データ formData.details:', formData.details);
           
-          // 1. まずは前と同じようにカテゴリごとにグループ化
+          // --- 【新規追加】ステップ9-A: 備考だけの行を直前の行に統合するクレンジング ---
+          const cleanedDetails = [];
+          
+          formData.details.forEach((item) => {
+            const hasName = item.itemName && String(item.itemName).trim() !== '';
+            const hasRemarks = item.itemRemarks && String(item.itemRemarks).trim() !== '';
+            
+            // 品名が空欄で、備考だけがあり、かつすでに1件以上データが存在する場合
+            if (!hasName && hasRemarks && cleanedDetails.length > 0) {
+              const lastItem = cleanedDetails[cleanedDetails.length - 1];
+              
+              // 直前のアイテムの備考を配列化して追加
+              if (!lastItem.itemRemarksList) {
+                lastItem.itemRemarksList = lastItem.itemRemarks ? [lastItem.itemRemarks] : [];
+              }
+              lastItem.itemRemarksList.push(String(item.itemRemarks).trim());
+              console.log(`📝 備考行を直前の内容「${lastItem.itemName}」に統合しました:`, item.itemRemarks);
+            } else {
+              // 通常の明細行（または最初の行）
+              item.itemRemarksList = item.itemRemarks ? [String(item.itemRemarks).trim()] : [];
+              cleanedDetails.push(item);
+            }
+          });
+
+          // --- ステップ9-B: 綺麗になったデータで、親項目（カテゴリ）ごとにグループ化 ---
           const groups = [];
           let currentGroup = [];
           
-          formData.details.forEach((item) => {
-            if (currentGroup.length === 0 || currentGroup[0].itemCategory !== item.itemCategory) {
-              if (currentGroup.length > 0) groups.push(currentGroup);
+          cleanedDetails.forEach((item) => {
+            const category = item.itemCategory || '（カテゴリなし）';
+            
+            // 最初の1行目、または前の行とカテゴリが変わった場合は新しいグループ（カード）を開始
+            if (currentGroup.length === 0 || currentGroup[0].itemCategory !== category) {
+              if (currentGroup.length > 0) {
+                groups.push(currentGroup);
+              }
               currentGroup = [item];
             } else {
+              // 同じカテゴリなら同じカードに内訳として追加
               currentGroup.push(item);
             }
           });
-          if (currentGroup.length > 0) groups.push(currentGroup);
+          if (currentGroup.length > 0) {
+            groups.push(currentGroup);
+          }
           
-          // 2. 🔴【重要】計算を一切挟まず、まずはカードを「生成＋データ注入」だけ行う
+          // --- ステップ9-C: カードの生成とデータ流し込み ---
           groups.forEach((groupItems) => {
             addTableRow(groupItems);
           });
 
-          // 3. 🔴【最重要】すべてのカードが画面に配置し終わった「後」で、一斉に計算・検証をかける
-          console.log('🔄 すべてのカード配置完了。最終計算を実行します。');
+          // --- ステップ9-D: すべて配置し終わった後に一括計算 ---
           const allCards = detailsContainer.querySelectorAll('.detail-card');
           allCards.forEach(card => {
             if (typeof checkUnitConstraint === 'function') checkUnitConstraint(card);
@@ -2013,24 +2045,40 @@
                                 `<option value="${htmlEscape(u.trim())}" ${u === displayUnit ? 'selected' : ''}>${htmlEscape(u.trim())}</option>`
                               ).join('');
           
-          // 📝 備考のHTMLを事前に組み立てる（addRemarkRowを呼ばないようにする）
+          // 📝 備考のHTMLを事前に組み立てる（配列内のすべての備考をループで回す）
           let remarksHtml = '';
-          const remarkVal = item.itemRemarks ? String(item.itemRemarks).trim() : '';
+          const remarksArray = item.itemRemarksList || (item.itemRemarks ? [item.itemRemarks] : []);
           
-          // 値がある場合も、ない場合（空行を作りたい場合）も、外部関数に頼らずここでHTMLを直接生成する
-          remarksHtml = `
-            <div class="remark-row" style="display: flex; gap: 6px; align-items: center;">
-              <div class="voice-input-wrapper" style="flex: 1; display: flex; gap: 6px;">
-                <input type="text" class="remark-input" value="${htmlEscape(remarkVal)}" style="flex: 1;">
-                <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)" style="padding: 4px 8px;">
-                  <span class="material-symbols-outlined" style="font-size: 14px;">mic</span>
-                </button>
-                <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.remark-row').remove()" style="padding: 4px 8px;">
-                  <span class="material-symbols-outlined" style="font-size: 14px;">delete</span>
-                </button>
+          if (remarksArray.length > 0) {
+            remarksHtml = remarksArray.map(remarkVal => `
+              <div class="remark-row" style="display: flex; gap: 6px; align-items: center;">
+                <div class="voice-input-wrapper" style="flex: 1; display: flex; gap: 6px;">
+                  <input type="text" class="remark-input" value="${htmlEscape(String(remarkVal).trim())}" style="flex: 1;">
+                  <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)" style="padding: 4px 8px;">
+                    <span class="material-symbols-outlined" style="font-size: 14px;">mic</span>
+                  </button>
+                  <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.remark-row').remove()" style="padding: 4px 8px;">
+                    <span class="material-symbols-outlined" style="font-size: 14px;">delete</span>
+                  </button>
+                </div>
               </div>
-            </div>
-          `;
+            `).join('');
+          } else {
+            // 備考が1件もない場合は空の入力欄を1つだけ用意しておく
+            remarksHtml = `
+              <div class="remark-row" style="display: flex; gap: 6px; align-items: center;">
+                <div class="voice-input-wrapper" style="flex: 1; display: flex; gap: 6px;">
+                  <input type="text" class="remark-input" value="" style="flex: 1;">
+                  <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)" style="padding: 4px 8px;">
+                    <span class="material-symbols-outlined" style="font-size: 14px;">mic</span>
+                  </button>
+                  <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.remark-row').remove()" style="padding: 4px 8px;">
+                    <span class="material-symbols-outlined" style="font-size: 14px;">delete</span>
+                  </button>
+                </div>
+              </div>
+            `;
+          }
 
           // メインHTMLの流し込み
           breakdownRow.innerHTML = `
