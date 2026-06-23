@@ -2440,41 +2440,43 @@
           if(name !== "" || finalCategory !== "") {
             let finalUnit = unit || '式';
             
-              // 🔵 ステップ1: 品名行を追加（備考なし）
+            // 🔵 ステップ1: 品名行を追加（備考なし）
+            // ✅【修正】要望1: カテゴリは各カードの最初の行(index === 0)のみ保持し、複製をやめる
+            tempDetails.push({
+              _index: index,
+              _rIndex: -1,  // 備考ではない品名行を示す
+              
+              itemCategory: (index === 0) ? finalCategory : "",
+              itemName: name,
+              itemQty: isLocked && index === 0 ? 1 : qty,
+              itemUnit: finalUnit,
+              itemPrice: isLocked && index === 0 ? "" : price,
+              itemAmount: isLocked && index === 0 ? 0 : (index === 0 ? amount : 0),
+              itemRemarks: ""  // 品名行には備考を含めない
+            });
+          
+            // 🔵 ステップ2: 備考行を追加（すべての備考を別行に）
+            remarksArray.forEach((remark, rIndex) => {
               tempDetails.push({
                 _index: index,
-                _rIndex: -1,  // 備考ではない品名行を示す
+                _rIndex: rIndex,
                 
-                itemCategory: (index === 0 || (isLocked && index > 0)) ? finalCategory : "",
-                itemName: name,
-                itemQty: isLocked && index === 0 ? 1 : qty,
-                itemUnit: finalUnit,
-                itemPrice: isLocked && index === 0 ? "" : price,
-                itemAmount: isLocked && index === 0 ? 0 : (index === 0 ? amount : 0),
-                itemRemarks: ""  // 品名行には備考を含めない
+                itemCategory: "",  // 備考行はカテゴリなし
+                itemName: "",
+                itemQty: "",
+                itemUnit: "",
+                itemPrice: "",
+                itemAmount: "",
+                itemRemarks: remark  // 備考のみ
               });
-            
-              // 🔵 ステップ2: 備考行を追加（すべての備考を別行に）
-              remarksArray.forEach((remark, rIndex) => {
-                tempDetails.push({
-                  _index: index,
-                  _rIndex: rIndex,
-                  
-                  itemCategory: "",  // 備考行はカテゴリなし
-                  itemName: "",
-                  itemQty: "",
-                  itemUnit: "",
-                  itemPrice: "",
-                  itemAmount: "",
-                  itemRemarks: remark  // 備考のみ
-                });
-              });
-            }
+            });
+          }
         });
         
-        // 💡【バグ対策】ロックモードの時だけ、1行目の最初の備考行に合計金額を正確に上書き
+        // 💡【バグ対策】ロックモードの時だけ、1行目の最初の品名行に合計金額を正確に上書き
+        // ✅【修正】要望3: 上書き先ターゲットを「備考行(_rIndex: 0)」から「品名行(_rIndex: -1)」に変更
         if (isLocked) {
-          const firstItem = tempDetails.find(d => d._index === 0 && d._rIndex === 0);
+          const firstItem = tempDetails.find(d => d._index === 0 && d._rIndex === -1);
           if (firstItem) {
             firstItem.itemAmount = breakdownSubtotal;
           }
@@ -2490,7 +2492,7 @@
       
       let subtotal = 0;
       details.forEach(item => {
-        subtotal += item.itemAmount;
+        subtotal += (Number(item.itemAmount) || 0);
       });
       
       return {
@@ -2508,7 +2510,7 @@
         total: subtotal + Math.floor(subtotal * 0.1)
       };
     }
-    
+
     function showPDFPreview() {
       const data = getFormData();
       
@@ -2524,33 +2526,41 @@
       showPreviewDialog(data);
     }
 
-      function showPreviewDialog(data) {
-      // ========== ステップ1: 複数内容の判定（「品名がある行」のみをカウント） ==========
-      // ✅【修正】categoryRowCount ではなく categoryNameCount に変更
-      // 品名がある行のみをカウント → 複数備考は対象外
-      const categoryNameCount = {};
+    function showPreviewDialog(data) {
+      // ========== ステップ1: 複数内容の判定（グループごとの行数をカウント） ==========
+      // ✅【修正】要望2: カテゴリの複製を止めたため、データのまとまり（カード）単位で品名行の数をカウントする
+      const cardNameCounts = [];
+      let currentCardIdx = -1;
       
       data.details.forEach(item => {
-        if (item.itemName) {  // ← 品名がある行のみカウント
-          const category = item.itemCategory || '（カテゴリなし）';
-          categoryNameCount[category] = (categoryNameCount[category] || 0) + 1;
+        if (item.itemCategory) {
+          currentCardIdx++;
+          cardNameCounts[currentCardIdx] = 0;
+        }
+        if (item.itemName && currentCardIdx >= 0) {
+          cardNameCounts[currentCardIdx]++;
         }
       });
       
       // ========== ステップ2: テーブル行の生成 ==========
       let detailRows = '';
-      let lastCategory = '';
+      let loopCardIdx = -1;
       
       data.details.forEach((item, itemIndex) => {
         const isShiki = String(item.itemUnit || '').trim() === '式';
         
         // カテゴリが変わったら空行を挿入
-        if (lastCategory !== '' && lastCategory !== item.itemCategory && item.itemCategory) {
+        // ✅【修正】itemCategoryが存在する行＝新しいグループの開始点。最初の行(0)以外であれば空行を挟む
+        if (itemIndex > 0 && item.itemCategory) {
           detailRows += `
             <tr style="height: 6px;">
               <td colspan="7" style="border: none; padding: 0;"></td>
             </tr>
           `;
+        }
+        
+        if (item.itemCategory) {
+          loopCardIdx++;
         }
         
         // 表示用データの準備
@@ -2566,15 +2576,14 @@
         const displayQty = item.itemQty || '';
         const displayUnit = htmlEscape(item.itemUnit || '');
         const displayPrice = isShiki ? '' : ('¥' + (item.itemPrice || 0).toLocaleString());
-        const displayAmount = '¥' + (item.itemAmount || 0).toLocaleString();
+        
+        // ✅【綺麗にする処理】金額が空文字（備考行など）の場合は、¥0と表示せず空白のままにする
+        const displayAmount = item.itemAmount === "" ? "" : ('¥' + (item.itemAmount || 0).toLocaleString());
         
         // ========== 「小計」マーク判定 ==========
-        // 複数内容の判定を categoryNameCount を使用
-        // 品名がある行 かつ 同じカテゴリで品名がある行が複数ある場合のみ「小計」を表示
+        // ✅【修正】要望2: 文字列ではなく「同じカード（内容）が複数行あるか」を基準に小計を表示
         let displayRemarks = '';
-        
-        if (item.itemName && item.itemCategory && categoryNameCount[item.itemCategory] >= 2) {
-          // 品名がある行 かつ 同じカテゴリで複数の品名行がある → 「小計」
+        if (item.itemName && loopCardIdx >= 0 && cardNameCounts[loopCardIdx] >= 2) {
           displayRemarks = '小計';
         }
         
@@ -2589,10 +2598,8 @@
             <td style="border: 1px solid #ddd; padding: 4px; font-size: 11px; color: #666;">${displayRemarks}</td>
           </tr>
         `;
-        
-        lastCategory = item.itemCategory || '';
       });
-    
+
       // ========== ステップ3: プレビューダイアログを表示 ==========
       const previewHtml = `
         <div style="text-align: left; font-size: 12px; max-height: 500px; overflow-y: auto; background: white; padding: 16px; border-radius: 8px;">
@@ -2624,7 +2631,7 @@
           ${data.remarks ? `<p style="margin: 8px 0;"><strong>備考:</strong> ${htmlEscape(data.remarks).replace(/\n/g, '<br>')}</p>` : ''}
         </div>
       `;
-    
+
       Swal.fire({
         title: '見積書 簡易プレビュー',
         html: previewHtml,
