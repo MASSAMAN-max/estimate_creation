@@ -2623,54 +2623,7 @@
         }
       });
     }
-
-      // ========== ステップ2: プレビューダイアログを表示 ==========
-      const previewHtml = `
-        <div style="text-align: left; font-size: 12px; max-height: 500px; overflow-y: auto; background: white; padding: 16px; border-radius: 8px;">
-          <h3 style="margin-bottom: 8px; border-bottom: 2px solid #1976D2; padding-bottom: 8px;">御見積書</h3>
-          <p style="margin: 4px 0;"><strong>見積日:</strong> ${data.estimateDate}</p>
-          <p style="margin: 4px 0;"><strong>取引先:</strong> ${htmlEscape(data.clientName)}</p>
-          ${data.contactPerson ? `<p style="margin: 4px 0;"><strong>担当者:</strong> ${htmlEscape(data.contactPerson)}</p>` : ''}
-          ${data.clientAddress ? `<p style="margin: 4px 0;"><strong>住所:</strong> ${htmlEscape(data.clientAddress)}</p>` : ''}
-          <p style="margin: 4px 0;"><strong>件名:</strong> ${htmlEscape(data.subject)}</p>
-          <hr style="margin: 8px 0; border: none; border-top: 1px solid #ddd;">
-          <table style="width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 11px;">
-            <tr style="background: #E3F2FD;">
-              <th style="border: 1px solid #ddd; padding: 4px;">項目</th>
-              <th style="border: 1px solid #ddd; padding: 4px;">品名</th>
-              <th style="border: 1px solid #ddd; padding: 4px; text-align: right;">数量</th>
-              <th style="border: 1px solid #ddd; padding: 4px;">単位</th>
-              <th style="border: 1px solid #ddd; padding: 4px; text-align: right;">単価</th>
-              <th style="border: 1px solid #ddd; padding: 4px; text-align: right;">金額</th>
-              <th style="border: 1px solid #ddd; padding: 4px;">備考</th>
-            </tr>
-            ${detailRows}
-          </table>
-          <hr style="margin: 8px 0; border: none; border-top: 1px solid #ddd;">
-          <div style="text-align: right; margin: 8px 0;">
-            <p style="margin: 4px 0;">小計: ¥${data.subtotal.toLocaleString()}</p>
-            <p style="margin: 4px 0;">消費税(10%): ¥${data.tax.toLocaleString()}</p>
-            <p style="font-weight: 600; font-size: 13px; margin: 4px 0;">合計: ¥${data.total.toLocaleString()}</p>
-          </div>
-          ${data.remarks ? `<p style="margin: 8px 0;"><strong>備考:</strong> ${htmlEscape(data.remarks).replace(/\n/g, '<br>')}</p>` : ''}
-        </div>
-      `;
-
-      Swal.fire({
-        title: '見積書 簡易プレビュー',
-        html: previewHtml,
-        showCancelButton: true,
-        confirmButtonText: '確定して保存',
-        cancelButtonText: 'キャンセル',
-        confirmButtonColor: '#1976D2',
-        width: '95%'
-      }).then((result) => {
-        if (result.isConfirmed) {
-          executeSaveProcess('saveEstimate');
-        }
-      });
-    }
-
+    
     // =====================================
     // 【共通】見積・下書きデータ送信関数
     // =====================================
