@@ -1533,38 +1533,6 @@
       return row;
     }
     
-    /**
-     * 【PDF保存完了画面】ドライブに保存されたPDFへのリンクボタンを表示する
-     */
-    function previewPdfModal(pdfUrl) {
-      Swal.fire({
-        title: 'PDF保存完了',
-        icon: 'success',
-        html: `
-          <p style="margin-bottom: 20px; color: var(--text-secondary);">PDFが正常に保存されました。</p>
-          <div style="text-align: center; margin: 24px 0;">
-            <a href="${pdfUrl}" target="_blank" style="
-              display: inline-flex;
-              align-items: center;
-              gap: 8px;
-              text-decoration: none;
-              background-color: var(--primary);
-              color: white;
-              padding: 14px 28px;
-              border-radius: var(--radius);
-              font-weight: bold;
-              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            ">
-              <span class="material-symbols-outlined">open_in_new</span>
-              見積書PDFを開く
-            </a>
-          </div>
-        `,
-        showConfirmButton: true,
-        confirmButtonText: '閉じる',
-        confirmButtonColor: '#666'
-      });
-    }
     
     /**
      * 既存の保存・確定処理完了時のコールバックに組み込む処理
@@ -2819,13 +2787,13 @@
         // ローダーを非表示
         document.getElementById('loader').style.display = 'none';
         
-        // ========== 【変更】確認ダイアログの表示（URLリンクボタン化） ==========
+        // ========== 確認ダイアログの表示（URLリンクボタン化） ==========
         await Swal.fire({
           icon: 'success',
           title: successTitle,
           html: `
             見積番号: <strong>${generatedId}</strong><br><br>
-            <p style="margin-bottom: 20px; color: var(--text-secondary);">PDFが見積書フォルダへ正常に保存されました。</p>
+            <p style="margin-bottom: 20px; color: var(--text-secondary);">見積書PDFが正常に保存されました。</p>
             <div style="text-align: center; margin: 24px 0;">
               <a href="${pdfUrl}" target="_blank" style="
                 display: inline-flex;
@@ -2840,7 +2808,7 @@
                 box-shadow: 0 2px 4px rgba(0,0,0,0.1);
               ">
                 <span class="material-symbols-outlined">open_in_new</span>
-                GoogleドライブでPDFを開く
+                作成した見積書PDFを開く
               </a>
             </div>
           `,
