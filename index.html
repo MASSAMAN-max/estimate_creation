@@ -2485,12 +2485,19 @@
         });
       });
       
-      // 総合計の計算
-      let subtotal = 0;
-      details.forEach(item => {
-        subtotal += (Number(item.itemAmount) || 0);
-      });
-      
+      const getValueFromDisplay = (elementId) => {
+        const el = document.getElementById(elementId);
+        if (!el) return 0;
+        // input要素なら.value、divやspanなどのパーツなら.textContentを取得
+        const rawText = el.tagName === 'INPUT' ? el.value : el.textContent;
+        // 「¥」や「,」や空白など、数字とマイナス・ピリオド以外の文字をすべて綺麗に消去して数値化
+        return Math.floor(Number(rawText.replace(/[^0-9.-]/g, ''))) || 0;
+      };
+
+      const currentSubtotal = getValueFromDisplay('subtotalLabel'); 
+      const currentTax      = getValueFromDisplay('taxLabel');      
+      const currentTotal    = getValueFromDisplay('totalLabel');    
+
       return {
         clientName: finalClientName,
         contactPerson: finalContactPerson,
@@ -2501,9 +2508,10 @@
         paymentTerms: document.getElementById('paymentTerms').value.trim(),
         remarks: document.getElementById('remarks').value.trim(),
         details: details,
-        subtotal: subtotal,
-        tax: Math.floor(subtotal * 0.1),
-        total: subtotal + Math.floor(subtotal * 0.1)
+        // すでに画面で正しく計算・表示されている値をそのまま使い回す
+        subtotal: currentSubtotal,
+        tax: currentTax,
+        total: currentTotal
       };
     }
 
