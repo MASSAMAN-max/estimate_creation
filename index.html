@@ -1295,28 +1295,42 @@
 
         const detailsContainer = document.getElementById('detailsContainer');
 
-        // ✅ 念のためもう一度クリア（重要！）
+        // ✅ 念のためもう一度クリア
         detailsContainer.innerHTML = '';
 
         if (detailsContainer && formData.details && formData.details.length > 0) {
           console.log('📊 formData.details:', formData.details);
           
-          // グループ化
-          const groupedByCategory = {};
+          // 連続する同一カテゴリ、または単一の明細を正しくグループ化する配列
+          const groups = [];
+          let currentGroup = [];
           
           formData.details.forEach((item, index) => {
             const category = item.itemCategory || '（カテゴリなし）';
-            if (!groupedByCategory[category]) {
-              groupedByCategory[category] = [];
+            
+            // 最初の1行目、または前の行とカテゴリが変わった場合は新しいグループ（カード）を開始
+            if (currentGroup.length === 0 || currentGroup[0].itemCategory !== item.itemCategory) {
+              if (currentGroup.length > 0) {
+                groups.push(currentGroup); // 完成したグループを保存
+              }
+              currentGroup = [item]; // 新しいグループを作成
+            } else {
+              // 前の行と同じカテゴリなら、同じカード（内訳）に追加
+              currentGroup.push(item);
             }
-            groupedByCategory[category].push(item);
             console.log(`📌 Item ${index}: category="${category}", itemName="${item.itemName}", itemPrice=${item.itemPrice}`);
           });
           
-          // グループごとにカード作成
+          // 最後のグループをプッシュ
+          if (currentGroup.length > 0) {
+            groups.push(currentGroup);
+          }
+          
+          // グループ（出現順）ごとにカード作成
           try {
-            Object.entries(groupedByCategory).forEach(([category, groupItems], groupIndex) => {
-              console.log(`🎯 Creating card ${groupIndex} for category: ${category} (${groupItems.length} items)`);
+            groups.forEach((groupItems, groupIndex) => {
+              const displayCategory = groupItems[0].itemCategory || '（カテゴリなし）';
+              console.log(`🎯 Creating card ${groupIndex} for category: ${displayCategory} (${groupItems.length} items)`);
               addTableRow(groupItems);
             });
           } catch (detailError) {
