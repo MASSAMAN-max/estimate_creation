@@ -2249,6 +2249,26 @@
     }
 
     // =====================================
+    // 項目行（親）を削除する関数
+    // =====================================
+    function deleteTableRow(button) {
+      button.closest('.detail-card').remove();
+      updateTotalSummary();
+    }
+
+    function calculateAmount(input) {
+      const card = input.closest('.detail-card');
+      const qty = parseFloat(card.querySelector('.item-qty').value) || 0;
+      const price = parseFloat(card.querySelector('.item-price').value) || 0;
+      
+      const amount = Math.floor(qty * price); 
+      card.querySelector('.item-amount').textContent = amount.toLocaleString();
+      card.querySelector('.item-amount').dataset.value = amount; 
+      
+      updateTotalSummary();
+    }
+
+    // =====================================
     // 内訳行（子）を削除する関数
     // =====================================
     function deleteBreakdownRow(button) {
