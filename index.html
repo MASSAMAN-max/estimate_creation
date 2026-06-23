@@ -2444,7 +2444,8 @@
             tempDetails.push({
               _index: index,
               _rIndex: -1,  // 備考ではない品名行を示す
-              isLocked: isLocked, // ✅【新規】プレビュー判定用にモードの状態を保持
+              isLocked: isLocked,
+              isSubtotal: isLocked && index === 0, // ✅【修正】ロックモード、かつ「内容1（indexが0）」の品名行だけtrueにする
               
               itemCategory: (index === 0) ? finalCategory : "",
               itemName: name,
@@ -2460,7 +2461,8 @@
               tempDetails.push({
                 _index: index,
                 _rIndex: rIndex,
-                isLocked: isLocked, // ✅【新規】備考行にも保持
+                isLocked: isLocked,
+                isSubtotal: false, // ✅ 備考行には絶対に入れない
                 
                 itemCategory: "",  // 備考行はカテゴリなし
                 itemName: "",
@@ -2486,7 +2488,7 @@
         tempDetails.forEach(d => {
           delete d._index;
           delete d._rIndex;
-          details.push(d); // ※isLocked はプレビューで使用するため残します
+          details.push(d); // ※isLocked と isSubtotal はプレビューで使用するため残します
         });
       });
       
@@ -2556,11 +2558,8 @@
         const displayAmount = item.itemAmount === "" ? "" : ('¥' + (item.itemAmount || 0).toLocaleString());
         
         // ========== 「小計」マーク判定 ==========
-        // ✅【修正】シンプルに「一式合計（固定）モード」かつ「品名がある行」なら小計を表示
-        let displayRemarks = '';
-        if (item.isLocked && item.itemName) {
-          displayRemarks = '小計';
-        }
+        // ✅【修正】データ側で内容1だけに付与した「isSubtotal」フラグをそのまま紐付けるだけ
+        let displayRemarks = item.isSubtotal ? '小計' : '';
         
         detailRows += `
           <tr>
