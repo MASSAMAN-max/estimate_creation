@@ -1290,36 +1290,42 @@
           remarksInput.value = formData.main.remarks || '';
         }
      
-        // ========== ステップ9: 明細行の復元 ==========
-        document.getElementById('loaderText').textContent = '明細データを復元しています...';
-        
+        // ========== ステップ9: 明細行の復存 ==========
+        document.getElementById('loaderText').textContent = '明細データを復存しています...';
+
         const detailsContainer = document.getElementById('detailsContainer');
+
+        // ✅ 念のためもう一度クリア（重要！）
+        detailsContainer.innerHTML = '';
+
         if (detailsContainer && formData.details && formData.details.length > 0) {
-          // ✅【新設】同じ親項目（itemCategory）でグループ化
+          console.log('📊 formData.details:', formData.details);
+          
+          // グループ化
           const groupedByCategory = {};
           
-          formData.details.forEach(item => {
+          formData.details.forEach((item, index) => {
             const category = item.itemCategory || '（カテゴリなし）';
             if (!groupedByCategory[category]) {
               groupedByCategory[category] = [];
             }
             groupedByCategory[category].push(item);
+            console.log(`📌 Item ${index}: category="${category}", itemName="${item.itemName}", itemPrice=${item.itemPrice}`);
           });
           
-          // グループごとに1つのカードを作成
+          // グループごとにカード作成
           try {
-            Object.values(groupedByCategory).forEach(groupItems => {
-              addTableRow(groupItems);  // ✅ グループ（複数行）を渡す
+            Object.entries(groupedByCategory).forEach(([category, groupItems], groupIndex) => {
+              console.log(`🎯 Creating card ${groupIndex} for category: ${category} (${groupItems.length} items)`);
+              addTableRow(groupItems);
             });
           } catch (detailError) {
             console.error(`❌ Error adding detail group:`, detailError);
             throw detailError;
           }
         } else {
-          // 空の場合は初期行を追加
-          for(let i = 0; i < 1; i++) {
-            addTableRow();
-          }
+          console.log('📭 No details found, adding empty row');
+          addTableRow();
         }
         
         // ========== ステップ10: 合計を再計算 ==========
