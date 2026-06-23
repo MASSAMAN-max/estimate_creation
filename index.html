@@ -2223,54 +2223,27 @@
       const firstUnit = firstRow.querySelector('.item-unit');
       const firstPrice = firstRow.querySelector('.item-price');
       
-      // 💡【変更】2行目以降（純粋な内訳行）で、金額が入力されている行数をカウント
-      let validBreakdownCount = 0;
-      for (let i = 1; i < rows.length; i++) {
-        const amountSpan = rows[i].querySelector('.item-amount');
-        const amount = parseFloat(amountSpan.dataset.value) || 0;
-        if (amount > 0) {
-          validBreakdownCount++;
-        }
-      }
-      
-      // 💡【変更】有効な内訳が2つ以上ある場合のみロックする
-      if (validBreakdownCount >= 2) {
-        // 内訳2以上がある場合：内容1（1行目）を「一式・空白合計行」としてロック
-        if (!firstUnit.querySelector('option[value=""]')) {
-          const blankOpt = document.createElement('option');
-          blankOpt.value = '';
-          blankOpt.textContent = '式';
-          firstUnit.insertBefore(blankOpt, firstUnit.firstChild);
-        }
-        firstUnit.value = '';
-        firstUnit.disabled = true;
-        
+      // 「2行目（内容2）以降が存在するか」で判定
+      if (rows.length >= 2) {
+        // 内訳2以上がある場合：内容1（1行目）を「数量:1」「単位:式」「単価:なし」に固定
         firstQty.value = '1';
         firstQty.disabled = true;
+        
+        // 元々ある「式」をそのまま選択させてロック（動的なオプション追加を廃止）
+        firstUnit.value = '式'; 
+        firstUnit.disabled = true;
         
         firstPrice.value = '';
         firstPrice.disabled = true;
         
-        for (let i = 1; i < rows.length; i++) {
-          rows[i].querySelector('.item-qty').disabled = false;
-          rows[i].querySelector('.item-unit').disabled = false;
-          rows[i].querySelector('.item-price').disabled = false;
-        }
-        
       } else {
-        // 💡【変更】有効な内訳が1つ以下（または0）になったらロックを解除して通常に戻す
+        // 有効な内訳が1つ以下（内容1のみ）になったらロックを解除して通常に戻す
         firstQty.disabled = false;
         firstUnit.disabled = false;
         firstPrice.disabled = false;
         
         if (firstPrice.value === '') {
           firstPrice.value = '0';
-        }
-        
-        const blankOpt = firstUnit.querySelector('option[value=""]');
-        if (blankOpt) {
-          blankOpt.remove();
-          firstUnit.value = '式'; 
         }
       }
     }
@@ -2322,7 +2295,7 @@
     }
 
     // =====================================
-    // 3. カード内の合計金額を計算・同期する関数
+    // カード内の合計金額を計算・同期する関数
     // =====================================
     function updateCardTotal(card) {
       const rows = card.querySelectorAll('.breakdown-row');
@@ -2363,7 +2336,7 @@
     }
     
     // =====================================
-    // 【変更】全体の合計や消費税を計算している関数
+    // 全体の合計や消費税を計算している関数
     // =====================================
     function updateTotalSummary() {
       let subtotal = 0;
@@ -2533,11 +2506,10 @@
       // プレビューダイアログを表示
       showPreviewDialog(data);
     }
-     
+
      
     function showPreviewDialog(data) {
-      // ========== ステップ1: 複数内容の判定（テーブル表示用） ==========
-      // data.details を元にして、各カテゴリの行数をカウント
+      // ========== ステップ1: 複数内容の判定 ==========
       const categoryRowCount = {};
       
       data.details.forEach(item => {
@@ -2552,7 +2524,7 @@
       data.details.forEach((item, itemIndex) => {
         const isShiki = String(item.itemUnit || '').trim() === '式';
         
-        // カテゴリが変わったら空行を挿入（見やすさ向上）
+        // カテゴリが変わったら空行を挿入
         if (lastCategory !== '' && lastCategory !== item.itemCategory && item.itemCategory) {
           detailRows += `
             <tr style="height: 6px;">
@@ -2563,25 +2535,26 @@
         
         // 表示用データの準備
         const displayCategory = item.itemCategory ? htmlEscape(item.itemCategory) : '';
-        const displayName = htmlEscape(item.itemName || '');
+        
+        // ✅【修正】品名列の表示：itemName がない場合は itemRemarks を表示
+        let displayName = htmlEscape(item.itemName || '');
+        if (!item.itemName && item.itemRemarks) {
+          // 複数備考行：備考を品名列に表示
+          displayName = htmlEscape(item.itemRemarks);
+        }
+        
         const displayQty = item.itemQty || '';
         const displayUnit = htmlEscape(item.itemUnit || '');
         const displayPrice = isShiki ? '' : ('¥' + (item.itemPrice || 0).toLocaleString());
         const displayAmount = '¥' + (item.itemAmount || 0).toLocaleString();
         
         // ========== 「小計」マーク判定 ==========
-        // 同じカテゴリの複数行があり、かつこれが「最初の行」なら「小計」を表示
-        let displayRemarks = htmlEscape(item.itemRemarks || '');
+        // 複数内容で、かつ品名がある行（内容1）の場合のみ「小計」を表示
+        let displayRemarks = '';
         
-        if (item.itemCategory && categoryRowCount[item.itemCategory] >= 2) {
-          // 同じカテゴリで複数行がある場合
-          const sameCategory = data.details.filter(d => d.itemCategory === item.itemCategory);
-          const isFirstOfCategory = sameCategory[0] === item;
-          
-          if (isFirstOfCategory && item.itemName) {
-            // 最初の行（品名がある行）なら「小計」と表示
-            displayRemarks = '小計';
-          }
+        if (item.itemName && item.itemCategory && categoryRowCount[item.itemCategory] >= 2) {
+          // 品名がある行 かつ 同じカテゴリで複数行がある → 「小計」
+          displayRemarks = '小計';
         }
         
         detailRows += `
@@ -2641,7 +2614,6 @@
         width: '95%'
       }).then((result) => {
         if (result.isConfirmed) {
-          // 確定版で保存
           executeSaveProcess('saveEstimate');
         }
       });
