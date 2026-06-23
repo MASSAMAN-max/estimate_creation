@@ -1534,14 +1534,14 @@
     }
     
     /**
-     * 【変更後：PDF保存完了画面】ドライブに保存されたPDFへのリンクボタンを表示する
+     * 【PDF保存完了画面】ドライブに保存されたPDFへのリンクボタンを表示する
      */
     function previewPdfModal(pdfUrl) {
       Swal.fire({
         title: 'PDF保存完了',
         icon: 'success',
         html: `
-          <p style="margin-bottom: 20px; color: var(--text-secondary);">PDFが見積書フォルダへ正常に保存されました。</p>
+          <p style="margin-bottom: 20px; color: var(--text-secondary);">PDFが正常に保存されました。</p>
           <div style="text-align: center; margin: 24px 0;">
             <a href="${pdfUrl}" target="_blank" style="
               display: inline-flex;
@@ -1556,7 +1556,7 @@
               box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             ">
               <span class="material-symbols-outlined">open_in_new</span>
-              GoogleドライブでPDFを開く
+              見積書PDFを開く
             </a>
           </div>
         `,
@@ -2697,7 +2697,7 @@
       
       const isDraft = actionType === 'saveDraft';
       const loaderMsg = isDraft ? '下書きを保存中...' : '見積書を確定保存中...';
-      const successTitle = isDraft ? '下書き保存完了！' : '見積確定保存完了！';
+      const successTitle = isDraft ? '下書き保存完了！' : '見積書データ保存完了！';
       
       document.getElementById('loader').style.display = 'flex';
       document.getElementById('loaderText').textContent = loaderMsg;
@@ -2755,7 +2755,7 @@
      
         // ========== 2回目: PDF生成（見積の場合のみ） ==========
         document.getElementById('loaderText').innerHTML = 
-          `データ処理完了（${generatedId}）<br><span style="color: #cff5ff; font-weight: bold;">続けてPDF見積書を生成しています... (約5～10秒)</span>`;
+          `データ処理完了（${generatedId}）<br><span style="color: #cff5ff; font-weight: bold;">続けて見積書PDFを生成しています... (約5～10秒)</span>`;
         
         // タイムアウト処理（30秒で制限）
         const timeoutId = setTimeout(() => {
