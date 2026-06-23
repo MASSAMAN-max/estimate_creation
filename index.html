@@ -1295,38 +1295,45 @@
           remarksInput.value = formData.main.remarks || '';
         }
      
-        // ========== ステップ9: 明細行の復存（空白補完＆備考統合版） ==========
+        // ========== ステップ9: 明細行の復存（同名親項目＆備考統合 完全対応版） ==========
         document.getElementById('loaderText').textContent = '明細データを復存しています...';
 
         const detailsContainer = document.getElementById('detailsContainer');
         detailsContainer.innerHTML = ''; // 一旦完全にクリア
 
         if (detailsContainer && formData.details && formData.details.length > 0) {
-          console.log('📊 元データ formData.details:', formData.details);
+          // 📝 F12コンソールで元データの状態を正確に確認するためのログ
+          console.log('📊 [DEBUG 1] GASから届いた元データ(formData.details):', JSON.parse(JSON.stringify(formData.details)));
           
-          // --- 【最重要】ステップ9-A: 親項目の空白埋め ＆ 備考のみの行の統合 ---
+          // --- ステップ9-A: 親項目の空白埋め ＆ 備考のみの行の統合 ---
           const cleanedDetails = [];
-          let lastValidCategory = ''; // 直前の有効な親項目名を記憶する変数
+          let lastValidCategory = ''; 
           
-          formData.details.forEach((item) => {
-            // ① 親項目（カテゴリ）が入力されている場合は記憶し、空なら直前のものを引き継ぐ
-            if (item.itemCategory && String(item.itemCategory).trim() !== '') {
+          formData.details.forEach((item, idx) => {
+            // 元データの時点で親項目が明記されているか（空白・空文字でないか）を厳密に判定
+            const isExplicitCategory = item.itemCategory && String(item.itemCategory).trim() !== '';
+            
+            if (isExplicitCategory) {
               lastValidCategory = String(item.itemCategory).trim();
+              item.isCardStart = true; // 💡同じ名前でも、ここに文字があれば「新しいカードの開始」という目印を付ける
+            } else {
+              item.isCardStart = false;
             }
+            
+            // 空白だった行には直前のカテゴリ名を引き継ぐ
             item.itemCategory = lastValidCategory || '（カテゴリなし）';
 
             const hasName = item.itemName && String(item.itemName).trim() !== '';
             const hasRemarks = item.itemRemarks && String(item.itemRemarks).trim() !== '';
             
-            // ② 品名が空欄で、備考だけがあり、すでに1件以上データが存在する場合
+            // 【品名が空】かつ【備考がある】かつ【すでに1件以上データがある】場合は直前の行に統合
             if (!hasName && hasRemarks && cleanedDetails.length > 0) {
               const lastItem = cleanedDetails[cleanedDetails.length - 1];
-              
               if (!lastItem.itemRemarksList) {
                 lastItem.itemRemarksList = lastItem.itemRemarks ? [lastItem.itemRemarks] : [];
               }
               lastItem.itemRemarksList.push(String(item.itemRemarks).trim());
-              console.log(`📝 備考行を直前の内容「${lastItem.itemName}」に統合しました:`, item.itemRemarks);
+              console.log(`📝 [DEBUG 2] 行 ${idx} (備考のみ) を 直前の行「${lastItem.itemName}」の複数備考に統合しました`);
             } else {
               // 通常の明細行（または最初の行）
               item.itemRemarksList = item.itemRemarks ? [String(item.itemRemarks).trim()] : [];
@@ -1334,21 +1341,22 @@
             }
           });
 
-          console.log('✨ クレンジング完了データ:', cleanedDetails);
+          console.log('✨ [DEBUG 3] お掃除（クレンジング）完了後のデータ:', JSON.parse(JSON.stringify(cleanedDetails)));
 
-          // --- ステップ9-B: 補完されたデータで、親項目（カテゴリ）ごとにグループ化 ---
+          // --- ステップ9-B: 【最重要修正】明記されていた箇所を基準にカードを分割 ---
           const groups = [];
           let currentGroup = [];
           
-          cleanedDetails.forEach((item) => {
-            // 最初の1行目、または前の行とカテゴリが変わった場合は新しいグループ（カード）を開始
-            if (currentGroup.length === 0 || currentGroup[0].itemCategory !== item.itemCategory) {
+          cleanedDetails.forEach((item, index) => {
+            // 💡 1行目、または「元データに親項目が明記されていた（isCardStart が true）」の場合、
+            // たとえ前の行と全く同じカテゴリ名であっても、強制的に新しい別のカード（グループ）として開始する！
+            if (index === 0 || item.isCardStart) {
               if (currentGroup.length > 0) {
                 groups.push(currentGroup);
               }
               currentGroup = [item];
             } else {
-              // 同じカテゴリなら同じカードに内訳として追加
+              // 親項目が空欄だった行は、同じカードの内訳（明細行）として素直に追加
               currentGroup.push(item);
             }
           });
@@ -1356,8 +1364,11 @@
             groups.push(currentGroup);
           }
           
+          console.log('📦 [DEBUG 4] 最終的なグループ化（カード分割）結果:', groups);
+
           // --- ステップ9-C: カードの生成とデータ流し込み ---
-          groups.forEach((groupItems) => {
+          groups.forEach((groupItems, gIdx) => {
+            console.log(`🃏 [DEBUG 5] カード ${gIdx + 1} を画面に生成します。内訳件数: ${groupItems.length}`, groupItems);
             addTableRow(groupItems);
           });
 
