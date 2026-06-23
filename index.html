@@ -2417,11 +2417,9 @@
           const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
           const unit = row.querySelector('.item-unit').value.trim();
           
-          // 💡【バグ対策】ロック時に単価が空文字（""）でもNaNや0に潰れないよう数値化
           const priceVal = row.querySelector('.item-price').value.trim();
           const price = priceVal === '' ? 0 : (parseFloat(priceVal) || 0);
           
-          // 備考を配列のまま取得
           const remarksList = row.querySelector('.remarks-list');
           const remarksArray = remarksList 
             ? Array.from(remarksList.querySelectorAll('.remark-input'))
@@ -2429,50 +2427,49 @@
                 .filter(r => r !== '')
             : [];
           
-          // 備考が1つも入力されていない場合でも、最低1行は内訳を出力するための対策
           if (remarksArray.length === 0) {
             remarksArray.push('');
           }
           
-          // 各行の基本金額を計算
           let amount = Math.floor(qty * price);
           
-          // 💡【バグ対策】ロック時のみ、2行目以降の金額を合計していく
           if (isLocked && index > 0) {
             breakdownSubtotal += amount;
           }
           
           if(name !== "" || finalCategory !== "") {
             let finalUnit = unit || '式';
-
-            // 備考の数だけループを回して、データを物理的に行分割する
-            remarksArray.forEach((remark, rIndex) => {
-              
-              // 💡【バグ対策】金額の決定ルールをモード別に厳格化
-              let finalAmount = 0;
-              if (!isLocked) {
-                // 通常モード：各行の最初の備考行（rIndex === 0）にその行の金額を割り当てる
-                finalAmount = (rIndex === 0) ? amount : 0;
-              } else {
-                // ロックモード：1行目は後で breakdownSubtotal を一括上書きするため、ここでは一旦0
-                // 2行目以降は、最初の備考行（rIndex === 0）にそれぞれの金額を正しく入れる
-                finalAmount = (index > 0 && rIndex === 0) ? amount : 0;
-              }
-
+            
+              // 🔵 ステップ1: 品名行を追加（備考なし）
               tempDetails.push({
                 _index: index,
-                _rIndex: rIndex, // 金額上書き用に一時的なインデックスを持たせる
+                _rIndex: -1,  // 備考ではない品名行を示す
                 
-                itemCategory: (index === 0 && rIndex === 0) ? finalCategory : "",
-                itemName: rIndex === 0 ? name : "",
-                itemQty: rIndex === 0 ? (isLocked && index === 0 ? 1 : qty) : "",
-                itemUnit: rIndex === 0 ? finalUnit : "",
-                itemPrice: rIndex === 0 ? (isLocked && index === 0 ? "" : price) : "",
-                itemAmount: finalAmount, 
-                itemRemarks: remark  
+                itemCategory: (index === 0 || (isLocked && index > 0)) ? finalCategory : "",
+                itemName: name,
+                itemQty: isLocked && index === 0 ? 1 : qty,
+                itemUnit: finalUnit,
+                itemPrice: isLocked && index === 0 ? "" : price,
+                itemAmount: isLocked && index === 0 ? 0 : (index === 0 ? amount : 0),
+                itemRemarks: ""  // 品名行には備考を含めない
               });
-            });
-          }
+            
+              // 🔵 ステップ2: 備考行を追加（すべての備考を別行に）
+              remarksArray.forEach((remark, rIndex) => {
+                tempDetails.push({
+                  _index: index,
+                  _rIndex: rIndex,
+                  
+                  itemCategory: "",  // 備考行はカテゴリなし
+                  itemName: "",
+                  itemQty: "",
+                  itemUnit: "",
+                  itemPrice: "",
+                  itemAmount: 0,
+                  itemRemarks: remark  // 備考のみ
+                });
+              });
+            }
         });
         
         // 💡【バグ対策】ロックモードの時だけ、1行目の最初の備考行に合計金額を正確に上書き
@@ -2667,7 +2664,7 @@
       // プレビューダイアログを表示
       showPreviewDialog(data);
     }
-    
+
 /*
       function showPreviewDialog(data) {
       // ========== ステップ1: 複数内容の判定（「品名がある行」のみをカウント） ==========
