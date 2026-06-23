@@ -2384,7 +2384,6 @@
         finalClientName = document.getElementById('clientName').value.trim();
       }
       
-      // 取引先担当者の取得
       const contactPersonSelect = document.getElementById('contactPersonSelect');
       let finalContactPerson = contactPersonSelect.value;
       if(finalContactPerson === '__NEW__') {
@@ -2395,7 +2394,7 @@
       
       const details = [];
       
-      // 親子構造をループして、GASに優しいフラットな形式に整形
+      // 各カード（グループ）ごとに処理
       document.querySelectorAll('.detail-card').forEach(card => {
         const catSelect = card.querySelector('.item-category-select');
         let finalCategory = catSelect.value;
@@ -2404,97 +2403,89 @@
         }
         
         const rows = card.querySelectorAll('.breakdown-row');
-        if (rows.length === 0) return; // 行がない場合はスキップ
+        if (rows.length === 0) return;
 
-        // 💡 1行目がロック（一式合計モード）されているかを正確に判定
-        const isLocked = rows[0].querySelector('.item-qty').disabled;
+        // 💡 構想2: このカードの「内容1」が固定モード（ロック）に入っているかを確実に判定
+        const isCardLocked = rows[0].querySelector('.item-qty').disabled;
         
-        let tempDetails = [];
+        // 先に「内容2」以降の内訳の合計金額を計算しておく
         let breakdownSubtotal = 0;
+        rows.forEach((row, index) => {
+          if (index > 0) {
+            const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+            const priceVal = row.querySelector('.item-price').value.trim();
+            const price = priceVal === '' ? 0 : (parseFloat(priceVal) || 0);
+            breakdownSubtotal += Math.floor(qty * price);
+          }
+        });
         
+        // 各行（内容1、内容2、内容3...）のデータ生成
         rows.forEach((row, index) => {
           const name = row.querySelector('.item-name').value.trim();
           const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
           const unit = row.querySelector('.item-unit').value.trim();
-          
           const priceVal = row.querySelector('.item-price').value.trim();
           const price = priceVal === '' ? 0 : (parseFloat(priceVal) || 0);
           
-          // 💡【修正】備考欄の取得（空文字はフィルタリングで完全に除外）
-          const remarksList = row.querySelector('.remarks-list');
-          const remarksArray = remarksList 
-            ? Array.from(remarksList.querySelectorAll('.remark-input'))
-                .map(input => input.value.trim())
-                .filter(r => r !== '')
-            : [];
-          
-          // ❌「if (remarksArray.length === 0) { remarksArray.push(''); }」を完全に撤廃。
-          // これにより、備考が空のときは余計な空行を作らず、次の内容と綺麗に行詰めされます。
-          
           let amount = Math.floor(qty * price);
           
-          if (isLocked && index > 0) {
-            breakdownSubtotal += amount;
+          // 値のクレンジング（空なら「式」）
+          let finalUnit = unit || '式';
+          
+          // 変数の初期化
+          let finalQty = qty;
+          let finalPrice = price;
+          let finalAmount = amount;
+          let isSubtotalLine = false;
+          
+          // 💡 構想2: 「ロックモード」かつ「内容1（index === 0）」の品名行だけの特別処理
+          if (isCardLocked && index === 0) {
+            finalQty = qty;           // 画面上の固定値をそのまま使用
+            finalPrice = price;       // 画面上の固定値をそのまま使用
+            finalAmount = breakdownSubtotal; // 金額だけ内訳の合計値に差し替える
+            isSubtotalLine = true;    // この行だけに小計マークの権利を与える
           }
           
-          if(name !== "" || finalCategory !== "") {
-            let finalUnit = unit || '式';
+          // 品名がある、または内容1でカテゴリがある場合は行を追加
+          if(name !== "" || (index === 0 && finalCategory !== "")) {
             
-            // 💡【修正】その行自体がロック（固定）されているかを直接判定
-            const isRowLocked = row.querySelector('.item-qty').disabled;
-            
-            // 🔵 ステップ1: 品名行を追加（備考なし）
-            tempDetails.push({
-              _index: index,
-              _rIndex: -1,  // 備考ではない品名行を示す
-              isLocked: isLocked,
-              isSubtotal: isRowLocked, // ✅【修正】その行自体が固定されている場合（内容1）のみ小計フラグをtrueにする
-              
+            // 🔵 1. 品名行の追加
+            details.push({
+              isSubtotal: isSubtotalLine, // 内容1の品名行だけが true になる
               itemCategory: (index === 0) ? finalCategory : "",
               itemName: name,
-              itemQty: isRowLocked ? 1 : qty,
+              itemQty: finalQty,
               itemUnit: finalUnit,
-              itemPrice: isRowLocked ? "" : price,
-              itemAmount: isRowLocked ? 0 : (index === 0 ? amount : 0),
-              itemRemarks: ""  // 品名行には備考を含めない
+              itemPrice: finalPrice,
+              itemAmount: finalAmount,
+              itemRemarks: ""
             });
           
-            // 🔵 ステップ2: 備考行を追加（備考がある場合のみ自動実行される）
-            remarksArray.forEach((remark, rIndex) => {
-              tempDetails.push({
-                _index: index,
-                _rIndex: rIndex,
-                isLocked: isLocked,
-                isSubtotal: false, // 備考行には絶対に入れない
+            // 🔵 2. 備考行の追加（💡 構想3: 空文字は完全に除外して行詰めする）
+            const remarksList = row.querySelector('.remarks-list');
+            if (remarksList) {
+              const remarksArray = Array.from(remarksList.querySelectorAll('.remark-input'))
+                .map(input => input.value.trim())
+                .filter(r => r !== ''); // 文字が入っているものだけを抽出
                 
-                itemCategory: "",  
-                itemName: "",
-                itemQty: "",
-                itemUnit: "",
-                itemPrice: "",
-                itemAmount: "",
-                itemRemarks: remark  
+              remarksArray.forEach(remark => {
+                details.push({
+                  isSubtotal: false, // 備考行には絶対に小計を入れない
+                  itemCategory: "",  
+                  itemName: "",
+                  itemQty: "",
+                  itemUnit: "",
+                  itemPrice: "",
+                  itemAmount: "",
+                  itemRemarks: remark  
+                });
               });
-            });
+            }
           }
-        });
-        
-        // 💡【バグ対策】ロックモードの時だけ、1行目の最初の品名行に合計金額を正確に上書き
-        if (isLocked) {
-          const firstItem = tempDetails.find(d => d._index === 0 && d._rIndex === -1);
-          if (firstItem) {
-            firstItem.itemAmount = breakdownSubtotal;
-          }
-        }
-        
-        // 一時的な制御プロパティ（_index, _rIndex）を削除してメイン配列に追加
-        tempDetails.forEach(d => {
-          delete d._index;
-          delete d._rIndex;
-          details.push(d);
         });
       });
       
+      // 総合計の計算
       let subtotal = 0;
       details.forEach(item => {
         subtotal += (Number(item.itemAmount) || 0);
@@ -2531,12 +2522,9 @@
     }
 
     function showPreviewDialog(data) {
-      // ========== ステップ1: テーブル行の生成 ==========
       let detailRows = '';
       
       data.details.forEach((item, itemIndex) => {
-        const isShiki = String(item.itemUnit || '').trim() === '式';
-        
         // カテゴリ（新しいグループ）が変わったら空行を挿入
         if (itemIndex > 0 && item.itemCategory) {
           detailRows += `
@@ -2546,22 +2534,22 @@
           `;
         }
         
-        // 表示用データの準備
         const displayCategory = item.itemCategory ? htmlEscape(item.itemCategory) : '';
         
-        // 品名列の表示：itemName がない場合は itemRemarks を表示
+        // 品名または備考の表示
         let displayName = htmlEscape(item.itemName || '');
         if (!item.itemName && item.itemRemarks) {
           displayName = htmlEscape(item.itemRemarks);
         }
         
-        const displayQty = item.itemQty || '';
+        const displayQty = item.itemQty !== "" ? item.itemQty : '';
         const displayUnit = htmlEscape(item.itemUnit || '');
-        const displayPrice = isShiki ? '' : ('¥' + (item.itemPrice || 0).toLocaleString());
-        const displayAmount = item.itemAmount === "" ? "" : ('¥' + (item.itemAmount || 0).toLocaleString());
         
-        // ========== 「小計」マーク判定 ==========
-        // データ側で本当に固定されている行だけに絞り込んだ「isSubtotal」をそのまま使用
+        // 💡 構想1: 単位が「式」であっても関係なく、データにある数値をそのまま100%出力する
+        const displayPrice = item.itemPrice !== "" ? ('¥' + Number(item.itemPrice).toLocaleString()) : '';
+        const displayAmount = item.itemAmount !== "" ? ('¥' + Number(item.itemAmount).toLocaleString()) : '';
+        
+        // 💡 構想2: データ側で1箇所だけに絞り込まれたフラグをそのまま判定に使用
         let displayRemarks = item.isSubtotal ? '小計' : '';
         
         detailRows += `
@@ -2572,12 +2560,11 @@
             <td style="border: 1px solid #ddd; padding: 4px;">${displayUnit}</td>
             <td style="border: 1px solid #ddd; padding: 4px; text-align: right;">${displayPrice}</td>
             <td style="border: 1px solid #ddd; padding: 4px; text-align: right;">${displayAmount}</td>
-            <td style="border: 1px solid #ddd; padding: 4px; font-size: 11px; color: #666;">${displayRemarks}</td>
+            <td style="border: 1px solid #ddd; padding: 4px; font-size: 11px; color: #666; font-weight: bold;">${displayRemarks}</td>
           </tr>
         `;
       });
 
-      // ========== ステップ2: プレビューダイアログを表示 ==========
       const previewHtml = `
         <div style="text-align: left; font-size: 12px; max-height: 500px; overflow-y: auto; background: white; padding: 16px; border-radius: 8px;">
           <h3 style="margin-bottom: 8px; border-bottom: 2px solid #1976D2; padding-bottom: 8px;">御見積書</h3>
