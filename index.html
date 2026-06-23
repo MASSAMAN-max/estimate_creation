@@ -2420,6 +2420,7 @@
           const priceVal = row.querySelector('.item-price').value.trim();
           const price = priceVal === '' ? 0 : (parseFloat(priceVal) || 0);
           
+          // 💡【修正】備考欄の取得（空文字はフィルタリングで完全に除外）
           const remarksList = row.querySelector('.remarks-list');
           const remarksArray = remarksList 
             ? Array.from(remarksList.querySelectorAll('.remark-input'))
@@ -2427,9 +2428,8 @@
                 .filter(r => r !== '')
             : [];
           
-          if (remarksArray.length === 0) {
-            remarksArray.push('');
-          }
+          // ❌「if (remarksArray.length === 0) { remarksArray.push(''); }」を完全に撤廃。
+          // これにより、備考が空のときは余計な空行を作らず、次の内容と綺麗に行詰めされます。
           
           let amount = Math.floor(qty * price);
           
@@ -2440,37 +2440,40 @@
           if(name !== "" || finalCategory !== "") {
             let finalUnit = unit || '式';
             
+            // 💡【修正】その行自体がロック（固定）されているかを直接判定
+            const isRowLocked = row.querySelector('.item-qty').disabled;
+            
             // 🔵 ステップ1: 品名行を追加（備考なし）
             tempDetails.push({
               _index: index,
               _rIndex: -1,  // 備考ではない品名行を示す
               isLocked: isLocked,
-              isSubtotal: isLocked && index === 0, // ✅【修正】ロックモード、かつ「内容1（indexが0）」の品名行だけtrueにする
+              isSubtotal: isRowLocked, // ✅【修正】その行自体が固定されている場合（内容1）のみ小計フラグをtrueにする
               
               itemCategory: (index === 0) ? finalCategory : "",
               itemName: name,
-              itemQty: isLocked && index === 0 ? 1 : qty,
+              itemQty: isRowLocked ? 1 : qty,
               itemUnit: finalUnit,
-              itemPrice: isLocked && index === 0 ? "" : price,
-              itemAmount: isLocked && index === 0 ? 0 : (index === 0 ? amount : 0),
+              itemPrice: isRowLocked ? "" : price,
+              itemAmount: isRowLocked ? 0 : (index === 0 ? amount : 0),
               itemRemarks: ""  // 品名行には備考を含めない
             });
           
-            // 🔵 ステップ2: 備考行を追加（すべての備考を別行に）
+            // 🔵 ステップ2: 備考行を追加（備考がある場合のみ自動実行される）
             remarksArray.forEach((remark, rIndex) => {
               tempDetails.push({
                 _index: index,
                 _rIndex: rIndex,
                 isLocked: isLocked,
-                isSubtotal: false, // ✅ 備考行には絶対に入れない
+                isSubtotal: false, // 備考行には絶対に入れない
                 
-                itemCategory: "",  // 備考行はカテゴリなし
+                itemCategory: "",  
                 itemName: "",
                 itemQty: "",
                 itemUnit: "",
                 itemPrice: "",
                 itemAmount: "",
-                itemRemarks: remark  // 備考のみ
+                itemRemarks: remark  
               });
             });
           }
@@ -2488,7 +2491,7 @@
         tempDetails.forEach(d => {
           delete d._index;
           delete d._rIndex;
-          details.push(d); // ※isLocked と isSubtotal はプレビューで使用するため残します
+          details.push(d);
         });
       });
       
@@ -2558,7 +2561,7 @@
         const displayAmount = item.itemAmount === "" ? "" : ('¥' + (item.itemAmount || 0).toLocaleString());
         
         // ========== 「小計」マーク判定 ==========
-        // ✅【修正】データ側で内容1だけに付与した「isSubtotal」フラグをそのまま紐付けるだけ
+        // データ側で本当に固定されている行だけに絞り込んだ「isSubtotal」をそのまま使用
         let displayRemarks = item.isSubtotal ? '小計' : '';
         
         detailRows += `
@@ -2573,6 +2576,53 @@
           </tr>
         `;
       });
+
+      // ========== ステップ2: プレビューダイアログを表示 ==========
+      const previewHtml = `
+        <div style="text-align: left; font-size: 12px; max-height: 500px; overflow-y: auto; background: white; padding: 16px; border-radius: 8px;">
+          <h3 style="margin-bottom: 8px; border-bottom: 2px solid #1976D2; padding-bottom: 8px;">御見積書</h3>
+          <p style="margin: 4px 0;"><strong>見積日:</strong> ${data.estimateDate}</p>
+          <p style="margin: 4px 0;"><strong>取引先:</strong> ${htmlEscape(data.clientName)}</p>
+          ${data.contactPerson ? `<p style="margin: 4px 0;"><strong>担当者:</strong> ${htmlEscape(data.contactPerson)}</p>` : ''}
+          ${data.clientAddress ? `<p style="margin: 4px 0;"><strong>住所:</strong> ${htmlEscape(data.clientAddress)}</p>` : ''}
+          <p style="margin: 4px 0;"><strong>件名:</strong> ${htmlEscape(data.subject)}</p>
+          <hr style="margin: 8px 0; border: none; border-top: 1px solid #ddd;">
+          <table style="width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 11px;">
+            <tr style="background: #E3F2FD;">
+              <th style="border: 1px solid #ddd; padding: 4px;">項目</th>
+              <th style="border: 1px solid #ddd; padding: 4px;">品名</th>
+              <th style="border: 1px solid #ddd; padding: 4px; text-align: right;">数量</th>
+              <th style="border: 1px solid #ddd; padding: 4px;">単位</th>
+              <th style="border: 1px solid #ddd; padding: 4px; text-align: right;">単価</th>
+              <th style="border: 1px solid #ddd; padding: 4px; text-align: right;">金額</th>
+              <th style="border: 1px solid #ddd; padding: 4px;">備考</th>
+            </tr>
+            ${detailRows}
+          </table>
+          <hr style="margin: 8px 0; border: none; border-top: 1px solid #ddd;">
+          <div style="text-align: right; margin: 8px 0;">
+            <p style="margin: 4px 0;">小計: ¥${data.subtotal.toLocaleString()}</p>
+            <p style="margin: 4px 0;">消費税(10%): ¥${data.tax.toLocaleString()}</p>
+            <p style="font-weight: 600; font-size: 13px; margin: 4px 0;">合計: ¥${data.total.toLocaleString()}</p>
+          </div>
+          ${data.remarks ? `<p style="margin: 8px 0;"><strong>備考:</strong> ${htmlEscape(data.remarks).replace(/\n/g, '<br>')}</p>` : ''}
+        </div>
+      `;
+
+      Swal.fire({
+        title: '見積書 簡易プレビュー',
+        html: previewHtml,
+        showCancelButton: true,
+        confirmButtonText: '確定して保存',
+        cancelButtonText: 'キャンセル',
+        confirmButtonColor: '#1976D2',
+        width: '95%'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          executeSaveProcess('saveEstimate');
+        }
+      });
+    }
 
       // ========== ステップ2: プレビューダイアログを表示 ==========
       const previewHtml = `
