@@ -1109,7 +1109,8 @@
           <div style="font-weight:600; color:var(--text-primary); font-size:14px;">${htmlEscape(item.client || '取引先名なし')} — <span style="font-weight:500; font-size:13px;">${htmlEscape(item.subject || '（件名なし）')}</span></div>
           <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
             <span style="color:var(--primary); font-weight:bold;">¥${Number(item.amount).toLocaleString()}</span>
-            <button type="button" class="btn btn-primary" style="padding:6px 12px; font-size:13px; width:auto;" onclick="fetchAndReflectFields('${item.id}', 'COPY_CREATE')">[コピーして新規作成]</button>
+            <span class="material-symbols-outlined" style="font-size:32px;">assignment</span>
+            <button type="button" class="btn btn-primary" style="padding:6px 12px; font-size:13px; width:auto;" onclick="fetchAndReflectFields('${item.id}', 'COPY_CREATE')">コピーして新規作成</button>
           </div>
         `;
         container.appendChild(row);
