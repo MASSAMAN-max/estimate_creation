@@ -2406,7 +2406,7 @@
         const rows = card.querySelectorAll('.breakdown-row');
         if (rows.length === 0) return; // 行がない場合はスキップ
 
-        // 💡【バグ対策】1行目がロック（一式合計モード）されているかを正確に判定
+        // 💡 1行目がロック（一式合計モード）されているかを正確に判定
         const isLocked = rows[0].querySelector('.item-qty').disabled;
         
         let tempDetails = [];
@@ -2441,10 +2441,10 @@
             let finalUnit = unit || '式';
             
             // 🔵 ステップ1: 品名行を追加（備考なし）
-            // ✅【修正】要望1: カテゴリは各カードの最初の行(index === 0)のみ保持し、複製をやめる
             tempDetails.push({
               _index: index,
               _rIndex: -1,  // 備考ではない品名行を示す
+              isLocked: isLocked, // ✅【新規】プレビュー判定用にモードの状態を保持
               
               itemCategory: (index === 0) ? finalCategory : "",
               itemName: name,
@@ -2460,6 +2460,7 @@
               tempDetails.push({
                 _index: index,
                 _rIndex: rIndex,
+                isLocked: isLocked, // ✅【新規】備考行にも保持
                 
                 itemCategory: "",  // 備考行はカテゴリなし
                 itemName: "",
@@ -2474,7 +2475,6 @@
         });
         
         // 💡【バグ対策】ロックモードの時だけ、1行目の最初の品名行に合計金額を正確に上書き
-        // ✅【修正】要望3: 上書き先ターゲットを「備考行(_rIndex: 0)」から「品名行(_rIndex: -1)」に変更
         if (isLocked) {
           const firstItem = tempDetails.find(d => d._index === 0 && d._rIndex === -1);
           if (firstItem) {
@@ -2486,7 +2486,7 @@
         tempDetails.forEach(d => {
           delete d._index;
           delete d._rIndex;
-          details.push(d);
+          details.push(d); // ※isLocked はプレビューで使用するため残します
         });
       });
       
@@ -2522,35 +2522,17 @@
         Swal.fire({ icon: 'warning', title: '入力不足', text: '明細を1件以上入力してください。', confirmButtonText: '了解' });
         return;
       }
-      // プレビューダイアログを表示
       showPreviewDialog(data);
     }
 
     function showPreviewDialog(data) {
-      // ========== ステップ1: 複数内容の判定（グループごとの行数をカウント） ==========
-      // ✅【修正】要望2: カテゴリの複製を止めたため、データのまとまり（カード）単位で品名行の数をカウントする
-      const cardNameCounts = [];
-      let currentCardIdx = -1;
-      
-      data.details.forEach(item => {
-        if (item.itemCategory) {
-          currentCardIdx++;
-          cardNameCounts[currentCardIdx] = 0;
-        }
-        if (item.itemName && currentCardIdx >= 0) {
-          cardNameCounts[currentCardIdx]++;
-        }
-      });
-      
-      // ========== ステップ2: テーブル行の生成 ==========
+      // ========== ステップ1: テーブル行の生成 ==========
       let detailRows = '';
-      let loopCardIdx = -1;
       
       data.details.forEach((item, itemIndex) => {
         const isShiki = String(item.itemUnit || '').trim() === '式';
         
-        // カテゴリが変わったら空行を挿入
-        // ✅【修正】itemCategoryが存在する行＝新しいグループの開始点。最初の行(0)以外であれば空行を挟む
+        // カテゴリ（新しいグループ）が変わったら空行を挿入
         if (itemIndex > 0 && item.itemCategory) {
           detailRows += `
             <tr style="height: 6px;">
@@ -2559,31 +2541,24 @@
           `;
         }
         
-        if (item.itemCategory) {
-          loopCardIdx++;
-        }
-        
         // 表示用データの準備
         const displayCategory = item.itemCategory ? htmlEscape(item.itemCategory) : '';
         
         // 品名列の表示：itemName がない場合は itemRemarks を表示
         let displayName = htmlEscape(item.itemName || '');
         if (!item.itemName && item.itemRemarks) {
-          // 複数備考行：備考を品名列に表示
           displayName = htmlEscape(item.itemRemarks);
         }
         
         const displayQty = item.itemQty || '';
         const displayUnit = htmlEscape(item.itemUnit || '');
         const displayPrice = isShiki ? '' : ('¥' + (item.itemPrice || 0).toLocaleString());
-        
-        // ✅【綺麗にする処理】金額が空文字（備考行など）の場合は、¥0と表示せず空白のままにする
         const displayAmount = item.itemAmount === "" ? "" : ('¥' + (item.itemAmount || 0).toLocaleString());
         
         // ========== 「小計」マーク判定 ==========
-        // ✅【修正】要望2: 文字列ではなく「同じカード（内容）が複数行あるか」を基準に小計を表示
+        // ✅【修正】シンプルに「一式合計（固定）モード」かつ「品名がある行」なら小計を表示
         let displayRemarks = '';
-        if (item.itemName && loopCardIdx >= 0 && cardNameCounts[loopCardIdx] >= 2) {
+        if (item.isLocked && item.itemName) {
           displayRemarks = '小計';
         }
         
@@ -2600,7 +2575,7 @@
         `;
       });
 
-      // ========== ステップ3: プレビューダイアログを表示 ==========
+      // ========== ステップ2: プレビューダイアログを表示 ==========
       const previewHtml = `
         <div style="text-align: left; font-size: 12px; max-height: 500px; overflow-y: auto; background: white; padding: 16px; border-radius: 8px;">
           <h3 style="margin-bottom: 8px; border-bottom: 2px solid #1976D2; padding-bottom: 8px;">御見積書</h3>
