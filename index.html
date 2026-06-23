@@ -1295,7 +1295,7 @@
           remarksInput.value = formData.main.remarks || '';
         }
      
-        // ========== ステップ9: 明細行の復存（データ構造の適正化版） ==========
+        // ========== ステップ9: 明細行の復存（空白補完＆備考統合版） ==========
         document.getElementById('loaderText').textContent = '明細データを復存しています...';
 
         const detailsContainer = document.getElementById('detailsContainer');
@@ -1304,18 +1304,24 @@
         if (detailsContainer && formData.details && formData.details.length > 0) {
           console.log('📊 元データ formData.details:', formData.details);
           
-          // --- 【新規追加】ステップ9-A: 備考だけの行を直前の行に統合するクレンジング ---
+          // --- 【最重要】ステップ9-A: 親項目の空白埋め ＆ 備考のみの行の統合 ---
           const cleanedDetails = [];
+          let lastValidCategory = ''; // 直前の有効な親項目名を記憶する変数
           
           formData.details.forEach((item) => {
+            // ① 親項目（カテゴリ）が入力されている場合は記憶し、空なら直前のものを引き継ぐ
+            if (item.itemCategory && String(item.itemCategory).trim() !== '') {
+              lastValidCategory = String(item.itemCategory).trim();
+            }
+            item.itemCategory = lastValidCategory || '（カテゴリなし）';
+
             const hasName = item.itemName && String(item.itemName).trim() !== '';
             const hasRemarks = item.itemRemarks && String(item.itemRemarks).trim() !== '';
             
-            // 品名が空欄で、備考だけがあり、かつすでに1件以上データが存在する場合
+            // ② 品名が空欄で、備考だけがあり、すでに1件以上データが存在する場合
             if (!hasName && hasRemarks && cleanedDetails.length > 0) {
               const lastItem = cleanedDetails[cleanedDetails.length - 1];
               
-              // 直前のアイテムの備考を配列化して追加
               if (!lastItem.itemRemarksList) {
                 lastItem.itemRemarksList = lastItem.itemRemarks ? [lastItem.itemRemarks] : [];
               }
@@ -1328,15 +1334,15 @@
             }
           });
 
-          // --- ステップ9-B: 綺麗になったデータで、親項目（カテゴリ）ごとにグループ化 ---
+          console.log('✨ クレンジング完了データ:', cleanedDetails);
+
+          // --- ステップ9-B: 補完されたデータで、親項目（カテゴリ）ごとにグループ化 ---
           const groups = [];
           let currentGroup = [];
           
           cleanedDetails.forEach((item) => {
-            const category = item.itemCategory || '（カテゴリなし）';
-            
             // 最初の1行目、または前の行とカテゴリが変わった場合は新しいグループ（カード）を開始
-            if (currentGroup.length === 0 || currentGroup[0].itemCategory !== category) {
+            if (currentGroup.length === 0 || currentGroup[0].itemCategory !== item.itemCategory) {
               if (currentGroup.length > 0) {
                 groups.push(currentGroup);
               }
