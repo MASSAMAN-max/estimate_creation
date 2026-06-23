@@ -1991,17 +1991,14 @@
           }
         }
         
-        // ========== ステップ2: 破綻コンテナを取得 ==========
+        // ========== ステップ2: 内訳コンテナを取得 ==========
         const breakdownContainer = card.querySelector('.breakdown-container');
         if (!breakdownContainer) {
           throw new Error('breakdown-container が見つかりません');
         }
         
-        // ========== ✅ ステップ3: グループ内の各行を内訳として追加（直接HTML生成） ==========
+        // ========== ステップ3: 各行の生成 ==========
         itemDataArray.forEach((item, rowIndex) => {
-          console.log(`📌 Processing row ${rowIndex}: name="${item.itemName}", qty=${item.itemQty}, price=${item.itemPrice}`);
-          
-          // 新しい行を直接生成（addBreakdownRow を使わない）
           const breakdownRow = document.createElement('div');
           breakdownRow.className = 'breakdown-row';
           breakdownRow.style = 'border: 1px solid #f1f3f5; padding: 8px; margin-bottom: 8px; border-radius: 4px; background: #fff;';
@@ -2009,18 +2006,38 @@
           const displayQty = item.itemQty || 1;
           const displayUnit = item.itemUnit ? String(item.itemUnit).trim() : '式';
           const displayPrice = Number(item.itemPrice || 0);
+          const displayAmount = Number(item.itemAmount || 0);
           
-          // 数量セレクト生成
+          // 数量・単位セレクトの生成
           const qtyOptions = Array.from({length: 99}, (_, i) => 
             `<option value="${i+1}" ${(i+1) === displayQty ? 'selected' : ''}>${i+1}</option>`
           ).join('');
           
-          // 単位セレクト生成
           const unitOptions = (!MASTER_UNITS.includes('式') ? '<option value="式">式</option>' : '') + 
                               MASTER_UNITS.filter(u => u && u.trim()).map(u => 
                                 `<option value="${htmlEscape(u.trim())}" ${u === displayUnit ? 'selected' : ''}>${htmlEscape(u.trim())}</option>`
                               ).join('');
           
+          // 📝 備考のHTMLを事前に組み立てる（addRemarkRowを呼ばないようにする）
+          let remarksHtml = '';
+          const remarkVal = item.itemRemarks ? String(item.itemRemarks).trim() : '';
+          
+          // 値がある場合も、ない場合（空行を作りたい場合）も、外部関数に頼らずここでHTMLを直接生成する
+          remarksHtml = `
+            <div class="remark-row" style="display: flex; gap: 6px; align-items: center;">
+              <div class="voice-input-wrapper" style="flex: 1; display: flex; gap: 6px;">
+                <input type="text" class="remark-input" value="${htmlEscape(remarkVal)}" style="flex: 1;">
+                <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)" style="padding: 4px 8px;">
+                  <span class="material-symbols-outlined" style="font-size: 14px;">mic</span>
+                </button>
+                <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.remark-row').remove()" style="padding: 4px 8px;">
+                  <span class="material-symbols-outlined" style="font-size: 14px;">delete</span>
+                </button>
+              </div>
+            </div>
+          `;
+
+          // メインHTMLの流し込み
           breakdownRow.innerHTML = `
             <div class="form-group" style="margin-top: 5px;">
               <label>仕様・摘要 <span class="badge-required">必須</span></label>
@@ -2046,15 +2063,16 @@
                 </div>
                 <div class="form-group">
                   <label>金額</label>
-                  <div class="amount-display-box"><span>¥</span><span class="item-amount" data-value="${Number(item.itemAmount || 0)}">${Number(item.itemAmount || 0).toLocaleString()}</span></div>
+                  <div class="amount-display-box"><span>¥</span><span class="item-amount" data-value="${displayAmount}">${displayAmount.toLocaleString()}</span></div>
                 </div>
               </div>
             </div>
       
-            <!-- 複数備考コンテナ -->
             <div class="remarks-container" style="background: #f9f9f9; border: 1px dashed #e0e0e0; border-radius: 4px; padding: 8px; margin: 8px 0;">
               <label style="font-size: 12px; color: #666; display: block; margin-bottom: 6px; font-weight: bold;">📝 備考（複数追加可）</label>
-              <div class="remarks-list" style="display: flex; flex-direction: column; gap: 6px;"></div>
+              <div class="remarks-list" style="display: flex; flex-direction: column; gap: 6px;">
+                ${remarksHtml}
+              </div>
               <button type="button" class="btn btn-sm" style="background-color: #e8f5e9; color: #2e7d32; padding: 4px 8px; font-size: 12px; margin-top: 6px;" onclick="addRemarkRow(this)">
                 <span class="material-symbols-outlined" style="font-size: 14px;">add</span> 備考を追加
               </button>
@@ -2069,58 +2087,13 @@
             ` : ''}
           `;
           
-          // コンテナに追加
+          // DOMに追加
           breakdownContainer.appendChild(breakdownRow);
-          
-          // ========== ✅ ステップ4: 備考をセット ==========
-          if (item.itemRemarks) {
-            const remarksList = breakdownRow.querySelector('.remarks-list');
-            const remark = String(item.itemRemarks).trim();
-            
-            if (remark) {
-              const remarkRow = document.createElement('div');
-              remarkRow.className = 'remark-row';
-              remarkRow.style = 'display: flex; gap: 6px; align-items: center;';
-              
-              remarkRow.innerHTML = `
-                <div class="voice-input-wrapper" style="flex: 1; display: flex; gap: 6px;">
-                  <input type="text" class="remark-input" value="${htmlEscape(remark)}" style="flex: 1;">
-                  <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)" style="padding: 4px 8px;">
-                    <span class="material-symbols-outlined" style="font-size: 14px;">mic</span>
-                  </button>
-                  <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.remark-row').remove()" style="padding: 4px 8px;">
-                    <span class="material-symbols-outlined" style="font-size: 14px;">delete</span>
-                  </button>
-                </div>
-              `;
-              
-              remarksList.appendChild(remarkRow);
-            }
-          } else {
-            // 備考がない場合は空行を追加
-            const addBtn = breakdownRow.querySelector('.remarks-container button');
-            addRemarkRow(addBtn);
-          }
-          
-          // ========== ✅ ステップ5: 金額を計算（その行に対して） ==========
-          const qty = parseInt(breakdownRow.querySelector('.item-qty').value || 0);
-          const price = parseFloat(breakdownRow.querySelector('.item-price').value || 0);
-          const amount = qty * price;
-          
-          const amountSpan = breakdownRow.querySelector('.item-amount');
-          if (amountSpan) {
-            amountSpan.textContent = amount.toLocaleString();
-            amountSpan.dataset.value = amount;
-          }
-          
-          console.log(`   ✅ Row ${rowIndex} set: qty=${qty}, price=${price}, amount=${amount}`);
         });
         
-        // ========== ステップ6: 単位制約チェック＆合計更新 ==========
+        // ========== ステップ4: 全体の更新 ==========
         checkUnitConstraint(card);
         updateCardTotal(card);
-        
-        console.log('✅ Card fully populated with group:', firstItem.itemCategory);
         
       } catch (error) {
         console.error('❌ Error in populateDetailCardWithGroup:', error);
