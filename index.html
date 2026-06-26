@@ -1607,14 +1607,6 @@
           confirmButtonText: '了解'
         });
       } 
-      /*
-      finally {
-        const container = document.getElementById('detailsContainer');
-        if (container && container.children.length === 0) {
-          for (let i = 0; i < 1; i++) addTableRow();
-        }
-      }
-        */
     }
     
     // ===== 取引先選択時のイベントハンドラ =====
@@ -1893,14 +1885,9 @@
           throw new Error('breakdown-container が見つかりません');
         }
         
-        // ステップ3: 内訳行を生成
-        //addBreakdownRow(card, breakdownContainer, true);
-        
         // ステップ4: 最後に追加した行に値を反映
         const breakdownRow = breakdownContainer.querySelector('.breakdown-row');
-        
-        console.log(`📌 Populating single row: name=${itemData.itemName}, qty=${itemData.itemQty}, price=${itemData.itemPrice}`);
-        
+  
         const nameInput = breakdownRow.querySelector('.item-name');
         if (nameInput) {
           nameInput.value = String(itemData.itemName || '');
@@ -1916,11 +1903,10 @@
           unitSelect.value = itemData.itemUnit || '式';
         }
         
-        // ⭐ 単価を反映
+        // 単価を反映
         const priceInput = breakdownRow.querySelector('.item-price');
         if (priceInput) {
           priceInput.value = Number(itemData.itemPrice || 0);
-          console.log(`   ✅ Price field updated: ${priceInput.value}`);
         }
         
         // ステップ5: 備考データを埋め込む
@@ -1951,12 +1937,10 @@
           });
         }
         
-        // ステップ6: ✅ 金額を計算
+        // ステップ6: 金額を計算
         const qty = parseInt(qtySelect?.value || 0);
         const price = parseFloat(priceInput?.value || 0);
         const amount = qty * price;
-        
-        console.log(`🔢 Calculating amount: ${qty} × ¥${price} = ¥${amount}`);
         
         const amountSpan = breakdownRow.querySelector('.item-amount');
         if (amountSpan) {
@@ -1967,8 +1951,6 @@
         // ステップ7: 単位制約チェック＆合計更新
         checkUnitConstraint(card);
         updateCardTotal(card);
-        
-        console.log('✅ Card populated with single item:', itemData.itemCategory);
         
       } catch (error) {
         console.error('❌ Error in populateDetailCard:', error);
@@ -2171,7 +2153,7 @@
           </div>
         </div>
     
-        <!-- 🌟【新設】複数備考コンテナ -->
+        <!-- 複数備考コンテナ -->
         <div class="remarks-container" style="background: #f9f9f9; border: 1px dashed #e0e0e0; border-radius: 4px; padding: 8px; margin: 8px 0;">
           <label style="font-size: 12px; color: #666; display: block; margin-bottom: 6px; font-weight: bold;">📝 備考（複数追加可）</label>
           <div class="remarks-list" style="display: flex; flex-direction: column; gap: 6px;"></div>
@@ -2315,7 +2297,7 @@
       
       if (row) {
         const rows = card.querySelectorAll('.breakdown-row');
-        // 💡【変更】行数ではなく「1行目がロックされているか」を基準にスキップを判定
+        // 行数ではなく「1行目がロックされているか」を基準にスキップを判定
         const isLocked = rows[0].querySelector('.item-qty').disabled;
         
         if (!(isLocked && row === rows[0])) {
@@ -2330,7 +2312,7 @@
         }
       }
       
-      // 💡【追加】金額が入力・計算されたので、その場で制限ルールをリアルタイムチェック
+      // 金額が入力・計算されたので、その場で制限ルールをリアルタイムチェック
       checkUnitConstraint(card);
       
       // 親カードの合計を更新
@@ -2346,7 +2328,7 @@
       
       let cardSubtotal = 0;
       const firstRow = rows[0];
-      // 💡【変更】1行目がロックされているかどうかを判定フラグにする
+      // 1行目がロックされているかどうかを判定フラグにする
       const isLocked = firstRow.querySelector('.item-qty').disabled;
       
       if (isLocked) {
@@ -2362,7 +2344,7 @@
         firstAmountSpan.dataset.value = cardSubtotal;
         
       } else {
-        // 💡【追加】通常モード（ロックなし）の時は、1行目も含めた全行の金額を単純合計する
+        // 通常モード（ロックなし）の時は、1行目も含めた全行の金額を単純合計する
         for (let i = 0; i < rows.length; i++) {
           const span = rows[i].querySelector('.item-amount');
           cardSubtotal += parseFloat(span.dataset.value) || 0;
@@ -2428,7 +2410,7 @@
         const rows = card.querySelectorAll('.breakdown-row');
         if (rows.length === 0) return;
 
-        // 💡 構想2: このカードの「内容1」が固定モード（ロック）に入っているかを確実に判定
+        // このカードの「内容1」が固定モード（ロック）に入っているかを確実に判定
         const isCardLocked = rows[0].querySelector('.item-qty').disabled;
         
         // 先に「内容2」以降の内訳の合計金額を計算しておく
@@ -2461,7 +2443,7 @@
           let finalAmount = amount;
           let isSubtotalLine = false;
           
-          // 💡 構想2: 「ロックモード」かつ「内容1（index === 0）」の品名行だけの特別処理
+          // 「ロックモード」かつ「内容1（index === 0）」の品名行だけの特別処理
           if (isCardLocked && index === 0) {
             finalQty = qty;           // 画面上の固定値をそのまま使用
             finalPrice = price;       // 画面上の固定値をそのまま使用
@@ -2472,7 +2454,7 @@
           // 品名がある、または内容1でカテゴリがある場合は行を追加
           if(name !== "" || (index === 0 && finalCategory !== "")) {
             
-            // 🔵 1. 品名行の追加
+            // 1. 品名行の追加
             details.push({
               isSubtotal: isSubtotalLine, // 内容1の品名行だけが true になる
               itemCategory: (index === 0) ? finalCategory : "",
@@ -2484,7 +2466,7 @@
               itemRemarks: ""
             });
           
-            // 🔵 2. 備考行の追加（💡 構想3: 空文字は完全に除外して行詰めする）
+            // 2. 備考行の追加（ 空文字は完全に除外して行詰めする）
             const remarksList = row.querySelector('.remarks-list');
             if (remarksList) {
               const remarksArray = Array.from(remarksList.querySelectorAll('.remark-input'))
@@ -2493,7 +2475,7 @@
                 
               remarksArray.forEach(remark => {
                 details.push({
-                  isSubtotal: false, // 備考行には絶対に小計を入れない
+                  isSubtotal: false, // 備考行には小計を入れない
                   itemCategory: "",  
                   itemName: "",
                   itemQty: "",
@@ -2576,11 +2558,11 @@
         const displayQty = item.itemQty !== "" ? item.itemQty : '';
         const displayUnit = htmlEscape(item.itemUnit || '');
         
-        // 💡 構想1: 単位が「式」であっても関係なく、データにある数値をそのまま100%出力する
+        //  単位が「式」であっても関係なく、データにある数値をそのまま100%出力する
         const displayPrice = item.itemPrice !== "" ? ('¥' + Number(item.itemPrice).toLocaleString()) : '';
         const displayAmount = item.itemAmount !== "" ? ('¥' + Number(item.itemAmount).toLocaleString()) : '';
         
-        // 💡 構想2: データ側で1箇所だけに絞り込まれたフラグをそのまま判定に使用
+        // データ側で1箇所だけに絞り込まれたフラグをそのまま判定に使用
         let displayRemarks = item.isSubtotal ? '小計' : '';
         
         detailRows += `
@@ -2654,6 +2636,10 @@
       
       const data = getFormData();
       
+      // ★ここで画面のカンマ付き文字列を数値に変換し、dataオブジェクトに覚えさせる（これで他と統一できます）
+      data.subtotal = parseFloat(document.getElementById('subtotalLabel').textContent.replace(/,/g, '')) || 0;
+      data.tax = parseFloat(document.getElementById('taxLabel').textContent.replace(/,/g, '')) || 0;
+      
       if (!data.clientName) {
         Swal.fire({ icon: 'warning', title: '入力不足', text: '取引先を選択してください。', confirmButtonText: '了解' });
         return;
@@ -2686,7 +2672,11 @@
               paymentTerms: data.paymentTerms,
               validity: data.validity,
               remarks: data.remarks,
-              totalAmount: data.total,
+              // ↓↓↓ すっきり綺麗に統一されました ↓↓↓
+              subtotal: data.subtotal,
+              tax: data.tax,
+              totalAmount: data.total, // 税込合計
+              // ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
               details: data.details,
               currentUserName: userName
             }
@@ -2728,7 +2718,7 @@
         // タイムアウト処理（30秒で制限）
         const timeoutId = setTimeout(() => {
           throw new Error('PDF generation timeout (30 seconds)');
-        }, 30000);
+        } , 30000);
         
         let pdfResponse;
         try {
@@ -2746,12 +2736,17 @@
                 paymentTerms: data.paymentTerms,
                 validity: data.validity,
                 remarks: data.remarks,
+                // ↓↓↓ 2回目送信時もすっきり統一 ↓↓↓
+                subtotal: data.subtotal,
+                tax: data.tax,
                 totalAmount: data.total,
+                // ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
                 details: data.details,
                 currentUserName: userName
               }
             })
           });
+          
         } finally {
           clearTimeout(timeoutId);
         }
@@ -2777,7 +2772,6 @@
           throw new Error(`PDF generation failed: ${pdfResult.message || 'Unknown error'}`);
         }
         
-        // 【変更】pdfBase64 ではなく pdfUrl の存在チェックを行う
         if (!pdfResult.data?.pdfUrl) {
           throw new Error('PDF URL missing in response');
         }
@@ -2820,21 +2814,15 @@
         // フォーム初期化
         document.getElementById('estimateForm').reset();
         document.getElementById('detailsContainer').innerHTML = '';
-        //for(let i = 0; i < 1; i++) addTableRow();
         updateTotalSummary();
         
       } catch (error) {
-        // エラーハンドリング（全体）
         document.getElementById('loader').style.display = 'none';
-        
         console.error('❌ Error in executeSaveProcess:', error);
-        console.error('Error stack:', error.stack);
-        
-        // ユーザーに詳細を表示
         Swal.fire({
           icon: 'error',
           title: 'エラーが発生しました',
-          html: `<strong>${error.name}</strong><br><br><code style="font-size:11px; text-align:left;">${error.message}</code><br><br><small>詳細はブラウザのコンソール（F12）を参照してください</small>`,
+          html: `<strong>${error.name}</strong><br><br><code style="font-size:11px; text-align:left;">${error.message}</code>`,
           confirmButtonText: '了解'
         });
       }
