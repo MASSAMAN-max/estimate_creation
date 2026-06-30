@@ -1850,8 +1850,6 @@
           addBreakdownRow(card, breakdownContainer, true);
         }
       }
-      
-      // ※ ここでの再計算は止め、最後に一括で行うようにします
     }
     
     
@@ -2445,10 +2443,10 @@
           
           // 「ロックモード」かつ「内容1（index === 0）」の品名行だけの特別処理
           if (isCardLocked && index === 0) {
-            finalQty = qty;           // 画面上の固定値をそのまま使用
-            finalPrice = price;       // 画面上の固定値をそのまま使用
-            finalAmount = breakdownSubtotal; // 金額だけ内訳の合計値に差し替える
-            isSubtotalLine = true;    // この行だけに小計マークの権利を与える
+            finalQty = qty;                   // 画面上の固定値をそのまま使用
+            finalPrice = price;               // 画面上の固定値をそのまま使用
+            finalAmount = breakdownSubtotal;  // 金額だけ内訳の合計値に差し替える
+            isSubtotalLine = true;            // この行だけに小計マークの権利を与える
           }
           
           // 品名がある、または内容1でカテゴリがある場合は行を追加
@@ -2672,11 +2670,9 @@
               paymentTerms: data.paymentTerms,
               validity: data.validity,
               remarks: data.remarks,
-              // ↓↓↓ すっきり綺麗に統一されました ↓↓↓
               subtotal: data.subtotal,
               tax: data.tax,
               totalAmount: data.total, // 税込合計
-              // ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
               details: data.details,
               currentUserName: userName
             }
@@ -2708,6 +2704,11 @@
             html: `下書きID: <strong>${generatedId}</strong>`,
             confirmButtonText: '閉じる'
           });
+
+          document.getElementById('estimateForm').reset();
+          document.getElementById('detailsContainer').innerHTML = '';
+          showMenuScreen();
+
           return;
         }
      
@@ -2737,11 +2738,9 @@
                 paymentTerms: data.paymentTerms,
                 validity: data.validity,
                 remarks: data.remarks,
-                // ↓↓↓ 2回目送信時もすっきり統一 ↓↓↓
                 subtotal: data.subtotal,
                 tax: data.tax,
                 totalAmount: data.total,
-                // ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
                 details: data.details,
                 currentUserName: userName
               }
@@ -2815,7 +2814,7 @@
         // フォーム初期化
         document.getElementById('estimateForm').reset();
         document.getElementById('detailsContainer').innerHTML = '';
-        updateTotalSummary();
+        showMenuScreen();
         
       } catch (error) {
         document.getElementById('loader').style.display = 'none';
