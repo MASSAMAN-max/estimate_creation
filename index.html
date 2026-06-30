@@ -511,7 +511,7 @@
 <!-- ログイン画面：初期表示（認証前） -->
 <div id="loginScreen" style="display:none;">
   <div class="login-box">
-    <h2 style="text-align:center; margin-bottom:35px;">見積フォーム ログイン</h2>
+    <h2 style="text-align:center; margin-bottom:35px;">見積データ入力フォーム ログイン</h2>
     
     <form onsubmit="handleLoginSubmit(); return false;">
       
@@ -543,17 +543,18 @@
 
   <header style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; padding-bottom:12px; border-bottom:2px solid var(--gray-border); width:100%; box-sizing:border-box;">
     <div style="display:flex; align-items:center; gap:8px;">
-      <span class="material-symbols-outlined" style="font-size:24px; color:var(--primary);">post_add</span>
-      <h1 style="font-size:18px; font-weight:600; color:var(--primary); margin:0;">📋 見積システム</h1>
+      <span class="material-symbols-outlined" style="font-size:24px; color:var(--primary);">list_alt_add</span>
+      <h1 style="font-size:18px; font-weight:600; color:var(--primary); margin:0;"> 見積書作成フォーム</h1>
     </div>
     
     <div style="display:flex; align-items:center; gap:12px;">
-      <span id="userDisplayLabel" style="font-size:12px; color:var(--text-secondary); font-weight:bold; background:var(--gray-light); padding:6px 12px; border-radius:var(--radius);"></span>
-      
+
       <button type="button" id="backToMenuBtn" class="mini-logout-btn" style="display:none; padding:6px 10px; font-size:12px; align-items:center; gap:4px;" onclick="handleBackToMenu()">
         <span class="material-symbols-outlined" style="font-size:16px;">arrow_back</span>
         メニューに戻る
       </button>
+
+      <span id="userDisplayLabel" style="font-size:12px; color:var(--text-secondary); font-weight:bold; background:var(--gray-light); padding:6px 12px; border-radius:var(--radius);"></span>
 
       <button type="button" id="logoutBtn" class="mini-logout-btn" style="padding:6px 10px; font-size:12px; display:inline-flex; align-items:center;" onclick="handleLogout()">
         <span class="material-symbols-outlined" style="font-size:16px;">logout</span>
