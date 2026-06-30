@@ -539,26 +539,33 @@
 </div>
 
 <!-- メニュー画面：ログイン後の機能選択 -->
-<div id="menuScreen" style="display:none;">
-  <div class="app-container">
-    <!-- ヘッダー -->
-    <header style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; padding-bottom:12px; border-bottom:2px solid var(--gray-border);">
-      <span class="material-symbols-outlined" style="font-size:18px;">ListAltAdd</span>
-      <h1 style="font-size:18px; font-weight:600; color:var(--primary);">📋 見積フォーム</h1>
-      <div style="display:flex; align-items:center; gap:12px;">
+<div id="appWrapper" class="app-container" style="display:none;">
+
+  <header style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; padding-bottom:12px; border-bottom:2px solid var(--gray-border); width:100%; box-sizing:border-box;">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span class="material-symbols-outlined" style="font-size:24px; color:var(--primary);">post_add</span>
+      <h1 style="font-size:18px; font-weight:600; color:var(--primary); margin:0;">📋 見積システム</h1>
+    </div>
+    
+    <div style="display:flex; align-items:center; gap:12px;">
       <span id="userDisplayLabel" style="font-size:12px; color:var(--text-secondary); font-weight:bold; background:var(--gray-light); padding:6px 12px; border-radius:var(--radius);"></span>
-      <button type="button" id="logoutBtn" class="mini-logout-btn" style="padding:6px 10px; font-size:12px;" onclick="handleLogout()">
-        <span class="material-symbols-outlined" style="font-size:18px;">logout</span>
+      
+      <button type="button" id="backToMenuBtn" class="mini-logout-btn" style="display:none; padding:6px 10px; font-size:12px; align-items:center; gap:4px;" onclick="handleBackToMenu()">
+        <span class="material-symbols-outlined" style="font-size:16px;">arrow_back</span>
+        メニューに戻る
       </button>
-      </div>
-    </header>
- 
-    <!-- メニューコンテンツ -->
-       <div style="text-align:center; margin-bottom:20px;">
-        <p style="font-size:14px; color:var(--text-secondary); margin:0;">以下の操作を選択してください</p>
-      </div>
-    <div style="display:flex; flex-direction:column; gap:32px; max-width:600px; margin:0 auto;">
-      <!-- 新規見積書作成 -->
+
+      <button type="button" id="logoutBtn" class="mini-logout-btn" style="padding:6px 10px; font-size:12px; display:inline-flex; align-items:center;" onclick="handleLogout()">
+        <span class="material-symbols-outlined" style="font-size:16px;">logout</span>
+      </button>
+    </div>
+  </header>
+
+  <div id="menuScreen" style="display:none; flex-direction:column; width:100%;">
+    <div style="text-align:center; margin-bottom:20px;">
+      <p style="font-size:14px; color:var(--text-secondary); margin:0;">以下の操作を選択してください</p>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:32px; max-width:600px; margin:0 auto; width:100%;">
       <button type="button" class="btn btn-primary" style="width:100%; padding:20px; font-size:16px; text-align:left; display:flex; align-items:center; gap:12px;" onclick="handleMenuClick('NEW_ESTIMATE')">
         <span class="material-symbols-outlined" style="font-size:32px;">add_circle</span>
         <div>
@@ -567,7 +574,6 @@
         </div>
       </button>
  
-      <!-- 過去の見積書から作成 -->
       <button type="button" class="btn btn-primary" style="width:100%; padding:20px; font-size:16px; text-align:left; display:flex; align-items:center; gap:12px; background-color:var(--primary-light);" onclick="handleMenuClick('PAST_ESTIMATE')">
         <span class="material-symbols-outlined" style="font-size:32px;">content_copy</span>
         <div>
@@ -576,7 +582,6 @@
         </div>
       </button>
  
-      <!-- 見積書確認 -->
       <button type="button" class="btn btn-primary" style="width:100%; padding:20px; font-size:16px; text-align:left; display:flex; align-items:center; gap:12px; background-color:var(--success);" onclick="handleMenuClick('VIEW_ESTIMATE')">
         <span class="material-symbols-outlined" style="font-size:32px;">visibility</span>
         <div>
@@ -585,7 +590,6 @@
         </div>
       </button>
  
-      <!-- 下書きを編集 -->
       <button type="button" class="btn btn-primary" style="width:100%; padding:20px; font-size:16px; text-align:left; display:flex; align-items:center; gap:12px; background-color:var(--warning);" onclick="handleMenuClick('EDIT_DRAFT')">
         <span class="material-symbols-outlined" style="font-size:32px;">edit</span>
         <div>
@@ -595,79 +599,8 @@
       </button>
     </div>
   </div>
-</div>
- 
-<!-- =====================================
-     リストモーダル（URL表示対応版）
-     ===================================== -->
-<div id="listModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.5); z-index:9998; justify-content:center; align-items:center; padding:12px; box-sizing:border-box;">
-  <div style="background:white; width:100%; max-width:800px; height:85vh; border-radius:var(--radius); padding:20px; box-sizing:border-box; display:flex; flex-direction:column; gap:16px;">
-    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid var(--gray-border); padding-bottom:10px;">
-      <h3 id="listModalTitle" style="color:var(--primary); font-size:18px;">データを選択</h3>
-      <button type="button" class="mini-logout-btn" onclick="document.getElementById('listModal').style.display='none';">✕ 閉じる</button>
-    </div>
-    
-    <!-- タブ操作（不要な場合は非表示） -->
-    <div id="listModalTabs" style="display:flex; gap:8px;">
-      <button type="button" id="tabDraftBtn" class="btn btn-secondary" style="flex:1; padding:8px;" onclick="switchModalTab('draft')">下書き一覧</button>
-      <button type="button" id="tabEstBtn" class="btn btn-secondary" style="flex:1; padding:8px;" onclick="switchModalTab('estimate')">確定見積一覧</button>
-    </div>
- 
-    <!-- リスト表示エリア -->
-    <div id="modalListContainer" style="flex:1; overflow-y:auto; border:1px solid var(--gray-border); border-radius:var(--radius); padding:8px; background:#f8fafc;">
-      <!-- リスト内容がここに動的に挿入される -->
-    </div>
-  </div>
-</div>
 
-<!-- メインアプリ画面：認証後の表示 -->
-<div id="mainApp" style="display:none; padding: 12px;">
-
-  <span id="userDisplayLabel"
-        style="font-size:12px; color:var(--text-secondary); font-weight:bold; background:var(--gray-light); padding:6px 12px; border-radius:var(--radius);">
-  </span>
-
-  <!-- 【以下、既存のapp-container全体】 -->
-  <div class="app-container">
-
-    <span id="userDisplayLabel"
-          style="font-size:12px; color:var(--text-secondary); font-weight:bold; background:var(--gray-light); padding:6px 12px; border-radius:var(--radius);">
-    </span>
-
-    <!-- ユーザーラベル（header内に統合） -->
-    <header style="display:flex; flex-direction:column; align-items:center; gap:12px; margin-bottom:20px; padding-bottom:12px; border-bottom:2px solid var(--gray-border);">
-
-      <span class="material-symbols-outlined" style="font-size:18px;">list_alt_add</span>
-      <h1 style="font-size:18px; font-weight:600; color:var(--primary); margin:0;">
-        📋 見積書作成フォーム
-      </h1>
-
-
-      <span id="userDisplayLabel"
-            style="font-size:12px; color:var(--text-secondary); font-weight:bold; background:var(--gray-light); padding:6px 12px; border-radius:var(--radius);">
-      </span>
-
-      <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
-        <button type="button"
-                class="mini-logout-btn"
-                style="padding:6px 10px; font-size:12px;"
-                onclick="handleBackToMenu()">
-          <span class="material-symbols-outlined" style="font-size:18px;">arrow_back</span>
-          メニューに戻る
-        </button>
-
-        <button type="button"
-                id="logoutBtn"
-                class="mini-logout-btn"
-                style="padding:6px 10px; font-size:12px;"
-                onclick="handleLogout()">
-          <span class="material-symbols-outlined" style="font-size:18px;">logout</span>
-          ログアウト
-        </button>
-      </div>
-
-    </header>
-
+  <div id="mainApp" style="display:none; width:100%;">
     <form id="estimateForm">
       <div class="form-grid">
         <div class="form-group">
@@ -685,7 +618,6 @@
           </div>
         </div>
        
-        <!-- 取引先担当者選択フィールド -->
         <div class="form-group">
           <label for="contactPersonSelect">取引先担当者</label>
           <select id="contactPersonSelect" onchange="toggleNewContactPerson()">
@@ -765,11 +697,11 @@
             <span>¥<span id="totalLabel">0</span></span>
           </div>
           
-          <div style="display: flex; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%;">
-            <button type="button" class="btn btn-primary" style="background-color: var(--gray-light); color: var(--text-primary); border: 1px solid var(--gray-border);" onclick="showPDFPreview()">
+          <div style="display: flex; gap: 8px; width: 100%;">
+            <button type="button" class="btn btn-primary" style="background-color: var(--gray-light); color: var(--text-primary); border: 1px solid var(--gray-border); flex: 1;" onclick="showPDFPreview()">
               <span class="material-symbols-outlined">visibility</span>プレビュー
             </button>
-            <button type="button" class="btn btn-primary" style="background-color: var(--warning);" onclick="executeSaveProcess('saveDraft')">
+            <button type="button" class="btn btn-primary" style="background-color: var(--warning); flex: 1;" onclick="executeSaveProcess('saveDraft')">
               <span class="material-symbols-outlined">draft</span>下書き保存
             </button>
           </div>
@@ -777,7 +709,24 @@
       </div>
     </form>
   </div>
-</div> 
+</div>
+
+<div id="listModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.5); z-index:9998; justify-content:center; align-items:center; padding:12px; box-sizing:border-box;">
+  <div style="background:white; width:100%; max-width:800px; height:85vh; border-radius:var(--radius); padding:20px; box-sizing:border-box; display:flex; flex-direction:column; gap:16px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid var(--gray-border); padding-bottom:10px;">
+      <h3 id="listModalTitle" style="color:var(--primary); font-size:18px;">データを選択</h3>
+      <button type="button" class="mini-logout-btn" onclick="document.getElementById('listModal').style.display='none';">✕ 閉じる</button>
+    </div>
+    
+    <div id="listModalTabs" style="display:flex; gap:8px;">
+      <button type="button" id="tabDraftBtn" class="btn btn-secondary" style="flex:1; padding:8px;" onclick="switchModalTab('draft')">下書き一覧</button>
+      <button type="button" id="tabEstBtn" class="btn btn-secondary" style="flex:1; padding:8px;" onclick="switchModalTab('estimate')">確定見積一覧</button>
+    </div>
+ 
+    <div id="modalListContainer" style="flex:1; overflow-y:auto; border:1px solid var(--gray-border); border-radius:var(--radius); padding:8px; background:#f8fafc;">
+      </div>
+  </div>
+</div>
   
 <div id="loader">
   <div class="spinner"></div>
@@ -813,91 +762,48 @@
     });
 
     // =====================================
-    // メニュー画面の表示切り替え関数群
+    // メニュー画面の表示切り替え関数群（共通土台対応版）
     // =====================================
     function showMenuScreen() {
       document.getElementById('loginScreen').style.display = 'none';
+      
+      // 1. まず共通の土台（ヘッダー枠）を表示する
+      document.getElementById('appWrapper').style.display = 'block';
+      
+      // 2. 土台のなかでメニュー画面を表示し、作成フォームは隠す
       document.getElementById('mainApp').style.display = 'none';
       document.getElementById('menuScreen').style.display = 'flex';
+      
+      // 3. メニュー画面なので、ヘッダーの「メニューに戻る」ボタンは非表示
+      document.getElementById('backToMenuBtn').style.display = 'none';
+      
+      // 4. ユーザー名を表示（IDが1つになったので確実に動作します）
       document.getElementById('userDisplayLabel').textContent = `ログイン: ${currentUser.userName}`;
     }
-     
+    
     function showMainApp() {
       document.getElementById('loginScreen').style.display = 'none';
+      
+      // 1. まず共通の土台（ヘッダー枠）を表示する
+      document.getElementById('appWrapper').style.display = 'block';
+      
+      // 2. 土台のなかでメニュー画面を隠し、作成フォームを表示する
       document.getElementById('menuScreen').style.display = 'none';
       document.getElementById('mainApp').style.display = 'block';
+      
+      // 3. 作成フォーム画面なので、ヘッダーの「メニューに戻る」ボタンを表示！
+      document.getElementById('backToMenuBtn').style.display = 'inline-flex';
+      
+      // 4. ユーザー名を表示
       document.getElementById('userDisplayLabel').textContent = `ログイン: ${currentUser.userName}`;
     }
-     
+    
     function showLoginScreen() {
+      // ログイン画面だけを表示し、アプリ全体の土台を非表示にする
       document.getElementById('loginScreen').style.display = 'flex';
-      document.getElementById('mainApp').style.display = 'none';
+      document.getElementById('appWrapper').style.display = 'none';
       document.getElementById('menuScreen').style.display = 'none';
-    }
-      
-    function togglePasswordVisibility() {
-      const input = document.getElementById('loginPasswordInput');
-      const icon = document.getElementById('eyeIcon');
-      
-      if (input.type === 'password') {
-        input.type = 'text';
-        icon.textContent = 'visibility';
-      } else {
-        input.type = 'password';
-        icon.textContent = 'visibility_off';
-      }
-    }
-      
-    async function handleLoginSubmit() {
-      const loginId = document.getElementById('loginIdInput').value.trim();
-      const password = document.getElementById('loginPasswordInput').value.trim();
-      
-      if (!loginId || !password) {
-        Swal.fire({ icon: 'warning', title: '入力不足', text: 'IDとパスワードを入力してください。', confirmButtonText: '了解' });
-        return;
-      }
-      
-      const loginBtn = document.getElementById('loginBtn');
-      loginBtn.disabled = true;
-      loginBtn.textContent = '認証中...';
-      
-      try {
-        const response = await fetch(GAS_WEB_APP_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'text/plain',
-          },
-          body: JSON.stringify({
-            action: 'login',
-            payload: {
-              loginId: loginId,
-              password: password
-            }
-          })
-        });
-        
-        // res.json() から response.json() に修正
-        const result = await response.json();
-        
-        if (result.status === 'success') {
-          currentUser = result.data; // { userId: "...", userName: "..." }
-          
-          // ログイン状態をローカルストレージに保存
-          localStorage.setItem('currentUser', JSON.stringify(currentUser));
-          
-          showMainApp();
-          
-          // マスタデータの取得を開始
-          await loadMasterLists();
-        } else {
-          Swal.fire({ icon: 'error', title: 'ログイン失敗', text: result.message });
-        }
-      } catch (error) {
-        Swal.fire({ icon: 'error', title: '通信エラー', text: error.message, confirmButtonText: '了解' });
-      } finally {
-        loginBtn.disabled = false;
-        loginBtn.textContent = 'ログイン';
-      }
+      document.getElementById('mainApp').style.display = 'none';
     }
 
     // =====================================
