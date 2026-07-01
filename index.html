@@ -761,6 +761,26 @@
         showLoginScreen();
       }
     });
+    
+    // 消えてしまったログイン処理関数を再定義
+    function handleLoginSubmit() {
+      // 1. 入力されたログインIDを取得
+      const usernameInput = document.getElementById('loginIdInput').value;
+      
+      if (!usernameInput.trim()) {
+        alert("ログインIDを入力してください。");
+        return;
+      }
+    
+      // 2. 画面表示用のユーザー情報をセット（エラー防止）
+      // ※もしすでに currentUser という変数が他で宣言されている場合は「window.」は不要です
+      window.currentUser = {
+        userName: usernameInput
+      };
+    
+      // 3. 用意されているメニュー画面表示関数を実行！
+      showMenuScreen();
+    }
 
     // =====================================
     // メニュー画面の表示切り替え関数群（共通土台対応版）
