@@ -762,7 +762,20 @@
       }
     });
     
-    // ログイン処理
+      
+    function togglePasswordVisibility() {
+      const input = document.getElementById('loginPasswordInput');
+      const icon = document.getElementById('eyeIcon');
+      
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.textContent = 'visibility';
+      } else {
+        input.type = 'password';
+        icon.textContent = 'visibility_off';
+      }
+    }
+      
     async function handleLoginSubmit() {
       const loginId = document.getElementById('loginIdInput').value.trim();
       const password = document.getElementById('loginPasswordInput').value.trim();
