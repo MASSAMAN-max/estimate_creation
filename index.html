@@ -762,7 +762,7 @@
       }
     });
     
-    // 消えてしまったログイン処理関数を再定義
+    // ログイン処理
     function handleLoginSubmit() {
       // 1. 入力されたログインIDを取得
       const usernameInput = document.getElementById('loginIdInput').value;
@@ -781,6 +781,18 @@
 
       // 3. 用意されているメニュー画面表示関数を実行
       showMenuScreen();
+    }
+
+    function togglePasswordVisibility() {
+      const passwordInput = document.getElementById('loginPasswordInput');
+      const eyeIcon = document.getElementById('eyeIcon');
+      if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        eyeIcon.textContent = 'visibility';
+      } else {
+        passwordInput.type = 'password';
+        eyeIcon.textContent = 'visibility_off';
+      }
     }
 
     // =====================================
