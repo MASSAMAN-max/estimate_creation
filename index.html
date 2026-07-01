@@ -763,36 +763,57 @@
     });
     
     // ログイン処理
-    function handleLoginSubmit() {
-      // 1. 入力されたログインIDを取得
-      const usernameInput = document.getElementById('loginIdInput').value;
+    async function handleLoginSubmit() {
+      const loginId = document.getElementById('loginIdInput').value.trim();
+      const password = document.getElementById('loginPasswordInput').value.trim();
       
-      if (!usernameInput.trim()) {
-        alert("ログインIDを入力してください。");
+      if (!loginId || !password) {
+        Swal.fire({ icon: 'warning', title: '入力不足', text: 'IDとパスワードを入力してください。', confirmButtonText: '了解' });
         return;
       }
-
-      // 2. 画面表示用のユーザー情報をセット（エラー防止）
-      currentUser = {
-        userName: usernameInput
-      };
-      // localStorage に保存することで、ページがリロードされてもログイン状態が維持されます
-      localStorage.setItem('currentUser', JSON.stringify(currentUser));
-
-      // 3. 用意されているメニュー画面表示関数を実行
-      showMenuScreen();
-    }
-
-    function togglePasswordVisibility() {
-      const passwordInput = document.getElementById('loginPasswordInput');
-      const eyeIcon = document.getElementById('eyeIcon');
-      if (passwordInput.type === 'password') {
-        passwordInput.type = 'text';
-        eyeIcon.textContent = 'visibility';
-      } else {
-        passwordInput.type = 'password';
-        eyeIcon.textContent = 'visibility_off';
+      
+      const loginBtn = document.getElementById('loginBtn');
+      loginBtn.disabled = true;
+      loginBtn.textContent = '認証中...';
+      
+      try {
+        const response = await fetch(GAS_WEB_APP_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'text/plain',
+          },
+          body: JSON.stringify({
+            action: 'login',
+            payload: {
+              loginId: loginId,
+              password: password
+            }
+          })
+        });
+        
+        // res.json() から response.json() に修正
+        const result = await response.json();
+        
+        if (result.status === 'success') {
+          currentUser = result.data; // { userId: "...", userName: "..." }
+          
+          // ログイン状態をローカルストレージに保存
+          localStorage.setItem('currentUser', JSON.stringify(currentUser));
+          
+          showMainApp();
+          
+          // マスタデータの取得を開始
+          await loadMasterLists();
+        } else {
+          Swal.fire({ icon: 'error', title: 'ログイン失敗', text: result.message });
+        }
+      } catch (error) {
+        Swal.fire({ icon: 'error', title: '通信エラー', text: error.message, confirmButtonText: '了解' });
+      } finally {
+        loginBtn.disabled = false;
+        loginBtn.textContent = 'ログイン';
       }
+      document.getElementById('mainApp').style.display = 'none';
     }
 
     // =====================================
