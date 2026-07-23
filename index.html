@@ -504,7 +504,477 @@
       transform: translateY(-1px);
     }
     
-  </style>
+  
+
+    /* ============================================================
+       デザインB（新フォーマット）専用スタイル
+       ※ .design-b-scope 配下にのみ適用されるようスコープ変換済み
+       ============================================================ */
+    /* デザインB用のスコープ変数（.design-b-scope 配下にのみ適用。既存デザインAの --primary 等とは独立） */
+    .design-b-scope {
+      --primary: #2563eb;
+      --primary-light: #eff6ff;
+      --primary-dark: #1d4ed8;
+      --accent: #10b981;
+      --bg: #f1f5f9;
+      --card-bg: #ffffff;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --border: #cbd5e1;
+      --warning-bg: #fef3c7;
+      --warning-border: #f59e0b;
+
+      background-color: var(--bg);
+      color: var(--text);
+      padding-bottom: 140px; /* 下部固定バー用の余白 */
+      overflow-x: hidden;
+      display: block;
+    }
+
+    .container {
+      padding: 12px;
+      max-width: 600px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* 基本情報入力カード */
+    .info-card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 12px;
+      border: 1px solid var(--border);
+      width: 100%;
+    }
+
+    .info-card h2 {
+      font-size: 14px;
+      margin: 0 0 10px 0;
+      color: var(--primary-dark);
+      border-bottom: 2px solid var(--primary-light);
+      padding-bottom: 4px;
+    }
+
+    /* 基本情報のグリッドレイアウト（レスポンシブ対応） */
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      width: 100%;
+    }
+
+    /* スマホ画面（横幅480px以下）では1列表示にしてはみ出しを防止 */
+    @media (max-width: 480px) {
+      .info-grid {
+        grid-template-columns: 1fr;
+      }
+      .info-field.full-width {
+        grid-column: span 1 !important;
+      }
+    }
+
+    .info-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      width: 100%;
+    }
+
+    .info-field.full-width {
+      grid-column: span 2;
+    }
+
+    .info-field label {
+      font-size: 11px;
+      font-weight: bold;
+      color: var(--text-muted);
+    }
+
+    .info-field input, .info-field select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 13px;
+      background: #f8fafc;
+      box-sizing: border-border-box;
+      -webkit-appearance: none;
+    }
+
+    /* カテゴリカード */
+    .category-card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      margin-bottom: 12px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+      width: 100%;
+    }
+
+    /* ヘッダー部分 */
+    .category-header {
+      padding: 10px 14px;
+      background: #f8fafc;
+      font-weight: bold;
+      font-size: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .category-total-wrap {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 13px;
+      margin-left: auto;
+    }
+
+    .category-total-input {
+      width: 85px;
+      padding: 6px 6px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: bold;
+      text-align: right;
+      background: white;
+      color: var(--primary-dark);
+      transition: all 0.2s ease;
+    }
+
+    .category-total-input.manual-override {
+      background: var(--warning-bg);
+      border-color: var(--warning-border);
+      color: #b45309;
+    }
+
+    .btn-reset-manual {
+      background: #e2e8f0;
+      color: var(--text-muted);
+      border: none;
+      padding: 4px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      cursor: pointer;
+    }
+
+    .category-body {
+      padding: 12px;
+    }
+
+    /* チップ定義 */
+    .chip-section-title {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+
+    .chip-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .chip {
+      padding: 6px 10px;
+      background: #f1f5f9;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      font-size: 12px;
+      color: #334155;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .chip.selected {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary-dark);
+      font-weight: bold;
+      box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+    }
+
+    /* 有効化された項目カード */
+    .active-items-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .active-item-card {
+      background: #f8fafc;
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      padding: 10px;
+      position: relative;
+    }
+
+    .active-item-card.drag-over {
+      border-color: var(--accent);
+      background: #ecfdf5;
+    }
+
+    .item-main {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .item-handle {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: bold;
+      font-size: 13px;
+      color: var(--text);
+      word-break: break-all;
+    }
+
+    .drag-icon {
+      color: var(--text-muted);
+      cursor: grab;
+      font-size: 15px;
+      flex-shrink: 0;
+    }
+
+    /* 数量＆金額＆備考コントロール行 */
+    .controls-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      background: white;
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+
+    .quantity-control {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .quantity-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-right: 2px;
+    }
+
+    .btn-qty {
+      width: 24px;
+      height: 24px;
+      background: #f1f5f9;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-weight: bold;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .qty-input {
+      width: 30px;
+      text-align: center;
+      border: none;
+      font-size: 13px;
+      font-weight: bold;
+    }
+
+    .amount-wrap {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .amount-input {
+      width: 75px;
+      padding: 5px 4px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: bold;
+      text-align: right;
+    }
+
+    .btn-remark-toggle {
+      background: #f1f5f9;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+      margin-left: auto;
+    }
+
+    .btn-remark-toggle.active {
+      background: #e0e7ff;
+      color: var(--primary-dark);
+      border-color: #a5b4fc;
+      font-weight: bold;
+    }
+
+    .remark-field {
+      margin-top: 8px;
+    }
+
+    .remark-input {
+      width: 100%;
+      padding: 6px 8px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-size: 12px;
+      background: white;
+    }
+
+    .btn-ungroup {
+      background: #fee2e2;
+      color: #dc2626;
+      border: none;
+      padding: 3px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .btn-add-custom {
+      width: 100%;
+      padding: 8px;
+      background: white;
+      border: 1px dashed var(--primary);
+      color: var(--primary);
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: bold;
+      margin-top: 8px;
+      cursor: pointer;
+    }
+
+    /* 全体備考カード */
+    .global-remark-card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 12px;
+      border: 1px solid var(--border);
+      width: 100%;
+    }
+
+    .global-remark-card h2 {
+      font-size: 14px;
+      margin: 0 0 8px 0;
+      color: var(--text);
+    }
+
+    .global-remark-textarea {
+      width: 100%;
+      height: 80px;
+      padding: 8px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 13px;
+      resize: vertical;
+      font-family: inherit;
+    }
+
+    /* 固定ボトムバー（修正：改行レイアウト＆右端総合計） */
+    .bottom-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #0f172a;
+      color: white;
+      padding: 10px 12px;
+      box-shadow: 0 -4px 12px rgba(0,0,0,0.2);
+      z-index: 1000;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* 4項目の内訳（項目名と金額を縦に2行表示） */
+    .breakdown-grid {
+      display: grid;
+      grid-template-columns: repeat(4, auto);
+      gap: 6px 12px;
+      font-size: 10px;
+    }
+
+    @media (max-width: 400px) {
+      .breakdown-grid {
+        grid-template-columns: repeat(2, auto);
+        gap: 6px 10px;
+      }
+    }
+
+    .breakdown-item {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      color: #94a3b8;
+      line-height: 1.2;
+    }
+
+    .breakdown-item .label {
+      font-size: 10px;
+      white-space: nowrap;
+    }
+
+    .breakdown-item .value {
+      color: white;
+      font-weight: bold;
+      font-size: 12px;
+      margin-top: 2px;
+      white-space: nowrap;
+    }
+
+    /* 総合計金額（右端） */
+    .grand-total-wrap {
+      text-align: right;
+      padding-left: 8px;
+      border-left: 1px solid #334155;
+      flex-shrink: 0;
+    }
+
+    .grand-total-label {
+      font-size: 10px;
+      color: #94a3b8;
+      white-space: nowrap;
+    }
+
+    .grand-total-amount {
+      font-size: 18px;
+      font-weight: bold;
+      color: #38bdf8;
+      line-height: 1.2;
+      margin-top: 1px;
+      white-space: nowrap;
+    }
+
+
+</style>
 </head>
 <body>
 
@@ -572,6 +1042,14 @@
         <div>
           <div style="font-weight:bold;">新規見積書を作成</div>
           <div style="font-size:12px; opacity:0.9;">最初から新しく見積書を作成します</div>
+        </div>
+      </button>
+
+      <button type="button" class="btn btn-primary" style="width:100%; padding:20px; font-size:16px; text-align:left; display:flex; align-items:center; gap:12px; background-color:#334155;" onclick="handleMenuClick('NEW_ESTIMATE_B')">
+        <span class="material-symbols-outlined" style="font-size:32px;">add_box</span>
+        <div>
+          <div style="font-weight:bold;">新規見積書を作成（デザインB）</div>
+          <div style="font-size:12px; opacity:0.9;">新しいフォーマットで見積書を作成します</div>
         </div>
       </button>
  
@@ -710,6 +1188,93 @@
       </div>
     </form>
   </div>
+
+  <!-- =====================================
+       デザインB（新フォーマット）入力フォーム
+       ===================================== -->
+  <div id="mainAppB" class="design-b-scope" style="display:none; width:100%;">
+    <div class="container">
+      <!-- 1. 基本情報入力エリア -->
+      <div class="info-card">
+        <h2>基本情報</h2>
+        <div class="info-grid">
+          <div class="info-field">
+            <label>見積日</label>
+            <input type="date" id="infoDate">
+          </div>
+          <div class="info-field">
+            <label>見積担当</label>
+            <input type="text" id="infoEstimator" placeholder="担当者名">
+          </div>
+          <div class="info-field">
+            <label>取引先</label>
+            <input type="text" id="infoClient" placeholder="取引先会社名">
+          </div>
+          <div class="info-field">
+            <label>担当</label>
+            <input type="text" id="infoClientContact" placeholder="先方担当者名">
+          </div>
+          <div class="info-field full-width">
+            <label>件名</label>
+            <input type="text" id="infoSubject" placeholder="例: ○○マンション101号室 原状回復工事">
+          </div>
+          <div class="info-field">
+            <label>部番号</label>
+            <input type="text" id="infoDeptNo" placeholder="部屋番号/部番号">
+          </div>
+          <div class="info-field">
+            <label>間取り</label>
+            <input type="text" id="infoLayout" placeholder="例: 1LDK / 30㎡">
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. カテゴリ入力エリア (JS動的生成) -->
+      <div id="categoryContainer"></div>
+
+      <!-- 3. 全体備考エリア -->
+      <div class="global-remark-card">
+        <h2>全体備考</h2>
+        <textarea class="global-remark-textarea" id="globalRemark" placeholder="見積書全体に関する特記事項や備考を入力してください..."></textarea>
+      </div>
+
+      <!-- 3.5 共通アクション（プレビュー／下書き保存） -->
+      <div style="display:flex; gap:8px; margin-bottom:16px;">
+        <button type="button" class="btn btn-primary" style="background-color: var(--gray-light); color: var(--text-primary); border: 1px solid var(--gray-border); flex: 1;" onclick="showPDFPreview()">
+          <span class="material-symbols-outlined">visibility</span>プレビュー
+        </button>
+        <button type="button" class="btn btn-primary" style="background-color: var(--warning); flex: 1;" onclick="executeSaveProcess('saveDraft')">
+          <span class="material-symbols-outlined">draft</span>下書き保存
+        </button>
+      </div>
+    </div>
+
+    <!-- 4. 固定ボトムバー -->
+    <div class="bottom-bar">
+      <div class="breakdown-grid">
+        <div class="breakdown-item">
+          <span class="label">基本クリーニング</span>
+          <span class="value" id="summaryCleaning">¥0</span>
+        </div>
+        <div class="breakdown-item">
+          <span class="label">エアコン</span>
+          <span class="value" id="summaryAircon">¥0</span>
+        </div>
+        <div class="breakdown-item">
+          <span class="label">補修</span>
+          <span class="value" id="summaryRepair">¥0</span>
+        </div>
+        <div class="breakdown-item">
+          <span class="label">消費税</span>
+          <span class="value" id="summaryTax">¥0</span>
+        </div>
+      </div>
+      <div class="grand-total-wrap">
+        <div class="grand-total-label">税込金額</div>
+        <div class="grand-total-amount" id="grandTotalTax">¥0</div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div id="listModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.5); z-index:9998; justify-content:center; align-items:center; padding:12px; box-sizing:border-box;">
@@ -747,6 +1312,7 @@
     let currentUser = null;   // ログインユーザー情報
     let currentMode = 'NEW';  // 'NEW'(新規), 'DRAFT_EDIT'(下書き編集), 'COPY_CREATE'(過去コピーから作成)
     let currentOriginId = ''; // 編集元・コピー元となったデータのIDを保持
+    let currentDesignType = 'A'; // 'A'(従来デザイン) | 'B'(新デザイン) ─ 現在編集中のフォームのデザイン種別
 
     window.addEventListener('DOMContentLoaded', async () => {
       // sessionStorage から localStorage へ変更（ログイン状態をチェック）
@@ -838,8 +1404,9 @@
       // 1. まず共通の土台（ヘッダー枠）を表示する
       document.getElementById('appWrapper').style.display = 'block';
       
-      // 2. 土台のなかでメニュー画面を表示し、作成フォームは隠す
+      // 2. 土台のなかでメニュー画面を表示し、作成フォームは隠す（デザインA/B両方）
       document.getElementById('mainApp').style.display = 'none';
+      document.getElementById('mainAppB').style.display = 'none';
       document.getElementById('menuScreen').style.display = 'flex';
       
       // 3. メニュー画面なので、ヘッダーの「メニューに戻る」ボタンは非表示
@@ -850,19 +1417,33 @@
     }
     
     function showMainApp() {
+      currentDesignType = 'A';
       document.getElementById('loginScreen').style.display = 'none';
       
       // 1. まず共通の土台（ヘッダー枠）を表示する
       document.getElementById('appWrapper').style.display = 'block';
       
-      // 2. 土台のなかでメニュー画面を隠し、作成フォームを表示する
+      // 2. 土台のなかでメニュー画面を隠し、作成フォーム（デザインA）を表示する
       document.getElementById('menuScreen').style.display = 'none';
+      document.getElementById('mainAppB').style.display = 'none';
       document.getElementById('mainApp').style.display = 'block';
       
       // 3. 作成フォーム画面なので、ヘッダーの「メニューに戻る」ボタンを表示！
       document.getElementById('backToMenuBtn').style.display = 'inline-flex';
       
       // 4. ユーザー名を表示
+      document.getElementById('userDisplayLabel').textContent = `ログイン: ${currentUser.userName}`;
+    }
+
+    // デザインB用フォーム画面を表示（デザインAと共通の土台・ヘッダーを利用）
+    function showMainAppB() {
+      currentDesignType = 'B';
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('appWrapper').style.display = 'block';
+      document.getElementById('menuScreen').style.display = 'none';
+      document.getElementById('mainApp').style.display = 'none';
+      document.getElementById('mainAppB').style.display = 'block';
+      document.getElementById('backToMenuBtn').style.display = 'inline-flex';
       document.getElementById('userDisplayLabel').textContent = `ログイン: ${currentUser.userName}`;
     }
     
@@ -872,6 +1453,7 @@
       document.getElementById('appWrapper').style.display = 'none';
       document.getElementById('menuScreen').style.display = 'none';
       document.getElementById('mainApp').style.display = 'none';
+      document.getElementById('mainAppB').style.display = 'none';
     }
 
     // =====================================
@@ -897,6 +1479,15 @@
             await initializeEstimateForm();
             loader.style.display = 'none'; // フォーム初期化完了後に消す
             showMainApp();
+            break;
+
+          case 'NEW_ESTIMATE_B':
+            loaderText.textContent = 'データを読み込んでいます...';
+            await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 20)));
+
+            initializeEstimateFormB();
+            loader.style.display = 'none';
+            showMainAppB();
             break;
             
           case 'PAST_ESTIMATE':
@@ -1168,7 +1759,29 @@
         }
 
         const formData = result.data;
-        
+        const targetDesignType = (formData.main && formData.main.designType) || 'A';
+
+        // ---- デザインBのデータの場合は専用の復元処理へ分岐 ----
+        if (targetDesignType === 'B') {
+          currentMode = mode;
+          currentOriginId = id;
+          currentDesignType = 'B';
+          appMode = 'NEW_ESTIMATE';
+
+          reflectFieldsDesignB_(formData, mode);
+
+          document.getElementById('loader').style.display = 'none';
+          Swal.fire({
+            icon: 'success',
+            title: 'データ読み込み完了',
+            text: mode === 'DRAFT_EDIT' ? '下書きを読み込みました。' : '見積書をコピーしました。',
+            confirmButtonText: '了解'
+          });
+          showMainAppB();
+          return;
+        }
+
+        currentDesignType = 'A';
         // ステップ2: フォーム状態を設定
         currentMode = mode;
         currentOriginId = id;
@@ -1428,6 +2041,7 @@
           document.getElementById('detailsContainer').innerHTML = '';
           document.getElementById('loginIdInput').value = '';
           document.getElementById('loginPasswordInput').value = '';
+          resetFormB_();
           showLoginScreen();
         }
       });
@@ -1448,6 +2062,7 @@
         if (result.isConfirmed) {
           document.getElementById('estimateForm').reset();
           document.getElementById('detailsContainer').innerHTML = '';
+          resetFormB_();
           showMenuScreen();
         }
       });
@@ -2506,7 +3121,7 @@
     }
 
     function showPDFPreview() {
-      const data = getFormData();
+      const data = currentDesignType === 'B' ? getFormDataB() : getFormData();
       
       if(!data.clientName) {
         Swal.fire({ icon: 'warning', title: '入力不足', text: '取引先を選択してください。', confirmButtonText: '了解' });
@@ -2619,11 +3234,15 @@
         return;
       }
       
-      const data = getFormData();
+      const isDesignB = currentDesignType === 'B';
+      const data = isDesignB ? getFormDataB() : getFormData();
       
-      // ★ここで画面のカンマ付き文字列を数値に変換し、dataオブジェクトに覚えさせる（これで他と統一できます）
-      data.subtotal = parseFloat(document.getElementById('subtotalLabel').textContent.replace(/,/g, '')) || 0;
-      data.tax = parseFloat(document.getElementById('taxLabel').textContent.replace(/,/g, '')) || 0;
+      if (!isDesignB) {
+        // ★ここで画面のカンマ付き文字列を数値に変換し、dataオブジェクトに覚えさせる（これで他と統一できます）
+        data.subtotal = parseFloat(document.getElementById('subtotalLabel').textContent.replace(/,/g, '')) || 0;
+        data.tax = parseFloat(document.getElementById('taxLabel').textContent.replace(/,/g, '')) || 0;
+      }
+      // デザインBの場合、getFormDataB() が subtotal/tax/total を計算済みのため変換不要
       
       if (!data.clientName) {
         Swal.fire({ icon: 'warning', title: '入力不足', text: '取引先を選択してください。', confirmButtonText: '了解' });
@@ -2661,7 +3280,11 @@
               tax: data.tax,
               totalAmount: data.total, // 税込合計
               details: data.details,
-              currentUserName: userName
+              currentUserName: userName,
+              designType: currentDesignType,
+              estimator: data.estimator || '',
+              deptNo: data.deptNo || '',
+              layout: data.layout || ''
             }
           })
         });
@@ -2692,8 +3315,12 @@
             confirmButtonText: '閉じる'
           });
 
-          document.getElementById('estimateForm').reset();
-          document.getElementById('detailsContainer').innerHTML = '';
+          if (isDesignB) {
+            resetFormB_();
+          } else {
+            document.getElementById('estimateForm').reset();
+            document.getElementById('detailsContainer').innerHTML = '';
+          }
           showMenuScreen();
 
           return;
@@ -2729,7 +3356,11 @@
                 tax: data.tax,
                 totalAmount: data.total,
                 details: data.details,
-                currentUserName: userName
+                currentUserName: userName,
+                designType: currentDesignType,
+                estimator: data.estimator || '',
+                deptNo: data.deptNo || '',
+                layout: data.layout || ''
               }
             })
           });
@@ -2799,8 +3430,12 @@
         });
         
         // フォーム初期化
-        document.getElementById('estimateForm').reset();
-        document.getElementById('detailsContainer').innerHTML = '';
+        if (isDesignB) {
+          resetFormB_();
+        } else {
+          document.getElementById('estimateForm').reset();
+          document.getElementById('detailsContainer').innerHTML = '';
+        }
         showMenuScreen();
         
       } catch (error) {
@@ -2813,6 +3448,530 @@
           confirmButtonText: '了解'
         });
       }
+    }
+
+    // =====================================================================
+    // ここから デザインB（新フォーマット）専用ロジック
+    // 共通機能（ログイン／メニュー／プレビュー／下書き保存／確定保存／一覧取得）は
+    // 上記デザインAと同じ関数（showPDFPreview / executeSaveProcess / showPreviewDialog 等）を
+    // そのまま共有し、データの取得・復元部分だけをデザインB用に用意しています。
+    // =====================================================================
+
+    // マスターデータ（カテゴリ・内容の一覧）
+    const MASTER_DATA_B = [
+      { category: "ガラス・サッシ", items: ["大", "中", "小"] },
+      { category: "和室", items: ["照明", "押入", "畳", "床間", "建具", "ワク"] },
+      { category: "洋室", items: ["照明", "収納", "カーテンレール", "建具", "ワク"] },
+      { category: "キッチン", items: ["換気扇", "フード", "壁", "水切棚", "排水口", "手元燈", "ステンレス周り", "ドア", "照明", "収納", "クッキングヒーター"] },
+      { category: "浴室", items: ["ドア", "排水口", "浴槽", "鏡", "床", "換気扇", "照明", "カラン", "金具回り", "壁", "天井"] },
+      { category: "洗面室", items: ["洗面台", "洗濯パン", "照明", "換気扇", "ドア"] },
+      { category: "トイレ", items: ["ドア", "便器", "照明", "換気扇"] },
+      { category: "玄関周り", items: ["ドア", "土間", "下駄箱", "照明"] },
+      { category: "クロス（天井・壁）", items: ["全面洗浄", "拾い洗い"] },
+      { category: "床クリーン・ワックス", items: ["既ワックス剥離"] },
+      { category: "エアコン", items: ["フィルター", "表面", "内部"] },
+      { category: "その他", items: ["ベランダ（土間・壁）", "木枠", "サンルーム", "コンセント・プレート", "配電盤", "倉庫"] },
+      { category: "補修工事", items: ["塗装", "キズ補修"] }
+    ];
+
+    // デザインBのフォーム状態（カテゴリindexごとに { manualTotal, items:[...] }）
+    let appStateB = {};
+
+    // 新規作成時の初期化
+    function initializeEstimateFormB() {
+      currentMode = 'NEW';
+      currentOriginId = '';
+      currentDesignType = 'B';
+
+      appStateB = {};
+      MASTER_DATA_B.forEach((cat, idx) => {
+        appStateB[idx] = { manualTotal: null, items: [] };
+      });
+
+      try {
+        document.getElementById('infoDate').valueAsDate = new Date();
+      } catch (e) {}
+      document.getElementById('infoEstimator').value = '';
+      document.getElementById('infoClient').value = '';
+      document.getElementById('infoClientContact').value = '';
+      document.getElementById('infoSubject').value = '';
+      document.getElementById('infoDeptNo').value = '';
+      document.getElementById('infoLayout').value = '';
+      document.getElementById('globalRemark').value = '';
+
+      renderB();
+    }
+
+    // フォームを完全にリセット（ログアウト・メニューに戻る時）
+    function resetFormB_() {
+      appStateB = {};
+      MASTER_DATA_B.forEach((cat, idx) => {
+        appStateB[idx] = { manualTotal: null, items: [] };
+      });
+      const ids = ['infoDate','infoEstimator','infoClient','infoClientContact','infoSubject','infoDeptNo','infoLayout','globalRemark'];
+      ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+      const container = document.getElementById('categoryContainer');
+      if (container) container.innerHTML = '';
+    }
+
+    // 画面描画
+    function renderB() {
+      const container = document.getElementById('categoryContainer');
+      if (!container) return;
+      container.innerHTML = '';
+
+      MASTER_DATA_B.forEach((cat, catIdx) => {
+        const catState = appStateB[catIdx];
+        const activeList = catState.items || [];
+        const activeNames = activeList.flatMap(item => item.names);
+
+        const autoTotal = activeList.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+        const isManual = catState.manualTotal !== null && catState.manualTotal !== '';
+        const displayTotal = isManual ? catState.manualTotal : (autoTotal > 0 ? autoTotal : '');
+
+        const catCard = document.createElement('div');
+        catCard.className = 'category-card';
+
+        catCard.innerHTML = `
+          <div class="category-header">
+            <span>${cat.category}</span>
+            <div class="category-total-wrap">
+              <span style="color:var(--text-muted);">合計:</span>
+              <input type="number"
+                class="category-total-input ${isManual ? 'manual-override' : ''}"
+                value="${displayTotal}"
+                placeholder="0"
+                onchange="updateCategoryTotalB(${catIdx}, this.value)">
+              <span>円</span>
+              ${isManual ? `<button class="btn-reset-manual" onclick="resetCategoryTotalB(${catIdx})" title="自動計算に戻す">自動</button>` : ''}
+            </div>
+          </div>
+
+          <div class="category-body">
+            <div class="chip-section-title">内容を選択（タップで有効化）</div>
+            <div class="chip-group">
+              ${cat.items.map(itemName => {
+                const isSelected = activeNames.includes(itemName);
+                return `
+                  <div class="chip ${isSelected ? 'selected' : ''}" onclick="toggleItemB(${catIdx}, '${itemName}')">
+                    ${isSelected ? '✓ ' : ''}${itemName}
+                  </div>
+                `;
+              }).join('')}
+            </div>
+
+            <div class="active-items-list" id="activeListB_${catIdx}">
+              ${activeList.map(item => renderActiveCardB(catIdx, item)).join('')}
+            </div>
+
+            <button class="btn-add-custom" onclick="addCustomItemB(${catIdx})">＋ 自由な内容を追加</button>
+          </div>
+        `;
+
+        container.appendChild(catCard);
+        setupDragAndDropB(catIdx);
+      });
+
+      calculateTotalsB();
+    }
+
+    function renderActiveCardB(catIdx, item) {
+      const nameText = item.names.join(' ＋ ');
+      const isGrouped = item.names.length > 1;
+      const hasRemark = item.remark && item.remark.trim() !== '';
+
+      return `
+        <div class="active-item-card" data-cat="${catIdx}" data-id="${item.id}" draggable="true">
+          <div class="item-main">
+            <div class="item-handle">
+              <span class="drag-icon">☰</span>
+              <span>${nameText}</span>
+            </div>
+            ${isGrouped ? `<button class="btn-ungroup" onclick="ungroupItemB(${catIdx}, '${item.id}')">解散</button>` : ''}
+          </div>
+
+          <div class="controls-row">
+            <div class="quantity-control">
+              <span class="quantity-label">数量</span>
+              <button class="btn-qty" onclick="changeQtyB(${catIdx}, '${item.id}', -1)">-</button>
+              <input type="number" class="qty-input" value="${item.qty || 1}" min="1"
+                onchange="updateQtyB(${catIdx}, '${item.id}', this.value)">
+              <button class="btn-qty" onclick="changeQtyB(${catIdx}, '${item.id}', 1)">+</button>
+            </div>
+
+            <div class="amount-wrap">
+              <span style="font-size:11px; color:var(--text-muted);">金額:</span>
+              <input type="number" class="amount-input" value="${item.amount || ''}" placeholder="0"
+                onchange="updateAmountB(${catIdx}, '${item.id}', this.value)">
+              <span style="font-size:12px; font-weight:bold;">円</span>
+            </div>
+
+            <button class="btn-remark-toggle ${hasRemark || item.showRemark ? 'active' : ''}"
+              onclick="toggleRemarkInputB(${catIdx}, '${item.id}')">
+              ${hasRemark ? '備考あり' : '+備考'}
+            </button>
+          </div>
+
+          ${(item.showRemark || hasRemark) ? `
+            <div class="remark-field">
+              <input type="text" class="remark-input" value="${item.remark || ''}"
+                placeholder="この項目に関する備考・特記事項..."
+                onchange="updateRemarkB(${catIdx}, '${item.id}', this.value)">
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }
+
+    function toggleItemB(catIdx, itemName) {
+      let list = appStateB[catIdx].items;
+      const existingIndex = list.findIndex(item => item.names.includes(itemName));
+
+      if (existingIndex > -1) {
+        const target = list[existingIndex];
+        if (target.names.length > 1) {
+          target.names = target.names.filter(n => n !== itemName);
+        } else {
+          list.splice(existingIndex, 1);
+        }
+      } else {
+        list.push({
+          id: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+          names: [itemName],
+          qty: 1,
+          amount: '',
+          remark: '',
+          showRemark: false
+        });
+      }
+
+      renderB();
+    }
+
+    function addCustomItemB(catIdx) {
+      const customName = prompt("追加する内容を入力してください (例: 特注補修):");
+      if (!customName || customName.trim() === "") return;
+
+      appStateB[catIdx].items.push({
+        id: 'custom_' + Date.now(),
+        names: [customName.trim()],
+        qty: 1,
+        amount: '',
+        remark: '',
+        showRemark: false
+      });
+
+      renderB();
+    }
+
+    function changeQtyB(catIdx, itemId, delta) {
+      const item = appStateB[catIdx].items.find(i => i.id === itemId);
+      if (item) {
+        const currentQty = Number(item.qty) || 1;
+        const newQty = Math.max(1, currentQty + delta);
+
+        if (item.amount && currentQty > 0) {
+          const unitPrice = item.amount / currentQty;
+          item.amount = Math.round(unitPrice * newQty);
+        }
+
+        item.qty = newQty;
+        renderB();
+      }
+    }
+
+    function updateQtyB(catIdx, itemId, val) {
+      const item = appStateB[catIdx].items.find(i => i.id === itemId);
+      if (item) {
+        item.qty = Math.max(1, Number(val) || 1);
+        renderB();
+      }
+    }
+
+    function updateAmountB(catIdx, itemId, val) {
+      const item = appStateB[catIdx].items.find(i => i.id === itemId);
+      if (item) {
+        item.amount = val !== '' ? Number(val) : '';
+        renderB();
+      }
+    }
+
+    function toggleRemarkInputB(catIdx, itemId) {
+      const item = appStateB[catIdx].items.find(i => i.id === itemId);
+      if (item) {
+        item.showRemark = !item.showRemark;
+        renderB();
+      }
+    }
+
+    function updateRemarkB(catIdx, itemId, val) {
+      const item = appStateB[catIdx].items.find(i => i.id === itemId);
+      if (item) {
+        item.remark = val;
+      }
+    }
+
+    function updateCategoryTotalB(catIdx, val) {
+      appStateB[catIdx].manualTotal = val !== '' ? Number(val) : null;
+      renderB();
+    }
+
+    function resetCategoryTotalB(catIdx) {
+      appStateB[catIdx].manualTotal = null;
+      renderB();
+    }
+
+    function ungroupItemB(catIdx, itemId) {
+      const list = appStateB[catIdx].items;
+      const targetIdx = list.findIndex(i => i.id === itemId);
+      if (targetIdx === -1) return;
+
+      const target = list[targetIdx];
+      const names = [...target.names];
+      const splitAmount = target.amount ? Math.floor(target.amount / names.length) : '';
+
+      target.names = [names[0]];
+      target.amount = splitAmount;
+
+      for (let i = 1; i < names.length; i++) {
+        list.push({
+          id: 'item_' + Date.now() + '_' + i,
+          names: [names[i]],
+          qty: 1,
+          amount: splitAmount,
+          remark: '',
+          showRemark: false
+        });
+      }
+
+      renderB();
+    }
+
+    // 集計計算（基本クリーニング／エアコン／補修 の3分類＋消費税）
+    function calculateTotalsB() {
+      let airconTotal = 0;
+      let repairTotal = 0;
+      let cleaningTotal = 0;
+
+      MASTER_DATA_B.forEach((cat, catIdx) => {
+        const catState = appStateB[catIdx];
+        const activeList = (catState && catState.items) || [];
+
+        let catAmount = 0;
+        if (catState && catState.manualTotal !== null && catState.manualTotal !== '') {
+          catAmount = Number(catState.manualTotal);
+        } else {
+          catAmount = activeList.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+        }
+
+        if (cat.category === "エアコン") {
+          airconTotal += catAmount;
+        } else if (cat.category === "補修工事") {
+          repairTotal += catAmount;
+        } else {
+          cleaningTotal += catAmount;
+        }
+      });
+
+      const subtotal = cleaningTotal + airconTotal + repairTotal;
+      const tax = Math.floor(subtotal * 0.10);
+      const grandTotalWithTax = subtotal + tax;
+
+      const elCleaning = document.getElementById('summaryCleaning');
+      const elAircon = document.getElementById('summaryAircon');
+      const elRepair = document.getElementById('summaryRepair');
+      const elTax = document.getElementById('summaryTax');
+      const elGrand = document.getElementById('grandTotalTax');
+      if (elCleaning) elCleaning.textContent = '¥' + cleaningTotal.toLocaleString();
+      if (elAircon) elAircon.textContent = '¥' + airconTotal.toLocaleString();
+      if (elRepair) elRepair.textContent = '¥' + repairTotal.toLocaleString();
+      if (elTax) elTax.textContent = '¥' + tax.toLocaleString();
+      if (elGrand) elGrand.textContent = '¥' + grandTotalWithTax.toLocaleString();
+
+      return { cleaningTotal, airconTotal, repairTotal, subtotal, tax, grandTotalWithTax };
+    }
+
+    function setupDragAndDropB(catIdx) {
+      const cards = document.querySelectorAll(`#activeListB_${catIdx} .active-item-card`);
+      let draggedId = null;
+
+      cards.forEach(card => {
+        card.addEventListener('dragstart', (e) => {
+          draggedId = card.dataset.id;
+          e.dataTransfer.setData('text/plain', draggedId);
+        });
+
+        card.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          card.classList.add('drag-over');
+        });
+
+        card.addEventListener('dragleave', () => {
+          card.classList.remove('drag-over');
+        });
+
+        card.addEventListener('drop', (e) => {
+          e.preventDefault();
+          card.classList.remove('drag-over');
+          const targetId = card.dataset.id;
+
+          if (draggedId && draggedId !== targetId) {
+            mergeActiveItemsB(catIdx, draggedId, targetId);
+          }
+        });
+      });
+    }
+
+    function mergeActiveItemsB(catIdx, sourceId, targetId) {
+      const list = appStateB[catIdx].items;
+      const sourceObj = list.find(i => i.id === sourceId);
+      const targetObj = list.find(i => i.id === targetId);
+
+      if (sourceObj && targetObj) {
+        targetObj.names = [...targetObj.names, ...sourceObj.names];
+        const sumAmount = (Number(sourceObj.amount) || 0) + (Number(targetObj.amount) || 0);
+        targetObj.amount = sumAmount > 0 ? sumAmount : '';
+        if (sourceObj.remark) {
+          targetObj.remark = (targetObj.remark ? targetObj.remark + ' / ' : '') + sourceObj.remark;
+        }
+
+        appStateB[catIdx].items = list.filter(i => i.id !== sourceId);
+        renderB();
+      }
+    }
+
+    // =====================================================================
+    // デザインBのフォーム内容 → 共通GAS保存フォーマット（details配列）への変換
+    // ルール：各カテゴリの1件目＝itemCategoryにカテゴリ名＋確定金額（手動上書きがあればそれを採用）
+    //         2件目以降＝itemCategoryは空、個別の金額をそのまま内訳として保持
+    // =====================================================================
+    function getFormDataB() {
+      const details = [];
+
+      MASTER_DATA_B.forEach((cat, catIdx) => {
+        const catState = appStateB[catIdx];
+        const items = (catState && catState.items) || [];
+        if (items.length === 0) return;
+
+        const isManual = catState.manualTotal !== null && catState.manualTotal !== '';
+        const autoTotal = items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+        const catTotalAmount = isManual ? Number(catState.manualTotal) : autoTotal;
+
+        items.forEach((item, idx) => {
+          details.push({
+            itemCategory: idx === 0 ? cat.category : '',
+            itemName: item.names.join(' ＋ '),
+            itemQty: Number(item.qty) || 1,
+            itemUnit: '式',
+            itemPrice: '',
+            itemAmount: idx === 0 ? catTotalAmount : (Number(item.amount) || 0),
+            itemRemarks: item.remark || ''
+          });
+        });
+      });
+
+      const totals = calculateTotalsB();
+
+      return {
+        clientName: document.getElementById('infoClient').value.trim(),
+        contactPerson: document.getElementById('infoClientContact').value.trim(),
+        clientAddress: '', // デザインBには入力欄なし
+        estimateDate: document.getElementById('infoDate').value,
+        subject: document.getElementById('infoSubject').value.trim(),
+        validity: '',      // デザインBには入力欄なし
+        paymentTerms: '',  // デザインBには入力欄なし
+        remarks: document.getElementById('globalRemark').value.trim(),
+        estimator: document.getElementById('infoEstimator').value.trim(),
+        deptNo: document.getElementById('infoDeptNo').value.trim(),
+        layout: document.getElementById('infoLayout').value.trim(),
+        details: details,
+        subtotal: totals.subtotal,
+        tax: totals.tax,
+        total: totals.grandTotalWithTax
+      };
+    }
+
+    // =====================================================================
+    // GASから取得した共通フォーマット（下書き／確定見積）→ デザインBのフォーム状態へ復元
+    // 注意：カテゴリ確定金額は「手動入力値」として復元します（保存時点で手動上書きだったか
+    //       自動計算だったかは区別できないため）。自動計算に戻したい場合は各カテゴリの
+    //       「自動」ボタンで再計算してください。
+    // =====================================================================
+    function reflectFieldsDesignB_(formData, mode) {
+      const main = formData.main || {};
+
+      document.getElementById('infoDate').value =
+        mode === 'COPY_CREATE' ? new Date().toISOString().split('T')[0] : formatDateToInput(main.estimateDate);
+      document.getElementById('infoEstimator').value = main.estimator || '';
+      document.getElementById('infoClient').value = main.clientName || '';
+      document.getElementById('infoClientContact').value = main.contactPerson || '';
+      document.getElementById('infoSubject').value = main.subject || '';
+      document.getElementById('infoDeptNo').value = main.deptNo || '';
+      document.getElementById('infoLayout').value = main.layout || '';
+      document.getElementById('globalRemark').value = main.remarks || '';
+
+      appStateB = {};
+      MASTER_DATA_B.forEach((cat, idx) => {
+        appStateB[idx] = { manualTotal: null, items: [] };
+      });
+
+      const details = formData.details || [];
+      let currentCatIdx = -1;
+      let currentItem = null;
+
+      details.forEach(row => {
+        const catName = (row.itemCategory || '').toString().trim();
+
+        if (catName !== '') {
+          // 新しいカテゴリの開始行（＝カテゴリ確定金額を持つ行）
+          const idx = MASTER_DATA_B.findIndex(c => c.category === catName);
+          if (idx === -1) {
+            console.warn(`デザインBのマスターに存在しないカテゴリ「${catName}」の明細はスキップされました。`);
+            currentCatIdx = -1;
+            currentItem = null;
+            return;
+          }
+          currentCatIdx = idx;
+          const names = (row.itemName || '').toString().split(' ＋ ').filter(Boolean);
+          currentItem = {
+            id: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+            names: names.length > 0 ? names : ['（項目名なし）'],
+            qty: Number(row.itemQty) || 1,
+            amount: (row.itemAmount === '' || row.itemAmount === undefined) ? '' : Number(row.itemAmount),
+            remark: row.itemRemarks || '',
+            showRemark: !!row.itemRemarks
+          };
+          appStateB[currentCatIdx].manualTotal = currentItem.amount === '' ? null : currentItem.amount;
+          appStateB[currentCatIdx].items.push(currentItem);
+
+        } else if (currentCatIdx !== -1) {
+          const hasName = row.itemName && String(row.itemName).trim() !== '';
+
+          if (hasName) {
+            // 内訳の個別項目行
+            const names = (row.itemName || '').toString().split(' ＋ ').filter(Boolean);
+            const newItem = {
+              id: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+              names: names.length > 0 ? names : ['（項目名なし）'],
+              qty: Number(row.itemQty) || 1,
+              amount: (row.itemAmount === '' || row.itemAmount === undefined) ? '' : Number(row.itemAmount),
+              remark: row.itemRemarks || '',
+              showRemark: !!row.itemRemarks
+            };
+            appStateB[currentCatIdx].items.push(newItem);
+            currentItem = newItem;
+          } else if (row.itemRemarks && currentItem) {
+            // 品名のない備考のみの行は直前の項目の備考へ追記
+            currentItem.remark = currentItem.remark ? (currentItem.remark + ' / ' + row.itemRemarks) : row.itemRemarks;
+            currentItem.showRemark = true;
+          }
+        }
+      });
+
+      renderB();
     }
   </script>
 
