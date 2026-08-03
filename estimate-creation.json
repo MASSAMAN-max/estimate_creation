@@ -2,6 +2,7 @@
   "name": "見積データ入力フォーム",
   "short_name": "見積書",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#ffffff",
