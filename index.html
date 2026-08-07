@@ -53,9 +53,9 @@
     /* フォーム要素共通スタイル：input, select, textarea の標準化 */
     input, select, textarea {
       font-family: inherit;
-      font-size: 16px !important;  /* モバイルでのズーム防止 */
+      font-size: 16px !important;
       padding: 12px;
-      border: 2px solid var(--border);
+      border: 2px solid var(--gray-border);
       border-radius: 8px;
       box-sizing: border-box;
       background: white;
@@ -598,7 +598,7 @@
       border-radius: 6px;
       font-size: 13px;
       background: #f8fafc;
-      box-sizing: border-border-box;
+      box-sizing: border-box;
       -webkit-appearance: none;
     }
 
@@ -1283,11 +1283,6 @@
       <h3 id="listModalTitle" style="color:var(--primary); font-size:18px;">データを選択</h3>
       <button type="button" class="mini-logout-btn" onclick="document.getElementById('listModal').style.display='none';">✕ 閉じる</button>
     </div>
-    
-    <div id="listModalTabs" style="display:flex; gap:8px;">
-      <button type="button" id="tabDraftBtn" class="btn btn-secondary" style="flex:1; padding:8px;" onclick="switchModalTab('draft')">下書き一覧</button>
-      <button type="button" id="tabEstBtn" class="btn btn-secondary" style="flex:1; padding:8px;" onclick="switchModalTab('estimate')">確定見積一覧</button>
-    </div>
  
     <div id="modalListContainer" style="flex:1; overflow-y:auto; border:1px solid var(--gray-border); border-radius:var(--radius); padding:8px; background:#f8fafc;">
       </div>
@@ -1575,26 +1570,19 @@
         
         // モーダルのタイトルを動的に変更
         const modalTitle = document.getElementById('listModalTitle');
-        const tabContainer = document.getElementById('listModalTabs');
         const container = document.getElementById('modalListContainer');
         
         // 初期化
         container.innerHTML = '<div style="text-align:center; color:var(--text-secondary);">読み込み中...</div>';
         
         if (listType === 'view') {
-          // 見積書確認：確定見積のみ表示、URLクリック可能
           modalTitle.textContent = '見積書を選択（確定見積のみ）';
-          tabContainer.style.display = 'none';  // タブを非表示
           displayViewEstimateList(result.data.estimates);
         } else if (listType === 'estimate') {
-          // 過去から作成：確定見積のみ表示
           modalTitle.textContent = '過去の見積書を選択';
-          tabContainer.style.display = 'none';
           displayCopyEstimateList(result.data.estimates);
         } else if (listType === 'draft') {
-          // 下書き編集：下書きのみ表示
           modalTitle.textContent = '下書きを選択';
-          tabContainer.style.display = 'none';
           displayDraftList(result.data.drafts);
         }
         
@@ -2076,55 +2064,6 @@
       return null;
     }
     
-
-    // モーダル内の下書き／確定見積タブを切り替える
-    function switchModalTab(tabType) {
-      const container = document.getElementById('modalListContainer');
-      const dBtn = document.getElementById('tabDraftBtn');
-      const eBtn = document.getElementById('tabEstBtn');
-      container.innerHTML = '';
-    
-      if (tabType === 'draft') {
-        dBtn.style.backgroundColor = 'var(--primary)'; dBtn.style.color = 'white';
-        eBtn.style.backgroundColor = 'var(--gray-light)'; eBtn.style.color = 'var(--primary)';
-        
-        const list = window.cachedListData.drafts;
-        if (list.length === 0) { container.innerHTML = '<div style="padding:16px; text-align:center; color:var(--text-secondary);">下書きデータはありません。</div>'; return; }
-        
-        list.forEach(item => {
-          container.appendChild(createListRowHTML(item, 'DRAFT_EDIT', 'この下書きを編集する'));
-        });
-      } else {
-        eBtn.style.backgroundColor = 'var(--primary)'; eBtn.style.color = 'white';
-        dBtn.style.backgroundColor = 'var(--gray-light)'; dBtn.style.color = 'var(--primary)';
-        
-        const list = window.cachedListData.estimates;
-        if (list.length === 0) { container.innerHTML = '<div style="padding:16px; text-align:center; color:var(--text-secondary);">確定見積データはありません。</div>'; return; }
-        
-        list.forEach(item => {
-          container.appendChild(createListRowHTML(item, 'COPY_CREATE', 'この見積をベースに新規作成'));
-        });
-      }
-    }
-    
-    function createListRowHTML(item, targetMode, btnLabel) {
-      const row = document.createElement('div');
-      row.style = 'background:white; padding:12px; margin-bottom:8px; border-radius:6px; border:1px solid var(--gray-border); display:flex; flex-direction:column; gap:6px;';
-      row.innerHTML = `
-        <div style="display:flex; justify-content:between; font-size:12px; color:var(--text-secondary);">
-          <span>ID: <b>${item.id}</b></span>
-          <span>作成日: ${formatDateToInput(item.date)}</span>
-        </div>
-        <div style="font-weight:600; color:var(--text-primary); font-size:14px;">${item.client || '取引先名なし'} — <span style="font-weight:500; font-size:13px;">${item.subject || '（件名なし）'}</span></div>
-        <div style="display:flex; justify-content:between; align-items:center; margin-top:4px;">
-          <span style="color:var(--primary); font-weight:bold;">¥${Number(item.amount).toLocaleString()}</span>
-          <button type="button" class="btn btn-primary" style="padding:6px 12px; font-size:13px; width:auto;" onclick="fetchAndReflectFields('${item.id}', '${targetMode}')">${btnLabel}</button>
-        </div>
-      `;
-      return row;
-    }
-    
-    
     /**
      * 既存の保存・確定処理完了時のコールバックに組み込む処理
      * 下書きから編集して確定保存（本番保存）が成功した際、古い下書きデータを消去する
@@ -2439,110 +2378,6 @@
         if (typeof addBreakdownRow === 'function') {
           addBreakdownRow(card, breakdownContainer, true);
         }
-      }
-    }
-    
-    
-    // ============================================
-    // カードにデータを埋め込む関数
-    // ============================================
-    function populateDetailCard(card, itemData) {
-      if (!card || !itemData) return;
-      
-      try {
-        // ステップ1: 親項目の設定
-        const categorySelect = card.querySelector('.item-category-select');
-        if (categorySelect) {
-          categorySelect.value = itemData.itemCategory || '';
-          
-          if (!categorySelect.value && itemData.itemCategory) {
-            categorySelect.value = '__NEW__';
-            const inputContainer = card.querySelector('.dynamic-input-container');
-            const input = card.querySelector('.item-category-input');
-            if (inputContainer && input) {
-              inputContainer.style.display = 'block';
-              input.value = itemData.itemCategory;
-              input.required = true;
-            }
-          }
-        }
-        
-        // ステップ2: 破綻コンテナの取得
-        const breakdownContainer = card.querySelector('.breakdown-container');
-        if (!breakdownContainer) {
-          throw new Error('breakdown-container が見つかりません');
-        }
-        
-        // ステップ4: 最後に追加した行に値を反映
-        const breakdownRow = breakdownContainer.querySelector('.breakdown-row');
-  
-        const nameInput = breakdownRow.querySelector('.item-name');
-        if (nameInput) {
-          nameInput.value = String(itemData.itemName || '');
-        }
-        
-        const qtySelect = breakdownRow.querySelector('.item-qty');
-        if (qtySelect) {
-          qtySelect.value = itemData.itemQty || 1;
-        }
-        
-        const unitSelect = breakdownRow.querySelector('.item-unit');
-        if (unitSelect) {
-          unitSelect.value = itemData.itemUnit || '式';
-        }
-        
-        // 単価を反映
-        const priceInput = breakdownRow.querySelector('.item-price');
-        if (priceInput) {
-          priceInput.value = Number(itemData.itemPrice || 0);
-        }
-        
-        // ステップ5: 備考データを埋め込む
-        if (itemData.itemRemarks) {
-          const remarksList = breakdownRow.querySelector('.remarks-list');
-          const remarks = Array.isArray(itemData.itemRemarks) 
-            ? itemData.itemRemarks 
-            : String(itemData.itemRemarks).split('\n').filter(r => r.trim());
-          
-          remarks.forEach(remark => {
-            const remarkRow = document.createElement('div');
-            remarkRow.className = 'remark-row';
-            remarkRow.style = 'display: flex; gap: 6px; align-items: center;';
-            
-            remarkRow.innerHTML = `
-              <div class="voice-input-wrapper" style="flex: 1; display: flex; gap: 6px;">
-                <input type="text" class="remark-input" value="${htmlEscape(String(remark))}" style="flex: 1;">
-                <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)" style="padding: 4px 8px;">
-                  <span class="material-symbols-outlined" style="font-size: 14px;">mic</span>
-                </button>
-                <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.remark-row').remove()" style="padding: 4px 8px;">
-                  <span class="material-symbols-outlined" style="font-size: 14px;">delete</span>
-                </button>
-              </div>
-            `;
-            
-            remarksList.appendChild(remarkRow);
-          });
-        }
-        
-        // ステップ6: 金額を計算
-        const qty = parseInt(qtySelect?.value || 0);
-        const price = parseFloat(priceInput?.value || 0);
-        const amount = qty * price;
-        
-        const amountSpan = breakdownRow.querySelector('.item-amount');
-        if (amountSpan) {
-          amountSpan.textContent = amount.toLocaleString();
-          amountSpan.dataset.value = amount;
-        }
-        
-        // ステップ7: 単位制約チェック＆合計更新
-        checkUnitConstraint(card);
-        updateCardTotal(card);
-        
-      } catch (error) {
-        console.error('❌ Error in populateDetailCard:', error);
-        throw error;
       }
     }
 
