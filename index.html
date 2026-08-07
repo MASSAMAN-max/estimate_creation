@@ -1358,31 +1358,21 @@
       try {
         const response = await fetch(GAS_WEB_APP_URL, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'text/plain',
-          },
+          headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify({
             action: 'login',
-            payload: {
-              loginId: loginId,
-              password: password
-            }
+            payload: { loginId: loginId, password: password }
           })
         });
         
-        // res.json() から response.json() に修正
         const result = await response.json();
         
         if (result.status === 'success') {
-          currentUser = result.data; // { userId: "...", userName: "..." }
-          
-          // ログイン状態をローカルストレージに保存
+          currentUser = result.data;
           localStorage.setItem('currentUser', JSON.stringify(currentUser));
-          
-          showMainApp();
-          
-          // マスタデータの取得を開始
-          await loadMasterLists();
+    
+          // ログイン成功後はメニュー画面へ（ページ再読み込み時と遷移を統一）
+          showMenuScreen();
         } else {
           Swal.fire({ icon: 'error', title: 'ログイン失敗', text: result.message });
         }
@@ -1392,7 +1382,6 @@
         loginBtn.disabled = false;
         loginBtn.textContent = 'ログイン';
       }
-      document.getElementById('mainApp').style.display = 'none';
     }
 
     // =====================================
@@ -2146,7 +2135,7 @@
         fetch(GAS_WEB_APP_URL, {
           method: 'POST',
           body: JSON.stringify({ action: 'deleteDraft', payload: { draftId: currentOriginId } })
-        });
+        }).catch(err => console.error('下書き削除リクエスト失敗:', err));
       }
       // 保存完了後は状態を新規に戻す
       currentMode = 'NEW';
@@ -2354,7 +2343,6 @@
         }
         if (transcript) {
           input.value = (input.value + transcript).trim();
-          calculateAmount(input);
         }
       };
      
@@ -2861,18 +2849,6 @@
       updateTotalSummary();
     }
 
-    function calculateAmount(input) {
-      const card = input.closest('.detail-card');
-      const qty = parseFloat(card.querySelector('.item-qty').value) || 0;
-      const price = parseFloat(card.querySelector('.item-price').value) || 0;
-      
-      const amount = Math.floor(qty * price); 
-      card.querySelector('.item-amount').textContent = amount.toLocaleString();
-      card.querySelector('.item-amount').dataset.value = amount; 
-      
-      updateTotalSummary();
-    }
-
     // =====================================
     // 内訳行（子）を削除する関数
     // =====================================
@@ -3322,9 +3298,10 @@
             document.getElementById('detailsContainer').innerHTML = '';
           }
           showMenuScreen();
-
           return;
         }
+        // 確定保存が成功したので、下書きから編集していた場合は元の下書きを削除する
+        handlePostSaveAction(actionType);
      
         // ========== 2回目: PDF生成（見積の場合のみ） ==========
         document.getElementById('loaderText').innerHTML = 
