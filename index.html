@@ -791,11 +791,12 @@
     }
 
     .qty-input {
-      width: 30px;
+      width: 44px;
       text-align: center;
       border: none;
-      font-size: 13px;
+      font-size: 15px;
       font-weight: bold;
+      padding: 2px 0;
     }
 
     .amount-wrap {
@@ -3273,9 +3274,8 @@
     const MASTER_DATA_B = [
       { category: "ガラス・サッシ", items: ["大", "中", "小"] },
       { category: "和室", items: ["照明", "押入", "畳", "床間", "建具", "ワク"] },
-      { category: "洋室", items: ["照明", "収納", "ｶｰﾃﾝﾚｰﾙ", "ドア", "ワク"] },
-      { category: "リビングルーム", items: ["照明", "収納", "ｶｰﾃﾝﾚｰﾙ"] },
-      { category: "キッチン", items: ["換気扇", "フード", "壁", "水切棚", "シンク", "排水口", "手元燈", "ｽﾃﾝﾚｽ回り", "ドア", "照明", "収納", "ｸｯｷﾝｸﾞﾋｰﾀｰ"] },
+      { category: "洋室", items: ["照明", "収納", "カーテンレール", "ドア", "ワク"] },
+      { category: "キッチン", items: ["換気扇", "フード", "壁", "水切棚", "シンク", "排水口", "手元燈", "ステンレス回り", "ドア", "照明", "収納", "クッキングヒーター"] },
       { category: "浴室", items: ["ドア", "排水口", "浴槽", "鏡", "床", "換気扇", "照明", "カラン", "金具回り", "壁", "天井"] },
       { category: "洗面室", items: ["洗面台", "洗濯パン", "照明", "換気扇", "ドア"] },
       { category: "トイレ", items: ["ドア", "便器", "照明", "換気扇"] },
@@ -3283,12 +3283,28 @@
       { category: "クロス（天井・壁）", items: ["全面洗浄", "拾い洗い"] },
       { category: "床クリーン・ワックス", items: ["既ワックス剥離"] },
       { category: "エアコン", items: ["フィルター", "表面", "内部"] },
-      { category: "その他", items: ["ベランダ", "土間", "壁", "手すり", "木枠", "サンルーム", "コンセント", "配電盤", "倉庫"] },
+      { category: "その他", items: ["ベランダ", "土間", "壁", "手すり", "木枠", "サンルーム", "コンセントプレート", "配電盤", "倉庫"] },
       { category: "補修工事", items: ["塗装", "キズ補修"] }
     ];
 
-    // デザインBのフォーム状態（カテゴリindexごとに { manualTotal, items:[...] }）
+    // デザインBのフォーム状態（カテゴリindexごとに { manualTotal, items:[...], roomCount } ）
     let appStateB = {};
+
+    // =====================================
+    // デザインBのフォーム状態を初期値で生成する共通関数
+    // （新規作成時・リセット時の両方から呼び出す）
+    // =====================================
+    function createEmptyAppStateB_() {
+      const state = {};
+      MASTER_DATA_B.forEach((cat, idx) => {
+        state[idx] = {
+          manualTotal: null,  // カテゴリ合計金額の手動上書き値
+          items: [],           // 有効化された内容のリスト
+          roomCount: null       // 室数（和室・洋室のみ使用）
+        };
+      });
+      return state;
+    }
 
     // 新規作成時の初期化
     function initializeEstimateFormB() {
@@ -3296,10 +3312,7 @@
       currentOriginId = '';
       currentDesignType = 'B';
 
-      appStateB = {};
-      MASTER_DATA_B.forEach((cat, idx) => {
-        appStateB[idx] = { manualTotal: null, items: [] };
-      });
+      appStateB = createEmptyAppStateB_();
 
       try {
         document.getElementById('infoDate').valueAsDate = new Date();
@@ -3317,10 +3330,7 @@
 
     // フォームを完全にリセット（ログアウト・メニューに戻る時）
     function resetFormB_() {
-      appStateB = {};
-      MASTER_DATA_B.forEach((cat, idx) => {
-        appStateB[idx] = { manualTotal: null, items: [] };
-      });
+      appStateB = createEmptyAppStateB_();
       const ids = ['infoDate','infoEstimator','infoClient','infoClientContact','infoSubject','infoDeptNo','infoLayout','globalRemark'];
       ids.forEach(id => {
         const el = document.getElementById(id);
@@ -3364,6 +3374,17 @@
           </div>
 
           <div class="category-body">
+            ${(cat.category === '和室' || cat.category === '洋室') ? `
+              <div style="display:flex; align-items:center; gap:6px; margin-bottom:12px;">
+                <label style="font-size:12px; font-weight:bold; color:var(--text-muted);">室数:</label>
+                <input type="number" min="1"
+                  value="${catState.roomCount || ''}"
+                  placeholder="例: 2"
+                  style="width:60px; padding:6px; border:1px solid var(--border); border-radius:6px; font-size:14px; text-align:center;"
+                  onchange="updateRoomCountB(${catIdx}, this.value)">
+                <span style="font-size:12px; color:var(--text-muted);">室</span>
+              </div>
+            ` : ''}
             <div class="chip-section-title">内容を選択（タップで有効化）</div>
             <div class="chip-group">
               ${cat.items.map(itemName => {
@@ -3537,6 +3558,12 @@
       renderB();
     }
 
+    // 和室・洋室の「室数」を更新する（表示名にのみ反映。金額計算には影響しない）
+    function updateRoomCountB(catIdx, val) {
+      appStateB[catIdx].roomCount = val !== '' ? Number(val) : null;
+      renderB();
+    }
+
     function ungroupItemB(catIdx, itemId) {
       const list = appStateB[catIdx].items;
       const targetIdx = list.findIndex(i => i.id === itemId);
@@ -3660,6 +3687,8 @@
     // デザインBのフォーム内容 → 共通GAS保存フォーマット（details配列）への変換
     // ルール：各カテゴリの1件目＝itemCategoryにカテゴリ名＋確定金額（手動上書きがあればそれを採用）
     //         2件目以降＝itemCategoryは空、個別の金額をそのまま内訳として保持
+    //         和室・洋室は室数が入力されていれば「和室（2室）」のようにカテゴリ名へ付記する
+    //         （室数は表示ラベルのみに使用。金額計算には影響しない）
     // =====================================================================
     function getFormDataB() {
       const details = [];
@@ -3673,9 +3702,15 @@
         const autoTotal = items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
         const catTotalAmount = isManual ? Number(catState.manualTotal) : autoTotal;
 
+        // 和室・洋室のみ、室数が入力されていればカテゴリ名に反映する（例：「和室（2室）」）
+        const isRoomCategory = (cat.category === '和室' || cat.category === '洋室');
+        const categoryDisplayName = (isRoomCategory && catState.roomCount)
+          ? `${cat.category}（${catState.roomCount}室）`
+          : cat.category;
+
         items.forEach((item, idx) => {
           details.push({
-            itemCategory: idx === 0 ? cat.category : '',
+            itemCategory: idx === 0 ? categoryDisplayName : '',
             itemName: item.names.join(' ＋ '),
             itemQty: Number(item.qty) || 1,
             itemUnit: '式',
@@ -3712,6 +3747,7 @@
     // 注意：カテゴリ確定金額は「手動入力値」として復元します（保存時点で手動上書きだったか
     //       自動計算だったかは区別できないため）。自動計算に戻したい場合は各カテゴリの
     //       「自動」ボタンで再計算してください。
+    //       和室・洋室は「和室（2室）」のような表記から室数を分離して復元します。
     // =====================================================================
     function reflectFieldsDesignB_(formData, mode) {
       const main = formData.main || {};
@@ -3726,10 +3762,7 @@
       document.getElementById('infoLayout').value = main.layout || '';
       document.getElementById('globalRemark').value = main.remarks || '';
 
-      appStateB = {};
-      MASTER_DATA_B.forEach((cat, idx) => {
-        appStateB[idx] = { manualTotal: null, items: [] };
-      });
+      appStateB = createEmptyAppStateB_();
 
       const details = formData.details || [];
       let currentCatIdx = -1;
@@ -3739,8 +3772,13 @@
         const catName = (row.itemCategory || '').toString().trim();
 
         if (catName !== '') {
+          // 「和室（2室）」のような表記から、基本カテゴリ名と室数を分離する
+          const roomMatch = catName.match(/^(.+?)（(\d+)室）$/);
+          const baseCatName = roomMatch ? roomMatch[1] : catName;
+          const parsedRoomCount = roomMatch ? Number(roomMatch[2]) : null;
+
           // 新しいカテゴリの開始行（＝カテゴリ確定金額を持つ行）
-          const idx = MASTER_DATA_B.findIndex(c => c.category === catName);
+          const idx = MASTER_DATA_B.findIndex(c => c.category === baseCatName);
           if (idx === -1) {
             console.warn(`デザインBのマスターに存在しないカテゴリ「${catName}」の明細はスキップされました。`);
             currentCatIdx = -1;
@@ -3748,6 +3786,12 @@
             return;
           }
           currentCatIdx = idx;
+
+          // 室数が含まれていた場合は復元する（和室・洋室以外では通常nullのまま）
+          if (parsedRoomCount !== null) {
+            appStateB[idx].roomCount = parsedRoomCount;
+          }
+
           const names = (row.itemName || '').toString().split(' ＋ ').filter(Boolean);
           currentItem = {
             id: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
