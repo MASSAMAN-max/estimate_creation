@@ -3143,16 +3143,20 @@
         document.getElementById('loaderText').innerHTML = 
           `データ処理完了（${generatedId}）<br><span style="color: #cff5ff; font-weight: bold;">続けて見積書PDFを生成しています... (約5～10秒)</span>`;
         
-        // タイムアウト処理（30秒で制限）
-        const timeoutId = setTimeout(() => {
-          throw new Error('PDF generation timeout (30 seconds)');
-        } , 30000);
+        // タイムアウト処理（60秒で打ち切り）
+        // ⚠️修正：以前は setTimeout 内で throw していたため、
+        //   呼び出し元の try/catch に届かず「Uncaught Error」がコンソールに出るだけで
+        //   実際には fetch も中断されていなかった。
+        //   AbortController を使い、実際に fetch を中断してエラーを正しく catch できるようにする。
+        const abortController = new AbortController();
+        const timeoutId = setTimeout(() => abortController.abort(), 60000);
         
         let pdfResponse;
         try {
           pdfResponse = await fetch(GAS_WEB_APP_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain' },
+            signal: abortController.signal,
             body: JSON.stringify({
               action: 'savePdfToDriveBackground',
               payload: {
@@ -3177,7 +3181,11 @@
               }
             })
           });
-          
+        } catch (fetchError) {
+          if (fetchError.name === 'AbortError') {
+            throw new Error('PDF生成が60秒以内に完了しませんでした（タイムアウト）。データ量が多い場合は時間がかかることがあります。しばらくしてから「見積書を確認」メニューでPDFが作成されているかご確認ください。');
+          }
+          throw fetchError;
         } finally {
           clearTimeout(timeoutId);
         }
