@@ -3287,7 +3287,19 @@
       { category: "補修工事", items: ["塗装", "キズ補修"] }
     ];
 
-    // デザインBのフォーム状態（カテゴリindexごとに { manualTotal, items:[...], roomCount } ）
+    // =====================================
+    // カテゴリ名へ括弧書きで付記する「項目数量」を持つカテゴリと、その単位のマップ
+    // 例：「和室」なら室数 → 「和室（2室）」、「エアコン」なら台数 → 「エアコン（2台）」
+    // ※ここでの数量はあくまでカテゴリ名に付記する表示用ラベルであり、金額計算には使用しない
+    // カテゴリを追加したい場合はここに1行追加するだけでよい
+    // =====================================
+    const CATEGORY_COUNT_UNIT_MAP_B = {
+      '和室': '室',
+      '洋室': '室',
+      'エアコン': '台'
+    };
+
+    // デザインBのフォーム状態（カテゴリindexごとに { manualTotal, items:[...], categoryCount } ）
     let appStateB = {};
 
     // =====================================
@@ -3300,7 +3312,7 @@
         state[idx] = {
           manualTotal: null,  // カテゴリ合計金額の手動上書き値
           items: [],           // 有効化された内容のリスト
-          roomCount: null       // 室数（和室・洋室のみ使用）
+          categoryCount: null   // カテゴリ名へ付記する数量（室数・台数など。CATEGORY_COUNT_UNIT_MAP_Bで対象カテゴリを定義）
         };
       });
       return state;
@@ -3374,15 +3386,15 @@
           </div>
 
           <div class="category-body">
-            ${(cat.category === '和室' || cat.category === '洋室') ? `
+            ${CATEGORY_COUNT_UNIT_MAP_B[cat.category] ? `
               <div style="display:flex; align-items:center; gap:6px; margin-bottom:12px;">
-                <label style="font-size:12px; font-weight:bold; color:var(--text-muted);">室数:</label>
+                <label style="font-size:12px; font-weight:bold; color:var(--text-muted);">数量:</label>
                 <input type="number" min="1"
-                  value="${catState.roomCount || ''}"
+                  value="${catState.categoryCount || ''}"
                   placeholder="例: 2"
                   style="width:60px; padding:6px; border:1px solid var(--border); border-radius:6px; font-size:14px; text-align:center;"
-                  onchange="updateRoomCountB(${catIdx}, this.value)">
-                <span style="font-size:12px; color:var(--text-muted);">室</span>
+                  onchange="updateCategoryCountB(${catIdx}, this.value)">
+                <span style="font-size:12px; color:var(--text-muted);">${CATEGORY_COUNT_UNIT_MAP_B[cat.category]}</span>
               </div>
             ` : ''}
             <div class="chip-section-title">内容を選択（タップで有効化）</div>
@@ -3558,9 +3570,9 @@
       renderB();
     }
 
-    // 和室・洋室の「室数」を更新する（表示名にのみ反映。金額計算には影響しない）
-    function updateRoomCountB(catIdx, val) {
-      appStateB[catIdx].roomCount = val !== '' ? Number(val) : null;
+    // カテゴリ名へ付記する「項目数量」を更新する（表示名にのみ反映。金額計算には影響しない）
+    function updateCategoryCountB(catIdx, val) {
+      appStateB[catIdx].categoryCount = val !== '' ? Number(val) : null;
       renderB();
     }
 
@@ -3702,10 +3714,11 @@
         const autoTotal = items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
         const catTotalAmount = isManual ? Number(catState.manualTotal) : autoTotal;
 
-        // 和室・洋室のみ、室数が入力されていればカテゴリ名に反映する（例：「和室（2室）」）
-        const isRoomCategory = (cat.category === '和室' || cat.category === '洋室');
-        const categoryDisplayName = (isRoomCategory && catState.roomCount)
-          ? `${cat.category}（${catState.roomCount}室）`
+        // 対象カテゴリ（CATEGORY_COUNT_UNIT_MAP_Bで定義）のみ、数量が入力されていればカテゴリ名に反映する
+        // 例：「和室（2室）」「エアコン（2台）」
+        const countUnit = CATEGORY_COUNT_UNIT_MAP_B[cat.category];
+        const categoryDisplayName = (countUnit && catState.categoryCount)
+          ? `${cat.category}（${catState.categoryCount}${countUnit}）`
           : cat.category;
 
         items.forEach((item, idx) => {
@@ -3715,7 +3728,11 @@
             itemQty: Number(item.qty) || 1,
             itemUnit: '式',
             itemPrice: '',
+            // itemAmount：先頭行のみカテゴリ合計金額、2件目以降は各内容自身の金額（既存の他カテゴリと同じ挙動）
             itemAmount: idx === 0 ? catTotalAmount : (Number(item.amount) || 0),
+            // itemIndividualAmount：idx（0件目含む）にかかわらず、その内容自身の金額を常に保持
+            // （ガラス・サッシの「大・中・小」個別金額をPDFの20行目へ書き込む際に使用）
+            itemIndividualAmount: Number(item.amount) || 0,
             itemRemarks: item.remark || ''
           });
         });
@@ -3772,10 +3789,11 @@
         const catName = (row.itemCategory || '').toString().trim();
 
         if (catName !== '') {
-          // 「和室（2室）」のような表記から、基本カテゴリ名と室数を分離する
-          const roomMatch = catName.match(/^(.+?)（(\d+)室）$/);
-          const baseCatName = roomMatch ? roomMatch[1] : catName;
-          const parsedRoomCount = roomMatch ? Number(roomMatch[2]) : null;
+          // 「和室（2室）」「エアコン（2台）」のような表記から、基本カテゴリ名と数量を分離する
+          // （単位は「室」「台」など可変のため、括弧内の数字だけを抽出する汎用パターンにしている）
+          const countMatch = catName.match(/^(.+?)（(\d+)[^）]*）$/);
+          const baseCatName = countMatch ? countMatch[1] : catName;
+          const parsedCount = countMatch ? Number(countMatch[2]) : null;
 
           // 新しいカテゴリの開始行（＝カテゴリ確定金額を持つ行）
           const idx = MASTER_DATA_B.findIndex(c => c.category === baseCatName);
@@ -3787,9 +3805,9 @@
           }
           currentCatIdx = idx;
 
-          // 室数が含まれていた場合は復元する（和室・洋室以外では通常nullのまま）
-          if (parsedRoomCount !== null) {
-            appStateB[idx].roomCount = parsedRoomCount;
+          // 数量が含まれていた場合は復元する（対象カテゴリ以外では通常nullのまま）
+          if (parsedCount !== null) {
+            appStateB[idx].categoryCount = parsedCount;
           }
 
           const names = (row.itemName || '').toString().split(' ＋ ').filter(Boolean);
