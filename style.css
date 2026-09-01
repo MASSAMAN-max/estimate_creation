@@ -1,0 +1,960 @@
+/*
+ * style.css
+ * 見積書作成アプリ 全体スタイル
+ * （デザインA用の基本スタイル＋デザインB専用スタイル[.design-b-scope配下]を含む）
+ */
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --primary: #1976D2;
+      --primary-light: #42A5F5;
+      --primary-dark: #1565C0;
+      --success: #4CAF50;
+      --danger: #F44336;
+      --warning: #FF9800;
+      --gray-light: #F5F5F5;
+      --gray-border: #E0E0E0;
+      --text-primary: #212121;
+      --text-secondary: #666666;
+      --radius: 8px;
+    }
+
+    /* ページ全体のベーススタイル：フォント・背景・余白 */
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
+      margin: 0;
+      background-color: #FAFAFA;
+      color: var(--text-primary);
+      font-size: 16px;
+      line-height: 1.6;
+      font-weight: 500;
+    }
+
+    /* フォーム要素共通スタイル：input, select, textarea の標準化 */
+    input, select, textarea {
+      font-family: inherit;
+      font-size: 16px !important;
+      padding: 12px;
+      border: 2px solid var(--gray-border);
+      border-radius: 8px;
+      box-sizing: border-box;
+      background: white;
+    }
+
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      font-size: 24px;
+      vertical-align: middle;
+    }
+
+    .app-container {
+      max-width: 100%;
+      margin: 0 auto;
+      padding: 12px;
+      background: white;
+      min-height: 100vh;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--gray-border);
+    }
+
+    header h1 {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--primary);
+    }
+
+    .estimate-no-disp {
+      font-size: 12px;
+      color: var(--text-secondary);
+      background: var(--gray-light);
+      padding: 6px 12px;
+      border-radius: var(--radius);
+    }
+
+    .estimate-no-disp span {
+      font-weight: 600;
+      color: var(--primary);
+      font-size: 14px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    @media (min-width: 768px) {
+      .form-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    /* ⭕ フォーム要素：文字を16pxにしてスマホのズームを防止＋サイズ感を統一 */
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 10px;                  /* 🌟ゆったりした押しやすいサイズに変更 */
+      font-size: 16px !important;     /* 🌟16pxに固定してスマホの自動ズームを完全防止！ */
+      font-family: inherit;
+      background: white;
+      border: 2px solid var(--gray-border); /* 🌟線を2pxにして視認性をアップ */
+      border-radius: var(--radius);
+      box-sizing: border-box;
+      transition: all 0.2s ease;      /* 🌟じわっと変わるアニメーション */
+    }
+    
+    /* ⭕ フォーカス時：線を太くし、背景をわずかに変えて「選択中」を分かりやすく（2の要素） */
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      background: #fdfdfd;
+      box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.15); /* 🌟少し立体的な影に */
+    }
+
+    .dynamic-input-container {
+      margin-top: 8px;
+    }
+
+    .dynamic-input-container input {
+      padding: 8px 10px;
+      font-size: 13px;
+      border: 1px solid var(--warning);
+      background: #FFF3E0;
+    }
+
+    .table-section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 16px 0 12px 0;
+      gap: 8px;
+    }
+
+    .table-section-header label {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--primary);
+    }
+    /* 明細一覧カード */
+    .details-list {
+      display: grid;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .detail-card {
+      border: 1px solid var(--gray-border);
+      border-radius: var(--radius);
+      padding: 16px;
+      background: #FAFAFA;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+
+    /* 【1行目】項目(1) : 仕様・摘要(2) のレスポンシブ設定 */
+    .card-row-upper {
+      display: flex;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    @media (min-width: 768px) {
+      .card-row-upper {
+        display: flex;
+        grid-template-columns: 1fr;
+        align-items: flex-start;
+      }
+    }
+
+    /* 【2・3行目の土台】古いGridを解除して縦に並べる */
+    .card-row-lower {
+      display: block;
+    }
+    
+    /* 【2行目】数量(1) : 単位(1) : 単価(2) の比率設定 */
+    .item-grid-row-3col {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+    .item-grid-row-3col .form-group:nth-child(1) { flex: 1; }
+    .item-grid-row-3col .form-group:nth-child(2) { flex: 1; }
+    .item-grid-row-3col .form-group:nth-child(3) { flex: 2; }
+    .item-grid-row-3col .form-group:nth-child(4) { flex: 2; }
+    
+    /* 【3行目】金額(1) : 備考(2) の比率設定 */
+    .item-grid-row-2col {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .item-grid-row-2col .form-group:nth-child(1) { flex: 1; }
+    .item-grid-row-2col .form-group:nth-child(2) { flex: 2; }
+    
+    /* 【4行目】削除ボタンの配置（スマホは全幅、PCでは右寄せ） */
+    .item-delete-row {
+      display: flex;
+      justify-content: flex-end;
+      border-top: 1px dashed var(--gray-border);
+      padding-top: 12px;
+      margin-top: 12px;
+    }
+    .item-delete-row .btn-danger {
+      width: 100%;
+    }
+    @media (min-width: 768px) {
+      .item-delete-row .btn-danger {
+        width: auto;
+      }
+    }
+
+    .field-delete {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+    }
+
+    .form-group input[type="number"] {
+      text-align: right;
+    }
+
+    .form-group select {
+      cursor: pointer;
+    }
+
+    /* 🌟 金額ボックス：他の input/select とデザイン・サイズを完全統一 */
+    .amount-display-box {
+      width: 100%;
+      padding: 10px;                        /* 他の入力欄と同じ余白 */
+      font-size: 16px;           /* 他の入力欄と同じ文字サイズ */
+      font-weight: bold;
+      border: 1px solid var(--gray-border);
+      border-radius: var(--radius);
+      box-sizing: border-box;
+      background-color: #f8fafc;            /* 入力不可（自動計算）と一目でわかる上品な薄グレー */
+      color: var(--primary);                /* 金額は目立つようにテーマカラーに */
+      display: flex;
+      justify-content: space-between;       /* ¥マークを左端、数値を右端に綺麗に整列 */
+      align-items: center;
+      /*height: 48px;                         /* 入力欄と高さを「1ピクセル」の狂いもなく揃える固定値 */
+    }
+
+    /* 必須バッジ：赤い小さなラベル */
+    .badge-required {
+      background-color: #ef4444;
+      color: white;
+      position: relative;
+      top: -2px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+
+    /* ⭕ ボタン共通：文字を16px太字に、ホバー時に浮き上がるアニメーションを追加 */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-size: 16px;                /* 🌟文字サイズを16pxに統一 */
+      font-weight: bold;              /* 🌟しっかり目立つ太字に */
+      cursor: pointer;
+      border: none;
+      border-radius: var(--radius);
+      padding: 12px 24px;             /* 🌟横幅もゆったりしたサイズ感に */
+      box-sizing: border-box;
+      transition: all 0.2s ease;      /* 🌟動きを滑らかにする設定 */
+      text-decoration: none;
+    }
+    
+    /* プライマリボタン（保存・送信など） */
+    .btn-primary {
+      background-color: var(--primary);
+      color: white;
+      width: 100%;
+    }
+    .btn-primary:hover {
+      background-color: var(--primary-dark);
+      transform: translateY(-1px);    /* 浮かす */
+      box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3); /* 影を強くして立体感を出す */
+    }
+    
+    /* セカンダリボタン（追加・戻るなど） */
+    .btn-secondary {
+      background-color: var(--gray-light);
+      color: var(--primary);
+      border: 1px solid var(--gray-border);
+    }
+    .btn-secondary:hover {
+      background-color: #EEEEEE;
+      transform: translateY(-1px);    /* 浮かす */
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    }
+    
+    /* 危険・削除ボタン */
+    .btn.btn-danger {
+      background-color: var(--danger);
+      color: white;
+      font-size: 16px;
+      padding: 12px 6px;
+    }
+    .btn.btn-danger:hover {
+      background-color: #E53935;
+      transform: translateY(-1px);    /* 浮かす */
+      box-shadow: 0 4px 8px rgba(244, 67, 54, 0.3);
+    }
+    
+    .btn-sm {
+      background-color: var(--success);
+      color: white;
+      font-size: 16px;
+      padding: 12px 12px;
+      min-width: fit-content;
+    }
+
+    .btn-sm:hover {
+      background-color: #45a049;
+      transform: translateY(-1px);    /* 浮かす */
+      box-shadow: 0 4px 8px rgba(244, 67, 54, 0.3);
+    }
+
+    .btn-sm:disabled {
+      background-color: #a8f7a8;
+      cursor: not-allowed;
+    }
+     
+    .btn-sm.recording {
+      background-color: #F44336;
+      animation: pulse 1.5s infinite;
+    }
+     
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.7); }
+      50% { box-shadow: 0 0 0 8px rgba(244, 67, 54, 0); }
+    }
+
+    .voice-input-wrapper { display: flex; gap: 6px; }
+    .voice-input-wrapper input { flex: 1; }
+
+    /* マイク点滅アニメーション */
+    @keyframes blink {
+      0%, 49%, 100% { opacity: 1; }
+      50%, 99% { opacity: 0.3; }
+    }
+
+    .footer-flex {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    @media (min-width: 768px) {
+      .footer-flex { grid-template-columns: 2fr 1fr; }
+    }
+
+    .bottom-remarks {  grid-column: 1 / -1; }
+
+    .summary-box {
+      background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
+      color: white;
+      padding: 12px;
+      border-radius: var(--radius);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 16px;
+    }
+
+    .summary-row.total {
+      font-weight: 600;
+      font-size: 16px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    #loader {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 9999;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-top: 3px solid white;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    #loaderText {
+      color: white;
+      font-size: 14px;
+      text-align: center;
+    }
+
+    @media (max-width: 600px) {
+      .app-container {
+        padding: 8px;
+      }
+    }
+    
+    #loginScreen {
+      position: fixed; /* PCの親要素の幅制限などを無視して、画面全体を基準にする */
+      top: 0;
+      left: 0;
+      width: 100vw;               /* 画面の横幅いっぱいに広げる */
+      height: 100vh;              /* 画面の縦幅いっぱいに広げる */
+      display: flex;              /* 中身を整列させるモード */
+      justify-content: center;    /* 左右の真ん中 */
+      align-items: center;        /* 上下の真ん中 */
+      background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
+      z-index: 9999;              /* 他の要素よりも一番手前に表示する */
+      box-sizing: border-box;
+    }
+    .login-box {
+      background: white;
+      padding: 32px;
+      border-radius: var(--radius);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+      width: 90%;                 /* スマホでの画面はみ出しを防ぐ */
+      max-width: 350px;           /* PCでも大きくなりすぎないように制限 */
+      box-sizing: border-box;
+    }
+    .login-box input {
+      width: 100%;                /* 入力欄をボックスの横幅いっぱいに広げる */
+      padding: 10px;
+      font-size: 14px;
+      border: 1px solid var(--gray-border);
+      border-radius: var(--radius);
+      box-sizing: border-box;     /* パディングによる横幅はみ出しを防ぐ */
+    }
+
+    /* ⭕ ログアウトボタン：普段は馴染んで、ホバーすると赤くなる親切設計 */
+    .mini-logout-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 8px 14px;              /* フォームに合わせたサイズ感 */
+      font-size: 14px;
+      font-weight: bold;
+      background-color: #f1f5f9;
+      color: #64748b;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .mini-logout-btn .material-symbols-outlined {
+      font-size: 18px;
+    }
+    /* ホバー時に「赤（警告色）」に変身 */
+    .mini-logout-btn:hover {
+      background-color: #fee2e2;
+      color: #ef4444;
+      border-color: #fca5a5;
+      transform: translateY(-1px);
+    }
+    
+  
+
+    /* ============================================================
+       デザインB（新フォーマット）専用スタイル
+       ※ .design-b-scope 配下にのみ適用されるようスコープ変換済み
+       ============================================================ */
+    /* デザインB用のスコープ変数（.design-b-scope 配下にのみ適用。既存デザインAの --primary 等とは独立） */
+    .design-b-scope {
+      --primary: #2563eb;
+      --primary-light: #eff6ff;
+      --primary-dark: #1d4ed8;
+      --accent: #10b981;
+      --bg: #f1f5f9;
+      --card-bg: #ffffff;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --border: #cbd5e1;
+      --warning-bg: #fef3c7;
+      --warning-border: #f59e0b;
+
+      background-color: var(--bg);
+      color: var(--text);
+      padding-bottom: 140px; /* 下部固定バー用の余白 */
+      overflow-x: hidden;
+      display: block;
+    }
+
+    .container {
+      padding: 12px;
+      max-width: 600px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* 基本情報入力カード */
+    .info-card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 12px;
+      border: 1px solid var(--border);
+      width: 100%;
+    }
+
+    .info-card h2 {
+      font-size: 14px;
+      margin: 0 0 10px 0;
+      color: var(--primary-dark);
+      border-bottom: 2px solid var(--primary-light);
+      padding-bottom: 4px;
+    }
+
+    /* 基本情報のグリッドレイアウト（レスポンシブ対応） */
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      width: 100%;
+    }
+
+    /* スマホ画面（横幅480px以下）では1列表示にしてはみ出しを防止 */
+    @media (max-width: 480px) {
+      .info-grid {
+        grid-template-columns: 1fr;
+      }
+      .info-field.full-width {
+        grid-column: span 1 !important;
+      }
+    }
+
+    .info-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      width: 100%;
+    }
+
+    .info-field.full-width {
+      grid-column: span 2;
+    }
+
+    .info-field label {
+      font-size: 11px;
+      font-weight: bold;
+      color: var(--text-muted);
+    }
+
+    .info-field input, .info-field select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 13px;
+      background: #f8fafc;
+      box-sizing: border-box;
+      -webkit-appearance: none;
+    }
+
+    /* カテゴリカード */
+    .category-card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      margin-bottom: 12px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+      width: 100%;
+    }
+
+    /* ヘッダー部分 */
+    .category-header {
+      padding: 10px 14px;
+      background: #f8fafc;
+      font-weight: bold;
+      font-size: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .category-total-wrap {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 13px;
+      margin-left: auto;
+    }
+
+    .category-total-input {
+      width: 85px;
+      padding: 6px 6px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: bold;
+      text-align: right;
+      background: white;
+      color: var(--primary-dark);
+      transition: all 0.2s ease;
+    }
+
+    .category-total-input.manual-override {
+      background: var(--warning-bg);
+      border-color: var(--warning-border);
+      color: #b45309;
+    }
+
+    .btn-reset-manual {
+      background: #e2e8f0;
+      color: var(--text-muted);
+      border: none;
+      padding: 4px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      cursor: pointer;
+    }
+
+    .category-body {
+      padding: 12px;
+    }
+
+    /* チップ定義 */
+    .chip-section-title {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+
+    .chip-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .chip {
+      padding: 6px 10px;
+      background: #f1f5f9;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      font-size: 12px;
+      color: #334155;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .chip.selected {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary-dark);
+      font-weight: bold;
+      box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+    }
+
+    /* 有効化された項目カード */
+    .active-items-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .active-item-card {
+      background: #f8fafc;
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      padding: 10px;
+      position: relative;
+    }
+
+    .active-item-card.drag-over {
+      border-color: var(--accent);
+      background: #ecfdf5;
+    }
+
+    .item-main {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .item-handle {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: bold;
+      font-size: 13px;
+      color: var(--text);
+      word-break: break-all;
+    }
+
+    .drag-icon {
+      color: var(--text-muted);
+      cursor: grab;
+      font-size: 15px;
+      flex-shrink: 0;
+    }
+
+    /* 数量＆金額＆備考コントロール行 */
+    .controls-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      background: white;
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+
+    .quantity-control {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .quantity-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-right: 2px;
+    }
+
+    .btn-qty {
+      width: 24px;
+      height: 24px;
+      background: #f1f5f9;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-weight: bold;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .qty-input {
+      width: 44px;
+      text-align: center;
+      border: none;
+      font-size: 15px;
+      font-weight: bold;
+      padding: 2px 0;
+    }
+
+    .amount-wrap {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .amount-input {
+      width: 75px;
+      padding: 5px 4px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: bold;
+      text-align: right;
+    }
+
+    .btn-remark-toggle {
+      background: #f1f5f9;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+      margin-left: auto;
+    }
+
+    .btn-remark-toggle.active {
+      background: #e0e7ff;
+      color: var(--primary-dark);
+      border-color: #a5b4fc;
+      font-weight: bold;
+    }
+
+    .remark-field {
+      margin-top: 8px;
+    }
+
+    .remark-input {
+      width: 100%;
+      padding: 6px 8px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-size: 12px;
+      background: white;
+    }
+
+    .btn-ungroup {
+      background: #fee2e2;
+      color: #dc2626;
+      border: none;
+      padding: 3px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .btn-add-custom {
+      width: 100%;
+      padding: 8px;
+      background: white;
+      border: 1px dashed var(--primary);
+      color: var(--primary);
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: bold;
+      margin-top: 8px;
+      cursor: pointer;
+    }
+
+    /* 全体備考カード */
+    .global-remark-card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 12px;
+      border: 1px solid var(--border);
+      width: 100%;
+    }
+
+    .global-remark-card h2 {
+      font-size: 14px;
+      margin: 0 0 8px 0;
+      color: var(--text);
+    }
+
+    .global-remark-textarea {
+      width: 100%;
+      height: 80px;
+      padding: 8px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 13px;
+      resize: vertical;
+      font-family: inherit;
+    }
+
+    /* 固定ボトムバー（修正：改行レイアウト＆右端総合計） */
+    .bottom-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #0f172a;
+      color: white;
+      padding: 10px 12px;
+      box-shadow: 0 -4px 12px rgba(0,0,0,0.2);
+      z-index: 1000;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* 4項目の内訳（項目名と金額を縦に2行表示） */
+    .breakdown-grid {
+      display: grid;
+      grid-template-columns: repeat(4, auto);
+      gap: 6px 12px;
+      font-size: 10px;
+    }
+
+    @media (max-width: 400px) {
+      .breakdown-grid {
+        grid-template-columns: repeat(2, auto);
+        gap: 6px 10px;
+      }
+    }
+
+    .breakdown-item {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      color: #94a3b8;
+      line-height: 1.2;
+    }
+
+    .breakdown-item .label {
+      font-size: 10px;
+      white-space: nowrap;
+    }
+
+    .breakdown-item .value {
+      color: white;
+      font-weight: bold;
+      font-size: 12px;
+      margin-top: 2px;
+      white-space: nowrap;
+    }
+
+    /* 総合計金額（右端） */
+    .grand-total-wrap {
+      text-align: right;
+      padding-left: 8px;
+      border-left: 1px solid #334155;
+      flex-shrink: 0;
+    }
+
+    .grand-total-label {
+      font-size: 10px;
+      color: #94a3b8;
+      white-space: nowrap;
+    }
+
+    .grand-total-amount {
+      font-size: 18px;
+      font-weight: bold;
+      color: #38bdf8;
+      line-height: 1.2;
+      margin-top: 1px;
+      white-space: nowrap;
+    }
