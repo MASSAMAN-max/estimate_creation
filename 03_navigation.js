@@ -103,15 +103,9 @@
             loaderText.textContent = '過去の見積書を読み込んでいます...';
             await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 20)));
             
+            // ✅ 変更：「過去の見積書から作成」「見積書を確認」を統合したため、
+            //   一覧では各行にPDF表示ボタンとコピー作成ボタンを両方表示する（04_listModal.js 参照）
             await openEstimateListModal('estimate');
-            break;
-            
-          case 'VIEW_ESTIMATE':
-            appMode = 'VIEW_ESTIMATE';
-            loaderText.textContent = '見積書を読み込んでいます...';
-            await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 20)));
-            
-            await openEstimateListModal('view');
             break;
             
           case 'EDIT_DRAFT':
