@@ -342,14 +342,11 @@
         detailsContainer.innerHTML = ''; // 一旦完全にクリア
 
         if (detailsContainer && formData.details && formData.details.length > 0) {
-          // 📝 F12コンソールで元データの状態を正確に確認するためのログ
-          console.log('📊 [DEBUG 1] GASから届いた元データ(formData.details):', JSON.parse(JSON.stringify(formData.details)));
-          
           // --- ステップ9-A: 親項目の空白埋め ＆ 備考のみの行の統合 ---
           const cleanedDetails = [];
           let lastValidCategory = ''; 
           
-          formData.details.forEach((item, idx) => {
+          formData.details.forEach((item) => {
             // 元データの時点で親項目が明記されているか（空白・空文字でないか）を厳密に判定
             const isExplicitCategory = item.itemCategory && String(item.itemCategory).trim() !== '';
             
@@ -373,7 +370,6 @@
                 lastItem.itemRemarksList = lastItem.itemRemarks ? [lastItem.itemRemarks] : [];
               }
               lastItem.itemRemarksList.push(String(item.itemRemarks).trim());
-              console.log(`📝 [DEBUG 2] 行 ${idx} (備考のみ) を 直前の行「${lastItem.itemName}」の複数備考に統合しました`);
             } else {
               // 通常の明細行（または最初の行）
               item.itemRemarksList = item.itemRemarks ? [String(item.itemRemarks).trim()] : [];
@@ -381,9 +377,7 @@
             }
           });
 
-          console.log('✨ [DEBUG 3] お掃除（クレンジング）完了後のデータ:', JSON.parse(JSON.stringify(cleanedDetails)));
-
-          // --- ステップ9-B: 【最重要修正】明記されていた箇所を基準にカードを分割 ---
+          // --- ステップ9-B: 明記されていた箇所を基準にカードを分割 ---
           const groups = [];
           let currentGroup = [];
           
@@ -404,11 +398,8 @@
             groups.push(currentGroup);
           }
           
-          console.log('📦 [DEBUG 4] 最終的なグループ化（カード分割）結果:', groups);
-
           // --- ステップ9-C: カードの生成とデータ流し込み ---
-          groups.forEach((groupItems, gIdx) => {
-            console.log(`🃏 [DEBUG 5] カード ${gIdx + 1} を画面に生成します。内訳件数: ${groupItems.length}`, groupItems);
+          groups.forEach((groupItems) => {
             addTableRow(groupItems);
           });
 
@@ -420,7 +411,6 @@
           });
 
         } else {
-          console.log('📭 No details found, adding empty row');
           addTableRow();
         }
         
