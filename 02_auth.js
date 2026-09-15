@@ -74,11 +74,9 @@
           localStorage.removeItem('currentUser');
           currentUser = null;
           
-          document.getElementById('estimateForm').reset();
-          document.getElementById('detailsContainer').innerHTML = '';
+          resetAllForms_();
           document.getElementById('loginIdInput').value = '';
           document.getElementById('loginPasswordInput').value = '';
-          resetFormB_();
           showLoginScreen();
         }
       });
