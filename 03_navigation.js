@@ -150,9 +150,7 @@
         cancelButtonText: 'キャンセル'
       }).then((result) => {
         if (result.isConfirmed) {
-          document.getElementById('estimateForm').reset();
-          document.getElementById('detailsContainer').innerHTML = '';
-          resetFormB_();
+          resetAllForms_();
           showMenuScreen();
         }
       });
