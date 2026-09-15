@@ -1,8 +1,19 @@
 /**
  * 【このファイルの役割】
  * 複数のファイルから使われる小さな汎用関数（HTMLエスケープ、日付フォーマット、
- * 音声入力）をまとめている。
+ * 音声入力、フォーム全体のリセット）をまとめている。
  */
+
+    // =====================================
+    // デザインA・デザインB両方のフォームをまとめてリセットする共通関数
+    // ・ログアウト時／メニューに戻る時／保存完了時の3箇所で使用
+    // ・ログイン欄（ID・パスワード）のクリアはこの関数の対象外（呼び出し元で個別に行う）
+    // =====================================
+    function resetAllForms_() {
+      document.getElementById('estimateForm').reset();
+      document.getElementById('detailsContainer').innerHTML = '';
+      resetFormB_();
+    }
 
     function htmlEscape(text) {
       const map = {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'};
@@ -62,7 +73,11 @@
       };
      
       recognition.onerror = (event) => {
+        // ✅ 修正：ボタンの無効化解除・表示リセットが漏れていたため追加
+        //   （このまま解除しないと、エラー発生後は音声入力ボタンが永久に押せなくなるバグがあった）
         button.classList.remove('recording');
+        button.innerHTML = '<span class="material-symbols-outlined">mic</span>';
+        button.disabled = false;
         input.style.backgroundColor = '';
         input.style.borderColor = '';
         Swal.fire({
