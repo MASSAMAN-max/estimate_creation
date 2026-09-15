@@ -199,12 +199,8 @@
             confirmButtonText: '閉じる'
           });
 
-          if (isDesignB) {
-            resetFormB_();
-          } else {
-            document.getElementById('estimateForm').reset();
-            document.getElementById('detailsContainer').innerHTML = '';
-          }
+          // ✅ 変更：保存完了後は編集中でなかった側の入力内容も含め、両方のフォームをリセットする
+          resetAllForms_();
           showMenuScreen();
           return;
         }
@@ -322,13 +318,8 @@
           allowOutsideClick: false
         });
         
-        // フォーム初期化
-        if (isDesignB) {
-          resetFormB_();
-        } else {
-          document.getElementById('estimateForm').reset();
-          document.getElementById('detailsContainer').innerHTML = '';
-        }
+        // ✅ 変更：保存完了後は編集中でなかった側の入力内容も含め、両方のフォームをリセットする
+        resetAllForms_();
         showMenuScreen();
         
       } catch (error) {
