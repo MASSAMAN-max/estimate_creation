@@ -164,21 +164,6 @@
       box-shadow: 0 2px 4px rgba(0,0,0,0.02);
     }
 
-    /* 【1行目】項目(1) : 仕様・摘要(2) のレスポンシブ設定 */
-    .card-row-upper {
-      display: flex;
-      grid-template-columns: 1fr;
-      gap: 12px;
-      margin-bottom: 12px;
-    }
-    @media (min-width: 768px) {
-      .card-row-upper {
-        display: flex;
-        grid-template-columns: 1fr;
-        align-items: flex-start;
-      }
-    }
-
     /* 【2・3行目の土台】古いGridを解除して縦に並べる */
     .card-row-lower {
       display: block;
@@ -194,38 +179,6 @@
     .item-grid-row-3col .form-group:nth-child(2) { flex: 1; }
     .item-grid-row-3col .form-group:nth-child(3) { flex: 2; }
     .item-grid-row-3col .form-group:nth-child(4) { flex: 2; }
-    
-    /* 【3行目】金額(1) : 備考(2) の比率設定 */
-    .item-grid-row-2col {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 12px;
-    }
-    .item-grid-row-2col .form-group:nth-child(1) { flex: 1; }
-    .item-grid-row-2col .form-group:nth-child(2) { flex: 2; }
-    
-    /* 【4行目】削除ボタンの配置（スマホは全幅、PCでは右寄せ） */
-    .item-delete-row {
-      display: flex;
-      justify-content: flex-end;
-      border-top: 1px dashed var(--gray-border);
-      padding-top: 12px;
-      margin-top: 12px;
-    }
-    .item-delete-row .btn-danger {
-      width: 100%;
-    }
-    @media (min-width: 768px) {
-      .item-delete-row .btn-danger {
-        width: auto;
-      }
-    }
-
-    .field-delete {
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
-    }
 
     .form-group input[type="number"] {
       text-align: right;
