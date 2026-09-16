@@ -1,6 +1,6 @@
 /**
  * 【このファイルの役割】
- * 過去データ一覧モーダル（過去の見積書／見積書を確認／下書き編集）の
+ * 過去データ一覧モーダル（過去の見積書／下書き編集）の
  * 表示と、選択したデータの画面への復元処理。
  */
 
@@ -38,12 +38,9 @@
         // 初期化
         container.innerHTML = '<div style="text-align:center; color:var(--text-secondary);">読み込み中...</div>';
         
-        if (listType === 'view') {
-          modalTitle.textContent = '見積書を選択（確定見積のみ）';
-          displayViewEstimateList(result.data.estimates);
-        } else if (listType === 'estimate') {
-          modalTitle.textContent = '過去の見積書を選択';
-          displayCopyEstimateList(result.data.estimates);
+        if (listType === 'estimate') {
+          modalTitle.textContent = '過去の見積書（PDF表示／コピーして作成）';
+          displayEstimateList(result.data.estimates);
         } else if (listType === 'draft') {
           modalTitle.textContent = '下書きを選択';
           displayDraftList(result.data.drafts);
@@ -69,9 +66,11 @@
     }
      
     // =====================================
-    // 見積書確認リストの表示（URLハイパーリンク）
+    // 過去の見積書一覧の表示
+    // ・「見積書PDFを表示」「コピーして作成」の両方を各行に並べて表示する
+    //   （旧：displayViewEstimateList／displayCopyEstimateList を統合）
     // =====================================
-    function displayViewEstimateList(estimates) {
+    function displayEstimateList(estimates) {
       const container = document.getElementById('modalListContainer');
       container.innerHTML = '';
       
@@ -84,10 +83,13 @@
         const row = document.createElement('div');
         row.style = 'background:white; padding:12px; margin-bottom:8px; border-radius:6px; border:1px solid var(--gray-border); display:flex; flex-direction:column; gap:6px;';
         
-        // URLが存在する場合のみリンク表示
+        // PDFが存在する場合のみ「見積書PDFを表示」ボタンを表示（未作成の場合はボタンなしでその旨のみ表示）
         const fileUrlSection = item.fileUrl 
-          ? `<a href="${item.fileUrl}" target="_blank" style="color:#1976D2; text-decoration:underline; font-weight:bold;">📄 見積書PDFを表示</a>`
-          : '<span style="color:#999;">（PDFはまだ作成されていません）</span>';
+          ? `<a href="${item.fileUrl}" target="_blank" class="btn btn-secondary" style="padding:6px 12px; font-size:13px; width:auto; text-decoration:none;">
+               <span class="material-symbols-outlined" style="font-size:18px; vertical-align:middle;">description</span>
+               見積書PDFを表示
+             </a>`
+          : '<span style="color:#999; font-size:13px;">（PDFはまだ作成されていません）</span>';
         
         row.innerHTML = `
           <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text-secondary);">
@@ -95,44 +97,17 @@
             <span>作成日: ${formatDateToInput(item.date)}</span>
           </div>
           <div style="font-weight:600; color:var(--text-primary); font-size:14px;">${htmlEscape(item.client || '取引先名なし')} — <span style="font-weight:500; font-size:13px;">${htmlEscape(item.subject || '（件名なし）')}</span></div>
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px; flex-wrap:wrap; gap:8px;">
             <span style="color:var(--primary); font-weight:bold;">¥${Number(item.amount).toLocaleString()}</span>
-            ${fileUrlSection}
-          </div>
-        `;
-        container.appendChild(row);
-      });
-    }
-     
-    // =====================================
-    // 過去見積から作成用リストの表示
-    // =====================================
-    function displayCopyEstimateList(estimates) {
-      const container = document.getElementById('modalListContainer');
-      container.innerHTML = '';
-      
-      if (estimates.length === 0) {
-        container.innerHTML = '<div style="padding:16px; text-align:center; color:var(--text-secondary);">見積書データはありません。</div>';
-        return;
-      }
-      
-      estimates.forEach(item => {
-        const row = document.createElement('div');
-        row.style = 'background:white; padding:12px; margin-bottom:8px; border-radius:6px; border:1px solid var(--gray-border); display:flex; flex-direction:column; gap:6px;';
-        row.innerHTML = `
-          <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text-secondary);">
-            <span>ID: <b>${htmlEscape(String(item.id))}</b></span>
-            <span>作成日: ${formatDateToInput(item.date)}</span>
-          </div>
-          <div style="font-weight:600; color:var(--text-primary); font-size:14px;">${htmlEscape(item.client || '取引先名なし')} — <span style="font-weight:500; font-size:13px;">${htmlEscape(item.subject || '（件名なし）')}</span></div>
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
-            <span style="color:var(--primary); font-weight:bold;">¥${Number(item.amount).toLocaleString()}</span>
-            <button type="button" class="btn btn-primary" 
-                    style="padding:6px 12px; font-size:13px; width:auto;" 
-                    onclick="fetchAndReflectFields('${item.id}', 'COPY_CREATE')">
-                <span class="material-symbols-outlined" style="font-size:18px; vertical-align:middle;">assignment</span>
-                コピーして作成
-            </button>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              ${fileUrlSection}
+              <button type="button" class="btn btn-primary" 
+                      style="padding:6px 12px; font-size:13px; width:auto;" 
+                      onclick="fetchAndReflectFields('${item.id}', 'COPY_CREATE')">
+                  <span class="material-symbols-outlined" style="font-size:18px; vertical-align:middle;">assignment</span>
+                  コピーして作成
+              </button>
+            </div>
           </div>
         `;
         container.appendChild(row);
