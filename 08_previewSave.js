@@ -20,46 +20,85 @@
 
     function showPreviewDialog(data) {
       let detailRows = '';
-      
-      data.details.forEach((item, itemIndex) => {
-        // カテゴリ（新しいグループ）が変わったら空行を挿入
-        if (itemIndex > 0 && item.itemCategory) {
+
+      // ✅ 変更：見積管理シートの保存形式と同じ「項目行（カテゴリ合計金額のみ）→
+      //   各品名・仕様行」の構造でプレビュー表示する。
+      //   金額表示は "¥#,###" 形式に統一し、金額が0または空欄の場合は表示しない。
+      const formatYen_ = (value) => {
+        const num = Number(value);
+        if (!num) return ''; // 0・NaN・空文字はすべて空欄扱い
+        return '¥' + num.toLocaleString();
+      };
+
+      // ---- カテゴリごとにグループ化（05_データ保存.jsのsaveFormDataToSheets_と同じ考え方） ----
+      const groups = [];
+      let currentGroup = null;
+      data.details.forEach(item => {
+        const categoryDisplay = (item.itemCategory || '').toString().trim();
+        if (categoryDisplay !== '') {
+          currentGroup = { categoryDisplay: categoryDisplay, items: [] };
+          groups.push(currentGroup);
+        }
+        if (currentGroup) {
+          currentGroup.items.push(item);
+        } else {
+          currentGroup = { categoryDisplay: '', items: [item] };
+          groups.push(currentGroup);
+        }
+      });
+
+      groups.forEach((group, groupIndex) => {
+        // カテゴリの区切りとして空行を挿入（先頭グループの前には不要）
+        if (groupIndex > 0) {
           detailRows += `
             <tr style="height: 6px;">
               <td colspan="7" style="border: none; padding: 0;"></td>
             </tr>
           `;
         }
-        
-        const displayCategory = item.itemCategory ? htmlEscape(item.itemCategory) : '';
-        
-        // 品名または備考の表示
-        let displayName = htmlEscape(item.itemName || '');
-        if (!item.itemName && item.itemRemarks) {
-          displayName = htmlEscape(item.itemRemarks);
-        }
-        
-        const displayQty = item.itemQty !== "" ? item.itemQty : '';
-        const displayUnit = htmlEscape(item.itemUnit || '');
-        
-        //  単位が「式」であっても関係なく、データにある数値をそのまま100%出力する
-        const displayPrice = item.itemPrice !== "" ? ('¥' + Number(item.itemPrice).toLocaleString()) : '';
-        const displayAmount = item.itemAmount !== "" ? ('¥' + Number(item.itemAmount).toLocaleString()) : '';
-        
-        // データ側で1箇所だけに絞り込まれたフラグをそのまま判定に使用
-        let displayRemarks = item.isSubtotal ? '小計' : '';
-        
+
+        // カテゴリ合計金額（先頭itemのitemAmountに入っている）
+        const categoryTotalAmount = Number(group.items[0]?.itemAmount ?? 0);
+
+        // ---- 項目行：品名・数量・単位・単価は空欄、金額欄にカテゴリ合計、備考欄に「小計」 ----
         detailRows += `
           <tr>
-            <td style="border: 1px solid #ddd; padding: 4px;">${displayCategory}</td>
-            <td style="border: 1px solid #ddd; padding: 4px;">${displayName}</td>
-            <td style="border: 1px solid #ddd; padding: 4px; text-align: right;">${displayQty}</td>
-            <td style="border: 1px solid #ddd; padding: 4px;">${displayUnit}</td>
-            <td style="border: 1px solid #ddd; padding: 4px; text-align: right;">${displayPrice}</td>
-            <td style="border: 1px solid #ddd; padding: 4px; text-align: right;">${displayAmount}</td>
-            <td style="border: 1px solid #ddd; padding: 4px; font-size: 11px; color: #666; font-weight: bold;">${displayRemarks}</td>
+            <td style="border: 1px solid #ddd; padding: 4px;">${htmlEscape(group.categoryDisplay)}</td>
+            <td style="border: 1px solid #ddd; padding: 4px;"></td>
+            <td style="border: 1px solid #ddd; padding: 4px; text-align: right;"></td>
+            <td style="border: 1px solid #ddd; padding: 4px;"></td>
+            <td style="border: 1px solid #ddd; padding: 4px; text-align: right;"></td>
+            <td style="border: 1px solid #ddd; padding: 4px; text-align: right;">${formatYen_(categoryTotalAmount)}</td>
+            <td style="border: 1px solid #ddd; padding: 4px; font-size: 11px; color: #666; font-weight: bold;">小計</td>
           </tr>
         `;
+
+        // ---- 各品名・仕様の行 ----
+        group.items.forEach(item => {
+          // 品名または備考の表示
+          let displayName = htmlEscape(item.itemName || '');
+          if (!item.itemName && item.itemRemarks) {
+            displayName = htmlEscape(item.itemRemarks);
+          }
+
+          const displayQty = item.itemQty !== '' ? item.itemQty : '';
+          const displayUnit = htmlEscape(item.itemUnit || '');
+          const displayPrice = formatYen_(item.itemPrice);
+          // 各内容の個別金額：デザインBはitemIndividualAmount、デザインAはitemAmountに各内容自身の金額が入る
+          const displayAmount = formatYen_(item.itemIndividualAmount ?? item.itemAmount);
+
+          detailRows += `
+            <tr>
+              <td style="border: 1px solid #ddd; padding: 4px;"></td>
+              <td style="border: 1px solid #ddd; padding: 4px;">${displayName}</td>
+              <td style="border: 1px solid #ddd; padding: 4px; text-align: right;">${displayQty}</td>
+              <td style="border: 1px solid #ddd; padding: 4px;">${displayUnit}</td>
+              <td style="border: 1px solid #ddd; padding: 4px; text-align: right;">${displayPrice}</td>
+              <td style="border: 1px solid #ddd; padding: 4px; text-align: right;">${displayAmount}</td>
+              <td style="border: 1px solid #ddd; padding: 4px; font-size: 11px; color: #666; font-weight: bold;"></td>
+            </tr>
+          `;
+        });
       });
 
       const previewHtml = `
