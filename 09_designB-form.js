@@ -529,6 +529,7 @@
 
       details.forEach(row => {
         const catName = (row.itemCategory || '').toString().trim();
+        const hasNameInRow = row.itemName && String(row.itemName).trim() !== '';
 
         if (catName !== '') {
           // 「和室（2室）」「エアコン（2台）」のような表記から、基本カテゴリ名と数量を分離する
@@ -552,6 +553,16 @@
             appStateB[idx].categoryCount = parsedCount;
           }
 
+          // ✅ 修正：見積管理シートの保存形式変更（項目を独立行に分離）に対応。
+          //   カテゴリ名はあるが品名が空の行＝カテゴリ合計金額だけを運ぶ「項目行」。
+          //   カテゴリ判定・カテゴリ合計金額の復元だけ行い、内訳（items）には登録しない。
+          if (!hasNameInRow) {
+            const categoryAmount = (row.itemAmount === '' || row.itemAmount === undefined) ? null : Number(row.itemAmount);
+            appStateB[currentCatIdx].manualTotal = categoryAmount;
+            currentItem = null;
+            return;
+          }
+
           const names = (row.itemName || '').toString().split(' ＋ ').filter(Boolean);
           currentItem = {
             id: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
@@ -561,11 +572,10 @@
             remark: row.itemRemarks || '',
             showRemark: !!row.itemRemarks
           };
-          appStateB[currentCatIdx].manualTotal = currentItem.amount === '' ? null : currentItem.amount;
           appStateB[currentCatIdx].items.push(currentItem);
 
         } else if (currentCatIdx !== -1) {
-          const hasName = row.itemName && String(row.itemName).trim() !== '';
+          const hasName = hasNameInRow;
 
           if (hasName) {
             // 内訳の個別項目行
