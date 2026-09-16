@@ -13,7 +13,7 @@
     let MASTER_UNITS = [];
     
     // 現在のフォームの状態を追跡する管理変数
-    let appMode = 'NEW';      // 'MENU' | 'NEW_ESTIMATE' | 'PAST_ESTIMATE' | 'VIEW_ESTIMATE' | 'EDIT_DRAFT'
+    let appMode = 'NEW';      // 'MENU' | 'NEW_ESTIMATE' | 'PAST_ESTIMATE' | 'EDIT_DRAFT'
     let currentUser = null;   // ログインユーザー情報
     let currentMode = 'NEW';  // 'NEW'(新規), 'DRAFT_EDIT'(下書き編集), 'COPY_CREATE'(過去コピーから作成)
     let currentOriginId = ''; // 編集元・コピー元となったデータのIDを保持
