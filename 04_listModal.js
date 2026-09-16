@@ -320,14 +320,29 @@
           // --- ステップ9-A: 親項目の空白埋め ＆ 備考のみの行の統合 ---
           const cleanedDetails = [];
           let lastValidCategory = ''; 
+          let pendingCardStart = false; // 💡直前に「項目行」があった場合、次の実データ行をカード開始として扱うためのフラグ
           
           formData.details.forEach((item) => {
             // 元データの時点で親項目が明記されているか（空白・空文字でないか）を厳密に判定
             const isExplicitCategory = item.itemCategory && String(item.itemCategory).trim() !== '';
+            const hasName = item.itemName && String(item.itemName).trim() !== '';
             
             if (isExplicitCategory) {
               lastValidCategory = String(item.itemCategory).trim();
-              item.isCardStart = true; // 💡同じ名前でも、ここに文字があれば「新しいカードの開始」という目印を付ける
+            }
+
+            // ✅ 修正：見積管理シートの保存形式変更（項目を独立行に分離）に対応。
+            //   「カテゴリ名はあるが品名が空」の行＝カテゴリ合計金額だけを運ぶ「項目行」。
+            //   画面側の合計金額は内訳から動的に再計算されるため、この行自体は
+            //   内訳データとして使わず読み飛ばし、カード開始の目印だけ次の行に引き継ぐ。
+            if (isExplicitCategory && !hasName) {
+              pendingCardStart = true;
+              return; // この行はcleanedDetailsに含めない
+            }
+
+            if (isExplicitCategory || pendingCardStart) {
+              item.isCardStart = true; // 💡新しいカードの開始という目印を付ける
+              pendingCardStart = false;
             } else {
               item.isCardStart = false;
             }
@@ -335,7 +350,6 @@
             // 空白だった行には直前のカテゴリ名を引き継ぐ
             item.itemCategory = lastValidCategory || '（カテゴリなし）';
 
-            const hasName = item.itemName && String(item.itemName).trim() !== '';
             const hasRemarks = item.itemRemarks && String(item.itemRemarks).trim() !== '';
             
             // 【品名が空】かつ【備考がある】かつ【すでに1件以上データがある】場合は直前の行に統合
