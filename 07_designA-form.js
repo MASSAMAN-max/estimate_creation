@@ -325,7 +325,6 @@
       unitSelect.value = '';
       
       // 最初の1行には初期備考行を1つ追加
-      const remarksList = row.querySelector('.remarks-list');
       if (isFirst) {
         addRemarkRow(row.querySelector('.remarks-container button'));
       }
