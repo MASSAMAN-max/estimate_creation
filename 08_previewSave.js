@@ -75,17 +75,22 @@
 
         // ---- 各品名・仕様の行 ----
         group.items.forEach(item => {
+          // ✅ 修正：デザインAで「内容が2件以上」の場合、内容1（代表品名）の金額欄には
+          //   グループ全体の小計が入っている（上の項目行の合計金額と同じ値）。
+          //   そのままだと金額が二重に見えるため、内容1の行は品名以外を空欄にする。
+          const isSubtotalRow = item.isSubtotal === true;
+
           // 品名または備考の表示
           let displayName = htmlEscape(item.itemName || '');
           if (!item.itemName && item.itemRemarks) {
             displayName = htmlEscape(item.itemRemarks);
           }
 
-          const displayQty = item.itemQty !== '' ? item.itemQty : '';
-          const displayUnit = htmlEscape(item.itemUnit || '');
-          const displayPrice = formatYen_(item.itemPrice);
+          const displayQty = isSubtotalRow ? '' : (item.itemQty !== '' ? item.itemQty : '');
+          const displayUnit = isSubtotalRow ? '' : htmlEscape(item.itemUnit || '');
+          const displayPrice = isSubtotalRow ? '' : formatYen_(item.itemPrice);
           // 各内容の個別金額：デザインBはitemIndividualAmount、デザインAはitemAmountに各内容自身の金額が入る
-          const displayAmount = formatYen_(item.itemIndividualAmount ?? item.itemAmount);
+          const displayAmount = isSubtotalRow ? '' : formatYen_(item.itemIndividualAmount ?? item.itemAmount);
 
           detailRows += `
             <tr>
