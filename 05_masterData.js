@@ -39,7 +39,6 @@
           });
           clientSelect.innerHTML += '<option value="__NEW__">（新規取引先を入力する）</option>';
         }
-        // ※ 他に「担当者」や「品目」などのプルダウンをHTMLに組み立てる処理がこの下にあれば、その後に追記してください
       } catch (e) {
         console.error("マスタデータ取得失敗", e);
         Swal.fire({
@@ -77,20 +76,7 @@
         updateContactPersonList(select.value);
       }
     }
-    // ===== 取引先変更時の住所クリア処理 =====
-    // 住所欄をクリアする処理
-    function clearClientAddress() {
-      const select = document.getElementById('clientSelect');
-      const addressInput = document.getElementById('clientAddress');
-      
-      // 取引先が選択されていない、または新規の場合は住所をクリア
-      if (!select.value || select.value === '__NEW__') {
-        addressInput.value = '';
-      }
-      // 既存取引先を選択した場合も、住所はクリアする（パターンX要件）
-      // （この項目は手動で入力するように）
-    }
-    
+
     // ===== 取引先に紐付く担当者リストを更新する関数 =====
     function updateContactPersonList(selectedClient) {
       const contactPersonSelect = document.getElementById('contactPersonSelect');
