@@ -1,370 +1,592 @@
-// =====================================================================
-// 07_PDFデザインA
-// =====================================================================
-
 /**
  * 【このファイルの役割】
- * デザインA（従来フォーマット）専用のPDF生成処理。
- * テンプレートシートへのデータ流し込み〜PDFエクスポートまでを1関数で行う。
- * デザインBのロジックとは完全に独立している（08のファイルとは無関係）。
- * 結合セル対応の安全なセル書き込みヘルパー（setCellSafeA1_ / buildMergeMap_）は
- * デザインBとの共通処理のため 06_PDF共通.js に定義されている。
+ * デザインA（従来フォーマット）の入力フォーム専用ロジック。
+ * 明細カードの追加・編集・削除・金額計算・フォームデータの取得までを担当。
  */
 
-// =====================================
-// テンプレートシートにデータを流し込み、PDF生成保存（デザインA用）
-// =====================================
-function saveToDriveAsPdf_DesignA_(folder, estimateNo, data, loginUserName) {
-  const processLog = [];
-  let blob = null;
-  let pdfUrl = "";
-  let copySs = null;       
-  let mitsumoriSheet = null; 
-  let copyFile = null;     
-
-  try {
-    processLog.push(`【PDF 処理開始】作成者: ${loginUserName}`);
-
-    processLog.push("【1. テンプレート SS 取得】");
-    const templateSs = SS.TEMPLATE;
-    if (!templateSs) throw new Error("SS.TEMPLATE が定義されていません。");
-
-    const ssId = templateSs.getId();
-    const templateFile = DriveApp.getFileById(ssId);
-    processLog.push(`✓ テンプレート SS: ${templateFile.getName()}`);
-
-    processLog.push("【2. コピーファイル作成】");
-    const copyFileName = `御見積書_${estimateNo}_${data.clientName || "見積"}_作成者：${loginUserName}`;
-    copyFile = templateFile.makeCopy(copyFileName, folder); 
-    processLog.push(`✓ 作成: ${copyFile.getName()}`);
-
-    processLog.push("【3. スプレッドシートを開く】");
-    try {
-      copySs = SpreadsheetApp.open(copyFile); 
-      mitsumoriSheet = copySs.getSheets()[0]; 
-      processLog.push(`✓ SS を開きました: ${mitsumoriSheet.getName()}`);
-    } catch (openError) {
-      throw new Error(`スプレッドシートを開けません。エラー: ${openError.message}`);
-    }
-
-    processLog.push("【4. データ流し込み】");
-
-    // ✅ 修正：A1・A2・A3・K3・K4・L11・L12は結合セルのため、結合を考慮した
-    //   setCellSafeA1_ に統一（デザインBと共通の仕組み）。
-    //   結合セル情報は1回だけ取得して使い回すことで、書き込みごとに
-    //   getMergedRanges() を呼ぶより処理を高速化している。
-    const mergeMap = buildMergeMap_(mitsumoriSheet);
-
-    // 基本情報の書き込み
-    const clientName = (data.clientName || "お客様").trim();
-    const contactPerson = (data.contactPerson || "").trim();
-    
-    if (contactPerson) {
-      setCellSafeA1_(mitsumoriSheet, "A1", clientName, mergeMap);
-      setCellSafeA1_(mitsumoriSheet, "A2", contactPerson + " 様", mergeMap);
-    } else {
-      setCellSafeA1_(mitsumoriSheet, "A1", clientName + " 御中", mergeMap);
-      setCellSafeA1_(mitsumoriSheet, "A2", "", mergeMap);
-    }
-    
-    setCellSafeA1_(mitsumoriSheet, "A3", data.clientAddress || "", mergeMap);
-    setCellSafeA1_(mitsumoriSheet, "K3", "作成日：" + (data.estimateDate || ""), mergeMap);
-    setCellSafeA1_(mitsumoriSheet, "K4", "見積No. " + estimateNo, mergeMap);
-    setCellSafeA1_(mitsumoriSheet, "A5", data.subject || "", mergeMap);
-    setCellSafeA1_(mitsumoriSheet, "L11", data.paymentTerms || "", mergeMap); // 支払条件
-    setCellSafeA1_(mitsumoriSheet, "L12", data.validity || "", mergeMap);     // 有効期限
-    setCellSafeA1_(mitsumoriSheet, "A33", data.remarks || "", mergeMap);
-
-    // 明細データの条件分岐・流し込みロジック
-    if (data.details && data.details.length > 0) {
-      // 事前にユニークなカテゴリ数を正確にカウント
-      const uniqueCats = [...new Set(data.details.map(r => String(r.itemCategory || r.category || "").trim()).filter(Boolean))];
-      
-      let groupedItems = [];
-      let currentItem = null;
-      
-      data.details.forEach(row => {
-        let cat = (row.itemCategory || row.category || "").toString().trim();
-        const unit = String(row.itemUnit || row.unit || "").trim();
-        const qty = Number(row.itemQty ?? row.qty) || 0;
-        const price = Number(row.itemPrice ?? row.price) || 0;
-        const rowAmount = row.itemAmount ?? row.amount;
-        // ✅ 修正：itemAmountは「項目（カテゴリ）の合計金額」、itemIndividualAmountは
-        //   「この内容自身の金額」。カテゴリ先頭行では両者の値が異なる（itemAmount=カード全体の合計）
-        //   ため、明細に表示する金額はitemIndividualAmount（なければitemAmountにフォールバック）を使う
-        const rowIndividualAmount = row.itemIndividualAmount ?? rowAmount;
-        const rowName = row.itemName || row.name || "";
-        const rowRemarks = row.itemRemarks || row.remarks;
+    // =====================================
+    // 新規見積フォームの初期化（await で完了を待つ）
+    // =====================================
+    async function initializeEstimateForm() {
+      try {
+        // リセット
+        currentMode = 'NEW';
+        currentOriginId = '';
+        document.getElementById('estimateForm').reset();
+        document.getElementById('detailsContainer').innerHTML = '';
         
-        const displayAmount = Number(rowAmount ?? 0);               // 項目（カテゴリ）の合計金額
-        const displayIndividualAmount = Number(rowIndividualAmount ?? 0); // この内容自身の金額（明細表示用）
-        const isShiki = unit === "式";
-        const displayPrice = isShiki ? "" : price;
+        // マスターデータ取得（await で完了を待つ）
+        await loadMasterLists();
+        
+        // 今日の日付をセット
+        document.getElementById('estimateDate').value = new Date().toISOString().split('T')[0];
+        
+        // 初期行を1行追加
+        //for(let i = 0; i < 1; i++) addTableRow();
+        
+        updateTotalSummary();
+        
+      } catch (error) {
+        console.error('フォーム初期化エラー:', error);
+        throw error;  // エラーを上位に渡す
+      }
+    }
+     
+    // =====================================
+    // 明細行（親項目カード）を追加している関数
+    // =====================================
+    function addTableRow(itemData = null) {
+      const container = document.getElementById('detailsContainer');
+      const card = document.createElement('div');
+      card.className = 'detail-card';
       
-        let remarks;
-        if (Array.isArray(rowRemarks)) {
-          remarks = rowRemarks.filter(r => r && String(r).trim());
-        } else {
-          remarks = String(rowRemarks || "").split('\n').filter(r => r.trim());
+      const categoryOptions = MASTER_CATEGORIES.map(cat => `<option value="${htmlEscape(cat)}">${htmlEscape(cat)}</option>`).join('') + '<option value="__NEW__">＋新規項目</option>';
+
+      card.innerHTML = `
+        <div style="display: flex; gap: 6px; align-items: flex-start; margin-bottom: 12px; background: #fff; padding: 12px; border-radius: 4px; border: 1px solid #e9ecef; width: 100%; box-sizing: border-box;">
+          <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 0;">
+            <label style="font-weight: bold; color: #495057; display: block; margin-bottom: 4px;">親項目 <span class="badge-required">必須</span></label>
+            <select class="item-category-select" style="width: 100%; box-sizing: border-box;" onchange="toggleNewCategory(this)">
+              <option value="">-- 選択 --</option>
+              ${categoryOptions}
+            </select>
+            <div class="dynamic-input-container" style="display:none; margin-top: 5px;">
+              <input type="text" class="item-category-input" style="width: 100%; box-sizing: border-box;" placeholder="新規項目名">
+            </div>
+          </div>
+        </div>
+        
+        <div class="breakdown-container"></div>
+
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-top: 10px; border-top: 1px dashed #dee2e6; padding-top: 10px; width: 100%; box-sizing: border-box;">           
+          <div style="flex: 1; text-align: left;">
+            <button type="button" class="btn" style="background-color: #e8f5e9; color: #2e7d32; padding: 6px 12px; font-size: 14px; font-weight: bold;" onclick="addBreakdownRow(this.closest('.detail-card'), this.closest('.detail-card').querySelector('.breakdown-container'), false)">
+              <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle;">add</span> 内訳を追加
+            </button>
+          </div> 
+          <div style="flex: 1; max-width: 50%; min-width: 0; text-align: right;">
+            <label style="font-weight: bold; display: block; font-size: 12px; color: #6c757d; margin-bottom: 4px;">項目合計金額</label>
+            <div class="amount-display-box" style="background: #e3f2fd; padding: 6px 12px; border-radius: 4px; border: 1px solid #b3e5fc; font-weight: bold; font-size: 15px; color: #0d47a1; text-align: right; width: 100%; box-sizing: border-box; display: flex; justify-content: space-between; align-items: center;">
+              <span>¥</span>
+              <span class="card-total-amount" data-value="0">0</span>
+            </div>
+          </div>
+        </div>
+        
+        <div style="text-align: right; margin-top: 12px;">
+          <button type="button" class="btn btn-danger" style="padding: 6px 12px; font-size: 14px;" onclick="deleteTableRow(this)">
+            <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle;">delete</span> 項目ごと削除
+          </button>
+        </div>
+      `;
+      
+      container.appendChild(card);
+      
+      // ========== データがある場合は値を埋め込む（完全に条件分岐） ==========
+      if (itemData) {
+        try {
+          const isGroupData = Array.isArray(itemData);
+          if (isGroupData) {
+            // グループ（複数行）の場合 ➔ 内部でHTMLを直接 appendChild する（addBreakdownRowは呼ばない）
+            populateDetailCardWithGroup(card, itemData);
+          } else {
+            // 単一行の場合
+            populateDetailCard(card, itemData);
+          }
+        } catch (error) {
+          console.error('❌ Error populating card with data:', error);
+          throw error;
         }
+      } else {
+        // 💡 データが本当にない（新規作成ボタンを押した）時だけ、空の初期行を追加する
+        const breakdownContainer = card.querySelector('.breakdown-container');
+        if (typeof addBreakdownRow === 'function') {
+          addBreakdownRow(card, breakdownContainer, true);
+        }
+      }
+    }
+
+    // =====================================
+    // グループ（複数行）データを埋め込む関数
+    // =====================================
+    function populateDetailCardWithGroup(card, itemDataArray) {
+      if (!card || !itemDataArray || itemDataArray.length === 0) return;
       
-        // =====================================
-        // 📦 項目（カテゴリ）が存在するかどうかで完全判定
-        // =====================================
-        if (cat !== "") {
-          // 💡 項目が存在する行 ＝ 内容が合計された金額が存在する行
-          currentItem = {
-            category: cat,
-            contents: [{
-              name: rowName,
-              qty: qty,
-              unit: unit,
-              price: displayPrice,   
-              amount: displayIndividualAmount, 
-              remarks: remarks  
-            }],
-            totalAmount: displayAmount // フロントの合計金額をそのままメインシート用に採用（足し算は一切しない）
-          };
-          groupedItems.push(currentItem);
-        } else {
-          // 💡 項目が存在しない行 ＝ 内訳明細行（直前の項目グループにぶら下げる）
-          if (currentItem) {
-            currentItem.contents.push({
-              name: rowName,
-              qty: qty,
-              unit: unit,
-              price: displayPrice,
-              amount: displayIndividualAmount,
-              remarks: remarks  
-            });
-            // ※ メインシート用の金額（totalAmount）への足し算（+=）は絶対に行いません
+      try {
+        const firstItem = itemDataArray[0];
+        
+        // ========== ステップ1: 親項目（カテゴリ）をセット ==========
+        const categorySelect = card.querySelector('.item-category-select');
+        if (categorySelect) {
+          const category = firstItem.itemCategory || '';
+          categorySelect.value = category;
+          
+          if (!category) {
+            categorySelect.value = '__NEW__';
+            const inputContainer = card.querySelector('.dynamic-input-container');
+            const input = card.querySelector('.item-category-input');
+            if (inputContainer && input) {
+              inputContainer.style.display = 'block';
+              input.value = '';
+              input.required = true;
+            }
           }
         }
+        
+        // ========== ステップ2: 内訳コンテナを取得 ==========
+        const breakdownContainer = card.querySelector('.breakdown-container');
+        if (!breakdownContainer) {
+          throw new Error('breakdown-container が見つかりません');
+        }
+        
+        // ========== ステップ3: 各行の生成 ==========
+        itemDataArray.forEach((item, rowIndex) => {
+          const breakdownRow = document.createElement('div');
+          breakdownRow.className = 'breakdown-row';
+          breakdownRow.style = 'border: 1px solid #f1f3f5; padding: 8px; margin-bottom: 8px; border-radius: 4px; background: #fff;';
+          
+          const displayQty = item.itemQty || 1;
+          const displayUnit = item.itemUnit ? String(item.itemUnit).trim() : '式';
+          const displayPrice = Number(item.itemPrice || 0);
+          const displayAmount = Number(item.itemAmount || 0);
+          
+          // 数量・単位セレクトの生成
+          const qtyOptions = Array.from({length: 99}, (_, i) => 
+            `<option value="${i+1}" ${(i+1) === displayQty ? 'selected' : ''}>${i+1}</option>`
+          ).join('');
+          
+          const unitOptions = (!MASTER_UNITS.includes('式') ? '<option value="式">式</option>' : '') + 
+                              MASTER_UNITS.filter(u => u && u.trim()).map(u => 
+                                `<option value="${htmlEscape(u.trim())}" ${u === displayUnit ? 'selected' : ''}>${htmlEscape(u.trim())}</option>`
+                              ).join('');
+          
+          // 📝 備考のHTMLを事前に組み立てる（配列内のすべての備考をループで回す）
+          let remarksHtml = '';
+          const remarksArray = item.itemRemarksList || (item.itemRemarks ? [item.itemRemarks] : []);
+          
+          if (remarksArray.length > 0) {
+            remarksHtml = remarksArray.map(remarkVal => `
+              <div class="remark-row" style="display: flex; gap: 6px; align-items: center;">
+                <div class="voice-input-wrapper" style="flex: 1; display: flex; gap: 6px;">
+                  <input type="text" class="remark-input" value="${htmlEscape(String(remarkVal).trim())}" style="flex: 1;">
+                  <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)" style="padding: 4px 8px;">
+                    <span class="material-symbols-outlined" style="font-size: 14px;">mic</span>
+                  </button>
+                  <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.remark-row').remove()" style="padding: 4px 8px;">
+                    <span class="material-symbols-outlined" style="font-size: 14px;">delete</span>
+                  </button>
+                </div>
+              </div>
+            `).join('');
+          } else {
+            // 備考が1件もない場合は空の入力欄を1つだけ用意しておく
+            remarksHtml = `
+              <div class="remark-row" style="display: flex; gap: 6px; align-items: center;">
+                <div class="voice-input-wrapper" style="flex: 1; display: flex; gap: 6px;">
+                  <input type="text" class="remark-input" value="" style="flex: 1;">
+                  <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)" style="padding: 4px 8px;">
+                    <span class="material-symbols-outlined" style="font-size: 14px;">mic</span>
+                  </button>
+                  <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.remark-row').remove()" style="padding: 4px 8px;">
+                    <span class="material-symbols-outlined" style="font-size: 14px;">delete</span>
+                  </button>
+                </div>
+              </div>
+            `;
+          }
+
+          // メインHTMLの流し込み
+          breakdownRow.innerHTML = `
+            <div class="form-group" style="margin-top: 5px;">
+              <label>仕様・摘要 <span class="badge-required">必須</span></label>
+              <div class="voice-input-wrapper">
+                <input type="text" class="item-name" placeholder="品名・内容など" value="${htmlEscape(String(item.itemName || ''))}">
+                <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)"><span class="material-symbols-outlined">mic</span></button>
+              </div>
+            </div>
+      
+            <div class="card-row-lower" style="margin-bottom: 4px;">
+              <div class="item-grid-row-3col">
+                <div class="form-group">
+                  <label>数量</label>
+                  <select class="item-qty" onchange="calculateBreakdownAmount(this)">${qtyOptions}</select>
+                </div>
+                <div class="form-group">
+                  <label>単位</label>
+                  <select class="item-unit" onchange="checkUnitConstraint(this.closest('.detail-card'))">${unitOptions}</select>
+                </div>
+                <div class="form-group">
+                  <label>単価</label>
+                  <input type="number" class="item-price" min="0" value="${displayPrice}" oninput="calculateBreakdownAmount(this)">
+                </div>
+                <div class="form-group">
+                  <label>金額</label>
+                  <div class="amount-display-box"><span>¥</span><span class="item-amount" data-value="${displayAmount}">${displayAmount.toLocaleString()}</span></div>
+                </div>
+              </div>
+            </div>
+      
+            <div class="remarks-container" style="background: #f9f9f9; border: 1px dashed #e0e0e0; border-radius: 4px; padding: 8px; margin: 8px 0;">
+              <label style="font-size: 12px; color: #666; display: block; margin-bottom: 6px; font-weight: bold;">📝 備考（複数追加可）</label>
+              <div class="remarks-list" style="display: flex; flex-direction: column; gap: 6px;">
+                ${remarksHtml}
+              </div>
+              <button type="button" class="btn btn-sm" style="background-color: #e8f5e9; color: #2e7d32; padding: 4px 8px; font-size: 12px; margin-top: 6px;" onclick="addRemarkRow(this)">
+                <span class="material-symbols-outlined" style="font-size: 14px;">add</span> 備考を追加
+              </button>
+            </div>
+      
+            ${rowIndex > 0 ? `
+            <div style="text-align: left; margin-top: 2px; margin-bottom: 2px;">
+              <button type="button" class="btn btn-sm btn-danger" onclick="deleteBreakdownRow(this)" style="padding: 6px 12px; font-size: 14px; height: auto; line-height: 1; border-radius: 4px;">
+                <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle;">delete</span> 内訳を削除
+              </button>
+            </div>
+            ` : ''}
+          `;
+          
+          // DOMに追加
+          breakdownContainer.appendChild(breakdownRow);
+        });
+        
+        // ========== ステップ4: 全体の更新 ==========
+        checkUnitConstraint(card);
+        updateCardTotal(card);
+        
+      } catch (error) {
+        console.error('❌ Error in populateDetailCardWithGroup:', error);
+        throw error;
+      }
+    }
+
+    // =====================================
+    // 子行（内訳）を追加する関数
+    // =====================================
+    function addBreakdownRow(card, breakdownContainer, isFirst = false) {
+      const row = document.createElement('div');
+      row.className = 'breakdown-row';
+      row.style = 'border: 1px solid #f1f3f5; padding: 8px; margin-bottom: 8px; border-radius: 4px; background: #fff;';
+      
+      const qtyOptions = Array.from({length: 99}, (_, i) => `<option value="${i+1}">${i+1}</option>`).join('');
+      const unitOptions = (!MASTER_UNITS.includes('式') ? '<option value="式">式</option>' : '') + 
+                          MASTER_UNITS.filter(u => u && u.trim()).map(u => `<option value="${htmlEscape(u.trim())}">${htmlEscape(u.trim())}</option>`).join('');
+    
+      row.innerHTML = `
+        <div class="form-group" style="margin-top: 5px;">
+          <label>仕様・摘要 <span class="badge-required">必須</span></label>
+          <div class="voice-input-wrapper">
+            <input type="text" class="item-name" placeholder="品名・内容など">
+            <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)"><span class="material-symbols-outlined">mic</span></button>
+          </div>
+        </div>
+    
+        <div class="card-row-lower" style="margin-bottom: 4px;">
+          <div class="item-grid-row-3col">
+            <div class="form-group">
+              <label>数量</label>
+              <select class="item-qty" onchange="calculateBreakdownAmount(this)">${qtyOptions}</select>
+            </div>
+            <div class="form-group">
+              <label>単位</label>
+              <select class="item-unit" onchange="checkUnitConstraint(this.closest('.detail-card'))">${unitOptions}</select>
+            </div>
+            <div class="form-group">
+              <label>単価</label>
+              <input type="number" class="item-price" min="0" value="0" oninput="calculateBreakdownAmount(this)">
+            </div>
+            <div class="form-group">
+              <label>金額</label>
+              <div class="amount-display-box"><span>¥</span><span class="item-amount" data-value="0">0</span></div>
+            </div>
+          </div>
+        </div>
+    
+        <!-- 複数備考コンテナ -->
+        <div class="remarks-container" style="background: #f9f9f9; border: 1px dashed #e0e0e0; border-radius: 4px; padding: 8px; margin: 8px 0;">
+          <label style="font-size: 12px; color: #666; display: block; margin-bottom: 6px; font-weight: bold;">📝 備考（複数追加可）</label>
+          <div class="remarks-list" style="display: flex; flex-direction: column; gap: 6px;"></div>
+          <button type="button" class="btn btn-sm" style="background-color: #e8f5e9; color: #2e7d32; padding: 4px 8px; font-size: 12px; margin-top: 6px;" onclick="addRemarkRow(this)">
+            <span class="material-symbols-outlined" style="font-size: 14px;">add</span> 備考を追加
+          </button>
+        </div>
+    
+        ${!isFirst ? `
+        <div style="text-align: left; margin-top: 2px; margin-bottom: 2px;">
+          <button type="button" class="btn btn-sm btn-danger" onclick="deleteBreakdownRow(this)" style="padding: 6px 12px; font-size: 14px; height: auto; line-height: 1; border-radius: 4px;">
+            <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle;">delete</span> 内訳を削除
+          </button>
+        </div>
+        ` : ''}
+      `;
+    
+      breakdownContainer.appendChild(row);
+      
+      const unitSelect = row.querySelector('.item-unit');
+      unitSelect.value = '';
+      
+      // 最初の1行には初期備考行を1つ追加
+      if (isFirst) {
+        addRemarkRow(row.querySelector('.remarks-container button'));
+      }
+      
+      // 状態チェック後に金額計算を実行
+      checkUnitConstraint(card);
+      calculateBreakdownAmount(row.querySelector('.item-qty'));
+    }
+    
+    // =====================================
+    // 備考行を追加する関数
+    // =====================================
+    function addRemarkRow(addButton) {
+      const remarksList = addButton.closest('.remarks-container').querySelector('.remarks-list');
+      
+      const remarkRow = document.createElement('div');
+      remarkRow.className = 'remark-row';
+      remarkRow.style = 'display: flex; gap: 6px; align-items: center;';
+      
+      remarkRow.innerHTML = `
+        <div class="voice-input-wrapper" style="flex: 1; display: flex; gap: 6px;">
+          <input type="text" class="remark-input" placeholder="仕様・摘要（備考）を追加" style="flex: 1;">
+          <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)" style="padding: 4px 8px;">
+            <span class="material-symbols-outlined" style="font-size: 14px;">mic</span>
+          </button>
+          <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.remark-row').remove()" style="padding: 4px 8px;">
+            <span class="material-symbols-outlined" style="font-size: 14px;">delete</span>
+          </button>
+        </div>
+      `;
+      
+      remarksList.appendChild(remarkRow);
+      
+      // 新規追加した入力欄にフォーカス
+      remarkRow.querySelector('.remark-input').focus();
+    }
+
+    
+    // =====================================
+    // 内訳の数による単位制限ルールを制御する関数
+    // =====================================
+    // =====================================
+    // 【廃止】内容1（1行目）を数量・単位・単価固定にする制約
+    // ✅ 変更：内容1に他の内容の合計金額を持たせる仕組みを廃止し、
+    //   内容が何件あっても各内容が独立して自分の数量・単価・金額を持つ形にしたため、
+    //   このロック処理自体が不要になった。呼び出し元との整合性のため関数自体は残すが、
+    //   内部では何もしない（空実装）。
+    // =====================================
+    function checkUnitConstraint(card) {
+      // 何もしない（内容1のロック制約は廃止）
+    }
+
+    // =====================================
+    // 項目行（親）を削除する関数
+    // =====================================
+    function deleteTableRow(button) {
+      button.closest('.detail-card').remove();
+      updateTotalSummary();
+    }
+
+    // =====================================
+    // 内訳行（子）を削除する関数
+    // =====================================
+    function deleteBreakdownRow(button) {
+      const card = button.closest('.detail-card');
+      const row = button.closest('.breakdown-row');
+      
+      row.remove();
+      
+      requestAnimationFrame(() => {
+        checkUnitConstraint(card);
+        updateCardTotal(card);
+      });
+    }
+
+    // =====================================
+    // 内訳の金額計算 ＆ 親カード合計の連動関数
+    // =====================================
+    function calculateBreakdownAmount(element) {
+      const card = element.closest('.detail-card');
+      const row = element.closest('.breakdown-row');
+      
+      if (row) {
+        const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+        const price = parseFloat(row.querySelector('.item-price').value) || 0;
+        
+        const amount = Math.floor(qty * price); 
+        
+        const amountSpan = row.querySelector('.item-amount');
+        amountSpan.textContent = amount.toLocaleString();
+        amountSpan.dataset.value = amount; 
+      }
+      
+      // 親カードの合計を更新
+      updateCardTotal(card);
+    }
+
+    // =====================================
+    // カード内の合計金額を計算・同期する関数
+    // ✅ 変更：内容1に他の内容の合計を代入する仕組みを廃止したため、
+    //   ロック判定なしで、全内容（内容1含む）の金額を単純合計するだけのシンプルな処理にした
+    // =====================================
+    function updateCardTotal(card) {
+      const rows = card.querySelectorAll('.breakdown-row');
+      if (rows.length === 0) return;
+      
+      let cardSubtotal = 0;
+      for (let i = 0; i < rows.length; i++) {
+        const span = rows[i].querySelector('.item-amount');
+        cardSubtotal += parseFloat(span.dataset.value) || 0;
+      }
+      
+      const totalSpan = card.querySelector('.card-total-amount');
+      if (totalSpan) {
+        totalSpan.textContent = cardSubtotal.toLocaleString();
+        totalSpan.dataset.value = cardSubtotal;
+      }
+      
+      updateTotalSummary();
+    }
+    
+    // =====================================
+    // 全体の合計や消費税を計算している関数
+    // =====================================
+    function updateTotalSummary() {
+      let subtotal = 0;
+      // 各親項目の「合計金額ボックス」から値を集計します
+      document.querySelectorAll('.card-total-amount').forEach(span => {
+        subtotal += parseFloat(span.dataset.value) || 0;
       });
       
-      // ✅ 変更：内容1が「グループの小計」ではなく自分自身の金額を持つ形になったため、
-      //   従来あった「内容1の備考に"小計"を追加する」処理は廃止（意味を失ったため）
+      const tax = Math.floor(subtotal * 0.1);
+      const total = subtotal + tax;
+      
+      document.getElementById('subtotalLabel').textContent = subtotal.toLocaleString();
+      document.getElementById('taxLabel').textContent = tax.toLocaleString();
+      document.getElementById('totalLabel').textContent = total.toLocaleString();
+      document.getElementById('totalLabel').dataset.value = total;
+    }
 
-      const isGroupedCountLarge = uniqueCats.length >= 9;
+    // =====================================
+    // 画面入力値を集める関数
+    // =====================================
+    function getFormData() {
+      const clientSelect = document.getElementById('clientSelect');
+      let finalClientName = clientSelect.value;
+      if(finalClientName === '__NEW__') {
+        finalClientName = document.getElementById('clientName').value.trim();
+      }
+      
+      const contactPersonSelect = document.getElementById('contactPersonSelect');
+      let finalContactPerson = contactPersonSelect.value;
+      if(finalContactPerson === '__NEW__') {
+        finalContactPerson = document.getElementById('contactPersonName').value.trim();
+      } else if (!finalContactPerson) {
+        finalContactPerson = '';
+      }
+      
+      const details = [];
+      
+      // 各カード（グループ）ごとに処理
+      document.querySelectorAll('.detail-card').forEach(card => {
+        const catSelect = card.querySelector('.item-category-select');
+        let finalCategory = catSelect.value;
+        if(finalCategory === '__NEW__') {
+          finalCategory = card.querySelector('.item-category-input').value.trim();
+        }
+        
+        const rows = card.querySelectorAll('.breakdown-row');
+        if (rows.length === 0) return;
 
-      // =====================================
-      // 「通常展開（フルデータ）」の二次元配列を作成（※明細シート用）
-      // =====================================
-      let fullRowsData = [];
-      groupedItems.forEach((item, itemIndex) => {
-        item.contents.forEach((content, index) => {
-          let rowArray = ["", "", "", "", "", "", "", "", "", "", "", ""];
+        // ✅ 変更：内容1に他の内容の合計金額を持たせる仕組みを廃止。
+        //   各内容（内容1含む）が常に自分自身の数量・単価・金額を独立して持つ。
+        //   カード全体の合計金額（項目行の金額として使う）は、全内容の金額を単純合計して求める。
+        let cardTotalAmount = 0;
+        rows.forEach(row => {
+          const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+          const priceVal = row.querySelector('.item-price').value.trim();
+          const price = priceVal === '' ? 0 : (parseFloat(priceVal) || 0);
+          cardTotalAmount += Math.floor(qty * price);
+        });
+        
+        // 各行（内容1、内容2、内容3...）のデータ生成
+        rows.forEach((row, index) => {
+          const name = row.querySelector('.item-name').value.trim();
+          const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+          const unit = row.querySelector('.item-unit').value.trim();
+          const priceVal = row.querySelector('.item-price').value.trim();
+          const price = priceVal === '' ? 0 : (parseFloat(priceVal) || 0);
+          const amount = Math.floor(qty * price);
           
-          let displayName = content.name || "";
+          // 値のクレンジング（空なら「式」）
+          const finalUnit = unit || '式';
           
-          if (index === 0) {
-            rowArray[0] = item.category;
-            rowArray[2] = displayName;
-            rowArray[7] = content.qty || "";
-            rowArray[8] = content.unit;
-            rowArray[9] = content.price;      
-            rowArray[10] = content.amount;    
-            rowArray[11] = "";
-          } else {
-            rowArray[2] = displayName;
-            rowArray[7] = content.qty || "";
-            rowArray[8] = content.unit || "";
-            rowArray[9] = content.price || "";
-            rowArray[10] = content.amount || "";
-            rowArray[11] = ""; 
-          }
-
-          const isRowEmpty = !displayName && 
-                             (!content.qty || content.qty === 0) && 
-                             !content.unit && 
-                             (!content.price || content.price === 0) && 
-                             (!content.amount || content.amount === 0);
-
-          if (!(index > 0 && isRowEmpty)) { fullRowsData.push(rowArray); }
-          
-          if (content.remarks && content.remarks.length > 0) {
-            content.remarks.forEach(remark => {
-              let remarkRow = ["", "", "", "", "", "", "", "", "", "", "", ""];
-              remarkRow[2] = remark; 
-              fullRowsData.push(remarkRow);
+          // 品名がある、または内容1でカテゴリがある場合は行を追加
+          if(name !== "" || (index === 0 && finalCategory !== "")) {
+            
+            // 1. 品名行の追加
+            details.push({
+              itemCategory: (index === 0) ? finalCategory : "",
+              itemName: name,
+              itemQty: qty,
+              itemUnit: finalUnit,
+              itemPrice: price,
+              // itemAmount：先頭行のみカード全体の合計金額（05_データ保存.js側で項目行の金額として使用）、
+              //   2件目以降は各内容自身の金額（既存の他カテゴリと同じ挙動）
+              itemAmount: (index === 0) ? cardTotalAmount : amount,
+              // itemIndividualAmount：idx（0件目含む）にかかわらず、その内容自身の金額を常に保持
+              itemIndividualAmount: amount,
+              itemRemarks: ""
             });
+          
+            // 2. 備考行の追加（ 空文字は完全に除外して行詰めする）
+            const remarksList = row.querySelector('.remarks-list');
+            if (remarksList) {
+              const remarksArray = Array.from(remarksList.querySelectorAll('.remark-input'))
+                .map(input => input.value.trim())
+                .filter(r => r !== ''); // 文字が入っているものだけを抽出
+                
+              remarksArray.forEach(remark => {
+                details.push({
+                  itemCategory: "",  
+                  itemName: "",
+                  itemQty: "",
+                  itemUnit: "",
+                  itemPrice: "",
+                  itemAmount: "",
+                  itemIndividualAmount: "",
+                  itemRemarks: remark  
+                });
+              });
+            }
           }
         });
-      
-        // ✅ 修正：カテゴリ数が多い場合（isGroupedCountLarge）は空行を挿入しない。
-        //   これにより、実際に書き込まれる行数（totalFullRows）が「空行を挿入しない条件」を
-        //   正しく反映した数になる（16行判定とズレないようにするため）
-        if (!isGroupedCountLarge && itemIndex < groupedItems.length - 1) {
-          fullRowsData.push(["", "", "", "", "", "", "", "", "", "", "", ""]);
-        }
       });
       
-      let totalFullRows = fullRowsData.length;
-      
-      // =====================================
-      // 「見積書用ダイジェスト」の二次元配列を作成（※メインシート用）
-      // =====================================
-      let estimateRowsData = [];
+      const getValueFromDisplay = (elementId) => {
+        const el = document.getElementById(elementId);
+        if (!el) return 0;
+        // input要素なら.value、divやspanなどのパーツなら.textContentを取得
+        const rawText = el.tagName === 'INPUT' ? el.value : el.textContent;
+        // 「¥」や「,」や空白など、数字とマイナス・ピリオド以外の文字をすべて綺麗に消去して数値化
+        return Math.floor(Number(rawText.replace(/[^0-9.-]/g, ''))) || 0;
+      };
 
-      groupedItems.forEach((item, index) => {
-        let rowArray = ["", "", "", "", "", "", "", "", "", "", "", ""];
-        let firstContent = item.contents[0];
-        
-        let displayName = firstContent ? (firstContent.name || "") : "";
-        
-        rowArray[0] = item.category;
-        rowArray[2] = displayName;
-        rowArray[7] = firstContent ? (firstContent.qty || "") : "";
-        rowArray[8] = firstContent ? firstContent.unit : "";
-        rowArray[9] = firstContent ? firstContent.price : "";
-        rowArray[10] = item.totalAmount;     // 💡 項目行から直接取得した合計金額をそのまま100%信頼して流し込み
-        rowArray[11] = ""; 
-        
-        estimateRowsData.push(rowArray);
-        
-        if (!isGroupedCountLarge && index < groupedItems.length - 1) {
-          estimateRowsData.push(["", "", "", "", "", "", "", "", "", "", "", ""]);
-        }
-      });
+      const currentSubtotal = getValueFromDisplay('subtotalLabel'); 
+      const currentTax      = getValueFromDisplay('taxLabel');      
+      const currentTotal    = getValueFromDisplay('totalLabel');    
 
-      // =====================================
-      // 末尾に追加するサマリー3行（小計・消費税・合計）の定義
-      // =====================================
-      const subtotalAmount = data.subtotal ?? 0;
-      const taxAmount = data.tax ?? data.taxAmount ?? 0;
-      const finalTotal = data.totalAmount ?? data.total ?? 0;
-
-      const summaryRows = [
-        ["", "", "", "", "", "", "", "", "", "                                        小 計  （税抜）", subtotalAmount, ""],
-        ["", "", "", "", "", "", "", "", "", "                                        消 費 税 10%", taxAmount, ""],
-        ["", "", "", "", "", "", "", "", "", "                                        合 計  （税込）", finalTotal, ""]
-      ];
-
-      let maxMeisaiUsed = 0;
-
-      // =====================================
-      // 4. 【条件分岐】合計行数および親項目数に応じた書き込み処理
-      // =====================================
-      if (totalFullRows <= 16) {
-        let finalRows = [...fullRowsData];
-        while (finalRows.length < 16) {
-          finalRows.push(["", "", "", "", "", "", "", "", "", "", "", ""]);
-        }
-        if (finalRows.length > 16) finalRows = finalRows.slice(0, 16);
-        mitsumoriSheet.getRange(15, 2, 16, 12).setValues(finalRows); 
-        maxMeisaiUsed = 0; 
-        processLog.push(`✓ パターン1: 見積書シートに明細データを16行書き込み（明細シートなし）`);
-      } else {
-        estimateRowsData.forEach(row => { row[9] = ""; }); 
-        while (estimateRowsData.length < 16) {
-          estimateRowsData.push(["", "", "", "", "", "", "", "", "", "", "", ""]);
-        }
-        if (estimateRowsData.length > 16) estimateRowsData = estimateRowsData.slice(0, 16);
-        mitsumoriSheet.getRange(15, 2, 16, 12).setValues(estimateRowsData);
-
-        let sheetIndex = 1;
-        let currentSheetRows = [];
-        let k = 0;
-        
-        while (true) {
-          let remainingDataRows = fullRowsData.length - k;
-          if (remainingDataRows <= 21) {
-            while (k < fullRowsData.length) {
-              currentSheetRows.push(fullRowsData[k]);
-              k++;
-            }
-            while (currentSheetRows.length < 21) {
-              currentSheetRows.push(["", "", "", "", "", "", "", "", "", "", "", ""]);
-            }
-            currentSheetRows = currentSheetRows.concat(summaryRows);
-            // 「最終シート」書き込み部分
-            let meisaiSheet = copySs.getSheetByName("明細" + sheetIndex);
-            if (!meisaiSheet) {
-              meisaiSheet = createAdditionalMeisaiSheet_(copySs, sheetIndex);
-            }
-            meisaiSheet.getRange(4, 2, 24, 12).setValues(currentSheetRows);
-            maxMeisaiUsed = sheetIndex;
-            processLog.push(`✓ 明細${sheetIndex}（最終シート）の末尾に小計・税・合計を書き込み`);
-            break; 
-          } else {
-            for (let i = 0; i < 23; i++) {
-              if (k < fullRowsData.length) {
-                currentSheetRows.push(fullRowsData[k]);
-                k++;
-              }
-            }
-            while (currentSheetRows.length < 23) {
-              currentSheetRows.push(["", "", "", "", "", "", "", "", "", "", "", ""]);
-            }
-            currentSheetRows.push(["", "", "", "", "", "", "", "", "", "", "", "次のページへ"]);
-            // 「最終シート」書き込み部分
-            let meisaiSheet = copySs.getSheetByName("明細" + sheetIndex);
-            if (!meisaiSheet) {
-              meisaiSheet = createAdditionalMeisaiSheet_(copySs, sheetIndex);
-            }
-            meisaiSheet.getRange(4, 2, 24, 12).setValues(currentSheetRows);
-            maxMeisaiUsed = sheetIndex;
-            processLog.push(`✓ 明細${sheetIndex}（最終シート）の末尾に小計・税・合計を書き込み`);
-            sheetIndex++;
-            currentSheetRows = [];
-          }
-        }
-      }
-
-      // =====================================
-      // ページ番号設定
-      // =====================================
-      const totalPages = maxMeisaiUsed + 1;
-
-      mitsumoriSheet.getRange("M36").setValue(`P. 1/${totalPages}`);
-      for (let i = 1; i <= maxMeisaiUsed; i++) {
-        const meisaiSheet = copySs.getSheetByName(`明細${i}`);
-        if (meisaiSheet) {
-          meisaiSheet.getRange("M29").setValue(`P. ${i + 1}/${totalPages}`);
-        }
-      }
-
-      // =====================================
-      // 不要な明細シート削除（自動増設にも対応：全シートを走査して判定）
-      // =====================================
-      copySs.getSheets().forEach(sh => {
-        const match = sh.getName().match(/^明細(\d+)$/);
-        if (match) {
-          const idx = parseInt(match[1], 10);
-          if (idx > maxMeisaiUsed) {
-            copySs.deleteSheet(sh);
-          }
-        }
-      });
+      return {
+        clientName: finalClientName,
+        contactPerson: finalContactPerson,
+        clientAddress: document.getElementById('clientAddress').value.trim(),
+        estimateDate: document.getElementById('estimateDate').value,
+        subject: document.getElementById('subject').value.trim(),
+        validity: document.getElementById('validity').value.trim(),
+        paymentTerms: document.getElementById('paymentTerms').value.trim(),
+        remarks: document.getElementById('remarks').value.trim(),
+        details: details,
+        // すでに画面で正しく計算・表示されている値をそのまま使い回す
+        subtotal: currentSubtotal,
+        tax: currentTax,
+        total: currentTotal
+      };
     }
-
-    SpreadsheetApp.flush();
-    processLog.push(`✓ スプレッドシート保存を確定`);
-    Utilities.sleep(1000);  
-
-  } catch (dataError) {
-    throw new Error(`データ流し込み失敗。エラー: ${dataError.message}`);
-  }
-
-  processLog.push("【5. PDF エクスポート】");
-  try {
-    blob = exportSpreadsheetToPdfBlob_(copySs.getId());
-  } catch (exportError) {
-    throw new Error(`PDF エクスポート失敗。エラー: ${exportError.message}`);
-  }
-
-  processLog.push("【6. PDF をフォルダに保存 / 7. クリーンアップ】");
-  let fileName = `御見積書_${estimateNo}_${data.clientName || "見積"}_（${loginUserName}）.pdf`;
-  try {
-    pdfUrl = saveBlobToFolderAndCleanup_(blob, folder, fileName, copyFile);
-  } catch (saveError) {
-    throw new Error(`フォルダへの保存失敗。エラー: ${saveError.message}`);
-  }
-
-  return {
-    success: true,
-    pdfUrl: pdfUrl,
-    fileName: fileName,
-    log: processLog.join("\n")
-  };
-}
