@@ -366,38 +366,15 @@
     // =====================================
     // 内訳の数による単位制限ルールを制御する関数
     // =====================================
+    // =====================================
+    // 【廃止】内容1（1行目）を数量・単位・単価固定にする制約
+    // ✅ 変更：内容1に他の内容の合計金額を持たせる仕組みを廃止し、
+    //   内容が何件あっても各内容が独立して自分の数量・単価・金額を持つ形にしたため、
+    //   このロック処理自体が不要になった。呼び出し元との整合性のため関数自体は残すが、
+    //   内部では何もしない（空実装）。
+    // =====================================
     function checkUnitConstraint(card) {
-      const rows = card.querySelectorAll('.breakdown-row');
-      if (rows.length === 0) return;
-      
-      const firstRow = rows[0];
-      const firstQty = firstRow.querySelector('.item-qty');
-      const firstUnit = firstRow.querySelector('.item-unit');
-      const firstPrice = firstRow.querySelector('.item-price');
-      
-      // 「2行目（内容2）以降が存在するか」で判定
-      if (rows.length >= 2) {
-        // 内訳2以上がある場合：内容1（1行目）を「数量:1」「単位:式」「単価:なし」に固定
-        firstQty.value = '1';
-        firstQty.disabled = true;
-        
-        // 元々ある「式」をそのまま選択させてロック（動的なオプション追加を廃止）
-        firstUnit.value = '式'; 
-        firstUnit.disabled = true;
-        
-        firstPrice.value = '';
-        firstPrice.disabled = true;
-        
-      } else {
-        // 有効な内訳が1つ以下（内容1のみ）になったらロックを解除して通常に戻す
-        firstQty.disabled = false;
-        firstUnit.disabled = false;
-        firstPrice.disabled = false;
-        
-        if (firstPrice.value === '') {
-          firstPrice.value = '0';
-        }
-      }
+      // 何もしない（内容1のロック制約は廃止）
     }
 
     // =====================================
@@ -431,24 +408,15 @@
       const row = element.closest('.breakdown-row');
       
       if (row) {
-        const rows = card.querySelectorAll('.breakdown-row');
-        // 行数ではなく「1行目がロックされているか」を基準にスキップを判定
-        const isLocked = rows[0].querySelector('.item-qty').disabled;
+        const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+        const price = parseFloat(row.querySelector('.item-price').value) || 0;
         
-        if (!(isLocked && row === rows[0])) {
-          const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
-          const price = parseFloat(row.querySelector('.item-price').value) || 0;
-          
-          const amount = Math.floor(qty * price); 
-          
-          const amountSpan = row.querySelector('.item-amount');
-          amountSpan.textContent = amount.toLocaleString();
-          amountSpan.dataset.value = amount; 
-        }
+        const amount = Math.floor(qty * price); 
+        
+        const amountSpan = row.querySelector('.item-amount');
+        amountSpan.textContent = amount.toLocaleString();
+        amountSpan.dataset.value = amount; 
       }
-      
-      // 金額が入力・計算されたので、その場で制限ルールをリアルタイムチェック
-      checkUnitConstraint(card);
       
       // 親カードの合計を更新
       updateCardTotal(card);
@@ -456,34 +424,17 @@
 
     // =====================================
     // カード内の合計金額を計算・同期する関数
+    // ✅ 変更：内容1に他の内容の合計を代入する仕組みを廃止したため、
+    //   ロック判定なしで、全内容（内容1含む）の金額を単純合計するだけのシンプルな処理にした
     // =====================================
     function updateCardTotal(card) {
       const rows = card.querySelectorAll('.breakdown-row');
       if (rows.length === 0) return;
       
       let cardSubtotal = 0;
-      const firstRow = rows[0];
-      // 1行目がロックされているかどうかを判定フラグにする
-      const isLocked = firstRow.querySelector('.item-qty').disabled;
-      
-      if (isLocked) {
-        // 2行目以上ある場合：2行目以降（内容2〜）の金額だけを合計する（金額倍増バグを防ぐ）
-        for (let i = 1; i < rows.length; i++) {
-          const span = rows[i].querySelector('.item-amount');
-          cardSubtotal += parseFloat(span.dataset.value) || 0;
-        }
-        
-        // 内容1（1行目）の金額欄に、計算した合計額をリアルタイムに同期
-        const firstAmountSpan = rows[0].querySelector('.item-amount');
-        firstAmountSpan.textContent = cardSubtotal.toLocaleString();
-        firstAmountSpan.dataset.value = cardSubtotal;
-        
-      } else {
-        // 通常モード（ロックなし）の時は、1行目も含めた全行の金額を単純合計する
-        for (let i = 0; i < rows.length; i++) {
-          const span = rows[i].querySelector('.item-amount');
-          cardSubtotal += parseFloat(span.dataset.value) || 0;
-        }
+      for (let i = 0; i < rows.length; i++) {
+        const span = rows[i].querySelector('.item-amount');
+        cardSubtotal += parseFloat(span.dataset.value) || 0;
       }
       
       const totalSpan = card.querySelector('.card-total-amount');
@@ -545,18 +496,15 @@
         const rows = card.querySelectorAll('.breakdown-row');
         if (rows.length === 0) return;
 
-        // このカードの「内容1」が固定モード（ロック）に入っているかを確実に判定
-        const isCardLocked = rows[0].querySelector('.item-qty').disabled;
-        
-        // 先に「内容2」以降の内訳の合計金額を計算しておく
-        let breakdownSubtotal = 0;
-        rows.forEach((row, index) => {
-          if (index > 0) {
-            const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
-            const priceVal = row.querySelector('.item-price').value.trim();
-            const price = priceVal === '' ? 0 : (parseFloat(priceVal) || 0);
-            breakdownSubtotal += Math.floor(qty * price);
-          }
+        // ✅ 変更：内容1に他の内容の合計金額を持たせる仕組みを廃止。
+        //   各内容（内容1含む）が常に自分自身の数量・単価・金額を独立して持つ。
+        //   カード全体の合計金額（項目行の金額として使う）は、全内容の金額を単純合計して求める。
+        let cardTotalAmount = 0;
+        rows.forEach(row => {
+          const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+          const priceVal = row.querySelector('.item-price').value.trim();
+          const price = priceVal === '' ? 0 : (parseFloat(priceVal) || 0);
+          cardTotalAmount += Math.floor(qty * price);
         });
         
         // 各行（内容1、内容2、内容3...）のデータ生成
@@ -566,38 +514,26 @@
           const unit = row.querySelector('.item-unit').value.trim();
           const priceVal = row.querySelector('.item-price').value.trim();
           const price = priceVal === '' ? 0 : (parseFloat(priceVal) || 0);
-          
-          let amount = Math.floor(qty * price);
+          const amount = Math.floor(qty * price);
           
           // 値のクレンジング（空なら「式」）
-          let finalUnit = unit || '式';
-          
-          // 変数の初期化
-          let finalQty = qty;
-          let finalPrice = price;
-          let finalAmount = amount;
-          let isSubtotalLine = false;
-          
-          // 「ロックモード」かつ「内容1（index === 0）」の品名行だけの特別処理
-          if (isCardLocked && index === 0) {
-            finalQty = qty;                   // 画面上の固定値をそのまま使用
-            finalPrice = price;               // 画面上の固定値をそのまま使用
-            finalAmount = breakdownSubtotal;  // 金額だけ内訳の合計値に差し替える
-            isSubtotalLine = true;            // この行だけに小計マークの権利を与える
-          }
+          const finalUnit = unit || '式';
           
           // 品名がある、または内容1でカテゴリがある場合は行を追加
           if(name !== "" || (index === 0 && finalCategory !== "")) {
             
             // 1. 品名行の追加
             details.push({
-              isSubtotal: isSubtotalLine, // 内容1の品名行だけが true になる
               itemCategory: (index === 0) ? finalCategory : "",
               itemName: name,
-              itemQty: finalQty,
+              itemQty: qty,
               itemUnit: finalUnit,
-              itemPrice: finalPrice,
-              itemAmount: finalAmount,
+              itemPrice: price,
+              // itemAmount：先頭行のみカード全体の合計金額（05_データ保存.js側で項目行の金額として使用）、
+              //   2件目以降は各内容自身の金額（既存の他カテゴリと同じ挙動）
+              itemAmount: (index === 0) ? cardTotalAmount : amount,
+              // itemIndividualAmount：idx（0件目含む）にかかわらず、その内容自身の金額を常に保持
+              itemIndividualAmount: amount,
               itemRemarks: ""
             });
           
@@ -610,13 +546,13 @@
                 
               remarksArray.forEach(remark => {
                 details.push({
-                  isSubtotal: false, // 備考行には小計を入れない
                   itemCategory: "",  
                   itemName: "",
                   itemQty: "",
                   itemUnit: "",
                   itemPrice: "",
                   itemAmount: "",
+                  itemIndividualAmount: "",
                   itemRemarks: remark  
                 });
               });
