@@ -6,22 +6,14 @@
 
     async function loadMasterLists() {
       try {
-        const res = await fetch(GAS_WEB_APP_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain' },
-          body: JSON.stringify({
-            action: 'loadMasterLists',
-            payload: {
-              currentUserName: currentUser?.userName || '',
-              userId: currentUser?.userId || ''
-            }
-          })
-        });
-      
-        const result = await res.json();
-        if (result.status === 'error') throw new Error(result.message);
-        
-        const masterData = result.data || {};
+        const masterData = await fetchWithRetry_({
+          action: 'loadMasterLists',
+          payload: {
+            currentUserName: currentUser?.userName || '',
+            userId: currentUser?.userId || ''
+          }
+        }) || {};
+
         MASTER_CLIENTS = masterData.clients || [];
         MASTER_CONTACTPERSONS = masterData.contactPersons || {};  // 担当者マスター
         MASTER_CATEGORIES = masterData.categories || [];
