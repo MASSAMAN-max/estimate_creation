@@ -30,28 +30,18 @@
       loginBtn.textContent = '認証中...';
       
       try {
-        const response = await fetch(GAS_WEB_APP_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain' },
-          body: JSON.stringify({
-            action: 'login',
-            payload: { loginId: loginId, password: password }
-          })
+        const resultData = await fetchWithRetry_({
+          action: 'login',
+          payload: { loginId: loginId, password: password }
         });
-        
-        const result = await response.json();
-        
-        if (result.status === 'success') {
-          currentUser = result.data;
-          localStorage.setItem('currentUser', JSON.stringify(currentUser));
-    
-          // ログイン成功後はメニュー画面へ（ページ再読み込み時と遷移を統一）
-          showMenuScreen();
-        } else {
-          Swal.fire({ icon: 'error', title: 'ログイン失敗', text: result.message });
-        }
+
+        currentUser = resultData;
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+
+        // ログイン成功後はメニュー画面へ（ページ再読み込み時と遷移を統一）
+        showMenuScreen();
       } catch (error) {
-        Swal.fire({ icon: 'error', title: '通信エラー', text: error.message, confirmButtonText: '了解' });
+        Swal.fire({ icon: 'error', title: 'ログイン失敗', text: error.message, confirmButtonText: '了解' });
       } finally {
         loginBtn.disabled = false;
         loginBtn.textContent = 'ログイン';
