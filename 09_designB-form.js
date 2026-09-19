@@ -240,8 +240,27 @@
       renderB();
     }
 
-    function addCustomItemB(catIdx) {
-      const customName = prompt("追加する内容を入力してください (例: 特注補修):");
+    // =====================================
+    // 自由な内容をカテゴリへ追加する
+    // ✅ 変更：ネイティブのprompt()ではなく、他の画面と統一してSweetAlert2の
+    //   入力ダイアログを使うようにした
+    // =====================================
+    async function addCustomItemB(catIdx) {
+      const { value: customName } = await Swal.fire({
+        title: '内容を追加',
+        input: 'text',
+        inputLabel: '追加する内容を入力してください',
+        inputPlaceholder: '例: 特注補修',
+        showCancelButton: true,
+        confirmButtonText: '追加',
+        cancelButtonText: 'キャンセル',
+        inputValidator: (value) => {
+          if (!value || value.trim() === '') {
+            return '内容を入力してください。';
+          }
+        }
+      });
+
       if (!customName || customName.trim() === "") return;
 
       appStateB[catIdx].items.push({
@@ -319,6 +338,12 @@
       renderB();
     }
 
+    // =====================================
+    // 結合された内容を個別に分割する（結合の逆操作）
+    // ✅ 変更：金額は元の合計を割り算して配分せず、分割後の全項目を金額未入力（空欄）に
+    //   リセットする。割り算だと端数が消えて合計金額がズレることがあったため、
+    //   金額はユーザーに個別入力し直してもらう方針にした。
+    // =====================================
     function ungroupItemB(catIdx, itemId) {
       const list = appStateB[catIdx].items;
       const targetIdx = list.findIndex(i => i.id === itemId);
@@ -326,17 +351,16 @@
 
       const target = list[targetIdx];
       const names = [...target.names];
-      const splitAmount = target.amount ? Math.floor(target.amount / names.length) : '';
 
       target.names = [names[0]];
-      target.amount = splitAmount;
+      target.amount = '';
 
       for (let i = 1; i < names.length; i++) {
         list.push({
           id: 'item_' + Date.now() + '_' + i,
           names: [names[i]],
           qty: 1,
-          amount: splitAmount,
+          amount: '',
           remark: '',
           showRemark: false
         });
@@ -474,7 +498,7 @@
             // itemAmount：先頭行のみカテゴリ合計金額、2件目以降は各内容自身の金額（既存の他カテゴリと同じ挙動）
             itemAmount: idx === 0 ? catTotalAmount : (Number(item.amount) || 0),
             // itemIndividualAmount：idx（0件目含む）にかかわらず、その内容自身の金額を常に保持
-            // （ガラス・サッシの「大・中・小」個別金額をPDFの20行目へ書き込む際に使用）
+            // （PDF出力時、各内容を「品名 金額 （備考）」の形でF列に連結表示する際に使用。08_PDFデザインB.js参照）
             itemIndividualAmount: Number(item.amount) || 0,
             itemRemarks: item.remark || ''
           });
