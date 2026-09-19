@@ -10,26 +10,12 @@
     async function openEstimateListModal(listType) {
       try {
         // ここはまだローダーが表示された状態
-        const response = await fetch(GAS_WEB_APP_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain' },
-          body: JSON.stringify({
-            action: 'loadRecentList',
-            payload: {}
-          })
+        const resultData = await fetchWithRetry_({
+          action: 'loadRecentList',
+          payload: {}
         });
         
-        if (!response.ok) {
-          throw new Error(`HTTP Error: ${response.status} ${response.statusText}`);
-        }
-        
-        const result = await response.json();
-        
-        if (result.status !== 'success') {
-          throw new Error(result.message || 'リスト取得に失敗しました。');
-        }
-        
-        window.cachedListData = result.data;
+        window.cachedListData = resultData;
         
         // モーダルのタイトルを動的に変更
         const modalTitle = document.getElementById('listModalTitle');
@@ -40,10 +26,10 @@
         
         if (listType === 'estimate') {
           modalTitle.textContent = '過去の見積書（PDF表示／コピーして作成）';
-          displayEstimateList(result.data.estimates);
+          displayEstimateList(resultData.estimates);
         } else if (listType === 'draft') {
           modalTitle.textContent = '下書きを選択';
-          displayDraftList(result.data.drafts);
+          displayDraftList(resultData.drafts);
         }
         
         // リスト表示完了後にモーダルを表示
@@ -154,26 +140,11 @@
      
       try {
         // ステップ1: データ取得
-        const response = await fetch(GAS_WEB_APP_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain' },
-          body: JSON.stringify({
-            action: 'loadFormData',
-            payload: { targetId: id }
-          })
+        const formData = await fetchWithRetry_({
+          action: 'loadFormData',
+          payload: { targetId: id }
         });
-     
-        if (!response.ok) {
-          throw new Error(`HTTP Error: ${response.status} ${response.statusText}`);
-        }
-     
-        const result = await response.json();
-        
-        if (result.status !== 'success') {
-          throw new Error(result.message || 'データの読み込みに失敗しました。');
-        }
 
-        const formData = result.data;
         const targetDesignType = (formData.main && formData.main.designType) || 'A';
 
         // ---- デザインBのデータの場合は専用の復元処理へ分岐 ----
@@ -443,10 +414,8 @@
     function handlePostSaveAction(actionType) {
       if (actionType === 'saveEstimate' && currentMode === 'DRAFT_EDIT' && currentOriginId.startsWith('DRAFT-')) {
         // 確定保存が成功したため、古い下書きの消去をGASへ非同期命令
-        fetch(GAS_WEB_APP_URL, {
-          method: 'POST',
-          body: JSON.stringify({ action: 'deleteDraft', payload: { draftId: currentOriginId } })
-        }).catch(err => console.error('下書き削除リクエスト失敗:', err));
+        fetchWithRetry_({ action: 'deleteDraft', payload: { draftId: currentOriginId } })
+          .catch(err => console.error('下書き削除リクエスト失敗:', err));
       }
       // 保存完了後は状態を新規に戻す
       currentMode = 'NEW';
