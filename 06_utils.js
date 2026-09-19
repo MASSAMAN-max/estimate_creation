@@ -15,6 +15,70 @@
       resetFormB_();
     }
 
+    // =====================================
+    // GAS APIへのリクエストを送り、失敗時に1回だけ自動リトライする共通関数
+    // ・「HTTPエラー（404など）」「レスポンスがJSONとして壊れている」「サーバー側がエラーを返した」
+    //   のいずれかで失敗した場合、1回だけ同じリクエストを再送信する
+    // ・2回目も失敗したら、そのエラーをそのまま呼び出し元に投げる（呼び出し元でcatchすること）
+    // ・timeoutMsを指定すると、リクエストがその時間内に終わらない場合は中断してタイムアウトエラーにする
+    // 戻り値：成功時は { status: 'success', data: {...} } の data 部分（result.data）
+    // =====================================
+    async function fetchWithRetry_(body, timeoutMs = null) {
+      const attempt = async () => {
+        let response;
+        if (timeoutMs) {
+          const abortController = new AbortController();
+          const timeoutId = setTimeout(() => abortController.abort(), timeoutMs);
+          try {
+            response = await fetch(GAS_WEB_APP_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'text/plain' },
+              signal: abortController.signal,
+              body: JSON.stringify(body)
+            });
+          } catch (fetchError) {
+            if (fetchError.name === 'AbortError') {
+              throw new Error(`通信がタイムアウトしました（${Math.floor(timeoutMs / 1000)}秒以内に完了しませんでした）。`);
+            }
+            throw fetchError;
+          } finally {
+            clearTimeout(timeoutId);
+          }
+        } else {
+          response = await fetch(GAS_WEB_APP_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain' },
+            body: JSON.stringify(body)
+          });
+        }
+
+        if (!response.ok) {
+          throw new Error(`HTTP Error: ${response.status} ${response.statusText}`);
+        }
+
+        let result;
+        try {
+          result = await response.json();
+        } catch (parseError) {
+          throw new Error(`レスポンスの解析に失敗しました: ${parseError.message}`);
+        }
+
+        if (result.status !== 'success') {
+          throw new Error(result.message || '不明なエラーが発生しました');
+        }
+
+        return result.data;
+      };
+
+      try {
+        return await attempt();
+      } catch (firstError) {
+        console.warn(`通信に失敗しました。1回だけ自動で再試行します（action: ${body.action}）:`, firstError.message);
+        // 1回だけ自動リトライ
+        return await attempt();
+      }
+    }
+
     function htmlEscape(text) {
       const map = {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'};
       return String(text).replace(/[&<>"']/g, c => map[c]);
