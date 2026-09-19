@@ -151,6 +151,15 @@
 
     // =====================================
     // 【共通】見積・下書きデータ送信関数
+    // ・下書き保存（saveDraft）：従来通り、1回のリクエストで完結
+    // ・確定保存（saveEstimate）：✅ 変更：以下の順序で実行する
+    //     1. 採番＋メイン行保存（軽量・高速。失敗時は自動で1回リトライ）
+    //     2. PDF生成（失敗時は自動で1回リトライ）
+    //     3. PDF完成後、すぐ完了画面を表示
+    //     4. 完了画面表示と並行して、明細行の保存を背景で実行（失敗時は自動で1回リトライ、
+    //        それでも失敗した場合はエラーが確定した時点で、画面にかかわらず割り込みで通知する）
+    //   こうすることで、時間のかかる明細行の書き込みを待たずにPDFを先に見せられる。
+    //   採番の安全性は、メイン行が先に（同期で）書き込まれることで確保している。
     // =====================================
     async function executeSaveProcess(actionType) {
       const userName = getCurrentUserName();
@@ -179,59 +188,41 @@
       }
       
       const isDraft = actionType === 'saveDraft';
-      const loaderMsg = isDraft ? '下書きを保存中...' : '見積書を確定保存中...';
+      const loaderMsg = isDraft ? '下書きを保存中...' : '見積番号を発行中...';
       const successTitle = isDraft ? '下書き保存完了！' : '見積書データ保存完了！';
       
       document.getElementById('loader').style.display = 'flex';
       document.getElementById('loaderText').textContent = loaderMsg;
-      
+
+      // GASへ送る共通のペイロード（見積番号(estimateNo)は呼び出し側で追加する）
+      const buildPayload = (extra = {}) => ({
+        clientName: data.clientName,
+        contactPerson: data.contactPerson,
+        clientAddress: data.clientAddress,
+        estimateDate: data.estimateDate,
+        subject: data.subject,
+        paymentTerms: data.paymentTerms,
+        validity: data.validity,
+        remarks: data.remarks,
+        subtotal: data.subtotal,
+        tax: data.tax,
+        totalAmount: data.total, // 税込合計
+        details: data.details,
+        currentUserName: userName,
+        designType: currentDesignType,
+        estimator: data.estimator || '',
+        deptNo: data.deptNo || '',
+        layout: data.layout || '',
+        ...extra
+      });
+
       try {
-        // ========== 1回目: データ保存 ==========
-        const response = await fetch(GAS_WEB_APP_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain' },
-          body: JSON.stringify({
-            action: actionType,
-            payload: {
-              clientName: data.clientName,
-              contactPerson: data.contactPerson,
-              clientAddress: data.clientAddress,
-              estimateDate: data.estimateDate,
-              subject: data.subject,
-              paymentTerms: data.paymentTerms,
-              validity: data.validity,
-              remarks: data.remarks,
-              subtotal: data.subtotal,
-              tax: data.tax,
-              totalAmount: data.total, // 税込合計
-              details: data.details,
-              currentUserName: userName,
-              designType: currentDesignType,
-              estimator: data.estimator || '',
-              deptNo: data.deptNo || '',
-              layout: data.layout || ''
-            }
-          })
-        });
-        
-        // HTTP ステータスチェック
-        if (!response.ok) {
-          throw new Error(`HTTP Error: ${response.status} ${response.statusText}`);
-        }
-        
-        const result = await response.json();
-        
-        if (result.status !== 'success') {
-          throw new Error(result.message || 'Save failed with unknown error');
-        }
-        
-        const generatedId = isDraft ? result.data?.draftId : result.data?.estimateNo;
-        if (!generatedId) {
-          throw new Error('No ID returned from server');
-        }
-     
-        // 下書きの場合は終了
+        // ========== 下書き保存：従来通り1回のリクエストで完結 ==========
         if (isDraft) {
+          const draftResult = await fetchWithRetry_({ action: actionType, payload: buildPayload() });
+          const generatedId = draftResult?.draftId;
+          if (!generatedId) throw new Error('No ID returned from server');
+
           document.getElementById('loader').style.display = 'none';
           Swal.fire({
             icon: 'success',
@@ -240,96 +231,34 @@
             confirmButtonText: '閉じる'
           });
 
-          // ✅ 変更：保存完了後は編集中でなかった側の入力内容も含め、両方のフォームをリセットする
           resetAllForms_();
           showMenuScreen();
           return;
         }
+
+        // ========== 確定保存 1. 採番＋メイン行保存 ==========
+        const mainResult = await fetchWithRetry_({ action: 'saveEstimateMainOnly', payload: buildPayload() });
+        const generatedId = mainResult?.estimateNo;
+        if (!generatedId) throw new Error('No estimate number returned from server');
+
         // 確定保存が成功したので、下書きから編集していた場合は元の下書きを削除する
         handlePostSaveAction(actionType);
-     
-        // ========== 2回目: PDF生成（見積の場合のみ） ==========
+
+        // ========== 確定保存 2. PDF生成 ==========
         document.getElementById('loaderText').innerHTML = 
-          `データ処理完了（${generatedId}）<br><span style="color: #cff5ff; font-weight: bold;">続けて見積書PDFを生成しています... (約5～10秒)</span>`;
-        
-        // タイムアウト処理（60秒で打ち切り）
-        // ⚠️修正：以前は setTimeout 内で throw していたため、
-        //   呼び出し元の try/catch に届かず「Uncaught Error」がコンソールに出るだけで
-        //   実際には fetch も中断されていなかった。
-        //   AbortController を使い、実際に fetch を中断してエラーを正しく catch できるようにする。
-        const abortController = new AbortController();
-        const timeoutId = setTimeout(() => abortController.abort(), 60000);
-        
-        let pdfResponse;
-        try {
-          pdfResponse = await fetch(GAS_WEB_APP_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain' },
-            signal: abortController.signal,
-            body: JSON.stringify({
-              action: 'savePdfToDriveBackground',
-              payload: {
-                estimateNo: generatedId,
-                clientName: data.clientName,
-                contactPerson: data.contactPerson,
-                clientAddress: data.clientAddress,
-                estimateDate: data.estimateDate,
-                subject: data.subject,
-                paymentTerms: data.paymentTerms,
-                validity: data.validity,
-                remarks: data.remarks,
-                subtotal: data.subtotal,
-                tax: data.tax,
-                totalAmount: data.total,
-                details: data.details,
-                currentUserName: userName,
-                designType: currentDesignType,
-                estimator: data.estimator || '',
-                deptNo: data.deptNo || '',
-                layout: data.layout || ''
-              }
-            })
-          });
-        } catch (fetchError) {
-          if (fetchError.name === 'AbortError') {
-            throw new Error('PDF生成が60秒以内に完了しませんでした（タイムアウト）。データ量が多い場合は時間がかかることがあります。しばらくしてから「見積書を確認」メニューでPDFが作成されているかご確認ください。');
-          }
-          throw fetchError;
-        } finally {
-          clearTimeout(timeoutId);
-        }
-        
-        // HTTP ステータスチェック
-        if (!pdfResponse.ok) {
-          throw new Error(`PDF API HTTP Error: ${pdfResponse.status} ${pdfResponse.statusText}`);
-        }
-        
-        // JSONパース
-        let pdfResult;
-        try {
-          pdfResult = await pdfResponse.json();
-        } catch (parseError) {
-          console.error('❌ JSON parse error:', parseError);
-          const responseText = await pdfResponse.text();
-          console.error('Response text:', responseText);
-          throw new Error(`PDF response was not valid JSON: ${parseError.message}`);
-        }
-        
-        // レスポンス構造チェック
-        if (pdfResult.status !== 'success') {
-          throw new Error(`PDF generation failed: ${pdfResult.message || 'Unknown error'}`);
-        }
-        
-        if (!pdfResult.data?.pdfUrl) {
+          `見積番号発行完了（${generatedId}）<br><span style="color: #cff5ff; font-weight: bold;">続けて見積書PDFを生成しています... (約5～10秒)</span>`;
+
+        const pdfPayload = buildPayload({ estimateNo: generatedId });
+        const pdfResultData = await fetchWithRetry_({ action: 'savePdfToDriveBackground', payload: pdfPayload }, 60000);
+
+        if (!pdfResultData?.pdfUrl) {
           throw new Error('PDF URL missing in response');
         }
-        
-        const pdfUrl = pdfResult.data.pdfUrl;
-        
-        // ローダーを非表示
+        const pdfUrl = pdfResultData.pdfUrl;
+
+        // ========== 確定保存 3. PDF完成後、すぐ完了画面を表示 ==========
         document.getElementById('loader').style.display = 'none';
-        
-        // ========== 確認ダイアログの表示（URLリンクボタン化） ==========
+
         await Swal.fire({
           icon: 'success',
           title: successTitle,
@@ -359,9 +288,27 @@
           allowOutsideClick: false
         });
         
-        // ✅ 変更：保存完了後は編集中でなかった側の入力内容も含め、両方のフォームをリセットする
         resetAllForms_();
         showMenuScreen();
+
+        // ========== 確定保存 4. 明細行の保存を背景で実行（完了画面は待たない） ==========
+        // ⚠️ 完了画面より後ろで await せずに呼ぶことで、ユーザーの画面遷移をブロックしない。
+        //   失敗（自動リトライ後も失敗）した場合のみ、エラーが確定した時点で
+        //   その時どの画面にいても割り込みでアラートを表示する。
+        fetchWithRetry_({
+          action: 'saveEstimateDetailsBackground',
+          payload: buildPayload({ estimateNo: generatedId })
+        }).catch(bgError => {
+          console.error('❌ 明細データの背景保存に失敗:', bgError);
+          Swal.fire({
+            icon: 'error',
+            title: '明細データの保存に失敗しました',
+            html: `見積番号 <strong>${generatedId}</strong> の明細データ保存でエラーが発生しました。<br><br>
+                   <code style="font-size:11px;">${htmlEscape(bgError.message)}</code><br><br>
+                   お手数ですが、担当者にご連絡いただくか、後ほど再度ご確認ください。`,
+            confirmButtonText: '了解'
+          });
+        });
         
       } catch (error) {
         document.getElementById('loader').style.display = 'none';
