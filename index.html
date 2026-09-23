@@ -323,6 +323,27 @@
       <h3 id="listModalTitle" style="color:var(--primary); font-size:18px;">データを選択</h3>
       <button type="button" class="mini-logout-btn" onclick="document.getElementById('listModal').style.display='none';">✕ 閉じる</button>
     </div>
+
+    <!-- ✅ 新設：見積書検索欄（「過去の見積書」表示時のみ表示） -->
+    <div id="estimateSearchBar" style="display:none; flex-direction:column; gap:8px; background:#f1f5f9; padding:12px; border-radius:var(--radius);">
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <input type="text" id="searchKeyword" placeholder="取引先名で検索" style="flex:1; min-width:140px; padding:8px; border:1px solid var(--gray-border); border-radius:6px;">
+        <input type="text" id="searchEstimateNo" placeholder="見積番号で検索" style="flex:1; min-width:140px; padding:8px; border:1px solid var(--gray-border); border-radius:6px;">
+      </div>
+      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+        <label style="font-size:12px; color:var(--text-secondary);">見積日</label>
+        <input type="date" id="searchDateFrom" style="padding:8px; border:1px solid var(--gray-border); border-radius:6px;">
+        <span style="font-size:12px; color:var(--text-secondary);">〜</span>
+        <input type="date" id="searchDateTo" style="padding:8px; border:1px solid var(--gray-border); border-radius:6px;">
+        <button type="button" class="btn btn-primary" style="width:auto; padding:8px 16px; font-size:13px;" onclick="executeEstimateSearch()">
+          <span class="material-symbols-outlined" style="font-size:18px; vertical-align:middle;">search</span>
+          検索
+        </button>
+        <button type="button" class="btn btn-secondary" style="width:auto; padding:8px 16px; font-size:13px;" onclick="clearEstimateSearch()">
+          クリア
+        </button>
+      </div>
+    </div>
  
     <div id="modalListContainer" style="flex:1; overflow-y:auto; border:1px solid var(--gray-border); border-radius:var(--radius); padding:8px; background:#f8fafc;">
       </div>
