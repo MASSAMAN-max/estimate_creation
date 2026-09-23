@@ -219,9 +219,20 @@
       try {
         // ========== 下書き保存：従来通り1回のリクエストで完結 ==========
         if (isDraft) {
-          const draftResult = await fetchWithRetry_({ action: actionType, payload: buildPayload() });
+          // ✅ 変更：編集元が下書き（DRAFT_EDIT）であれば、元の下書きIDを一緒に送信し、
+          //   サーバー側で新規採番せず上書き更新してもらう（重複下書きの発生を防止）
+          const isEditingExistingDraft = currentMode === 'DRAFT_EDIT' && currentOriginId.startsWith('DRAFT-');
+          const draftPayload = buildPayload(isEditingExistingDraft ? { originDraftId: currentOriginId } : {});
+
+          const draftResult = await fetchWithRetry_({ action: actionType, payload: draftPayload });
           const generatedId = draftResult?.draftId;
           if (!generatedId) throw new Error('No ID returned from server');
+
+          // ✅ 注：currentMode/currentOriginIdはここではリセットしない。
+          //   リセットしてしまうと、同じ編集セッション中に2回目の下書き保存をした際に
+          //   「編集元なし＝新規」と判定され、別の下書きが重複作成されてしまうため。
+          //   これらは新規作成開始時（initializeEstimateForm等）や、確定保存後の
+          //   下書き削除処理（handlePostSaveAction）でリセットされる。
 
           document.getElementById('loader').style.display = 'none';
           Swal.fire({
