@@ -80,10 +80,27 @@
       // 変数が消えていたらローカルストレージから復元を試みる
       const saved = localStorage.getItem('currentUser');
       if (saved) {
-        currentUser = JSON.parse(saved);
-        return currentUser.userName;
+        // ✅ 修正：保存値が壊れている場合にJSON.parseが例外を投げ、
+        //   呼び出し元（保存処理など）が丸ごと失敗することがあったため例外処理を追加
+        try {
+          currentUser = JSON.parse(saved);
+          return currentUser.userName;
+        } catch (e) {
+          console.error('保存されたログイン情報の読み込みに失敗しました:', e);
+          localStorage.removeItem('currentUser');
+          currentUser = null;
+          return null;
+        }
       }
       return null;
+    }
+
+    // =====================================
+    // 現在ログイン中のユーザーが管理者かどうかを判定する共通関数
+    // ✅ 新設：見積書削除など、管理者専用の機能の表示・実行可否判定で使用する
+    // =====================================
+    function isCurrentUserAdmin() {
+      return !!(currentUser && currentUser.isAdmin);
     }
     
     /**
