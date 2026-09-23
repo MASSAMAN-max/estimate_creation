@@ -23,8 +23,23 @@
       // sessionStorage から localStorage へ変更（ログイン状態をチェック）
       const savedUser = localStorage.getItem('currentUser');
       
+      // ✅ 修正：localStorageの値が壊れている場合（手動編集・古い形式など）に
+      //   JSON.parseが例外を投げてアプリ全体がクラッシュし、画面が真っ白のまま
+      //   何も表示されなくなる不具合があったため、例外処理で保護する。
+      //   壊れている場合は保存値を破棄し、ログイン画面に安全にフォールバックする。
+      let parsedUser = null;
       if (savedUser) {
-        currentUser = JSON.parse(savedUser);
+        try {
+          parsedUser = JSON.parse(savedUser);
+        } catch (e) {
+          console.error('保存されたログイン情報の読み込みに失敗しました。ログイン情報をリセットします:', e);
+          localStorage.removeItem('currentUser');
+          parsedUser = null;
+        }
+      }
+
+      if (parsedUser) {
+        currentUser = parsedUser;
         // 今日の日付を自動セット（重要な処理なので残します）
         document.getElementById('estimateDate').value = new Date().toISOString().split('T')[0];
         showMenuScreen();  // メニュー画面を表示
