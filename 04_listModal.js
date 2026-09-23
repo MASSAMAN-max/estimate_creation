@@ -4,10 +4,14 @@
  * 表示と、選択したデータの画面への復元処理。
  */
 
+    // 現在表示中の一覧タイプ（検索実行時に使用）
+    let currentListType = null;
+
     // =====================================
     // 見積書リストモーダル（複数用途対応版）
     // =====================================
     async function openEstimateListModal(listType) {
+      currentListType = listType;
       try {
         // ここはまだローダーが表示された状態
         const resultData = await fetchWithRetry_({
@@ -20,15 +24,19 @@
         // モーダルのタイトルを動的に変更
         const modalTitle = document.getElementById('listModalTitle');
         const container = document.getElementById('modalListContainer');
+        const searchBar = document.getElementById('estimateSearchBar');
         
         // 初期化
         container.innerHTML = '<div style="text-align:center; color:var(--text-secondary);">読み込み中...</div>';
         
         if (listType === 'estimate') {
           modalTitle.textContent = '過去の見積書（PDF表示／コピーして作成）';
+          searchBar.style.display = 'flex';
+          clearEstimateSearch(); // 検索欄をクリアした状態で開く
           displayEstimateList(resultData.estimates);
         } else if (listType === 'draft') {
           modalTitle.textContent = '下書きを選択';
+          searchBar.style.display = 'none';
           displayDraftList(resultData.drafts);
         }
         
@@ -50,11 +58,59 @@
         showMenuScreen();
       }
     }
+
+    // =====================================
+    // 見積書検索の実行
+    // ✅ 新設：取引先名・見積番号・見積日の範囲で絞り込み検索する。
+    //   直近一覧（loadRecentList）とは別に、全件を対象に検索する専用API
+    //   （searchEstimates）を呼び出す。
+    // =====================================
+    async function executeEstimateSearch() {
+      const keyword = document.getElementById('searchKeyword').value.trim();
+      const estimateNo = document.getElementById('searchEstimateNo').value.trim();
+      const dateFrom = document.getElementById('searchDateFrom').value;
+      const dateTo = document.getElementById('searchDateTo').value;
+
+      // 何も条件が入力されていない場合は、通常の直近一覧をそのまま表示する
+      if (!keyword && !estimateNo && !dateFrom && !dateTo) {
+        displayEstimateList(window.cachedListData.estimates);
+        return;
+      }
+
+      const container = document.getElementById('modalListContainer');
+      container.innerHTML = '<div style="text-align:center; color:var(--text-secondary);">検索中...</div>';
+
+      try {
+        const resultData = await fetchWithRetry_({
+          action: 'searchEstimates',
+          payload: { keyword, estimateNo, dateFrom, dateTo }
+        });
+        displayEstimateList(resultData);
+      } catch (error) {
+        console.error('検索エラー:', error);
+        Swal.fire({ icon: 'error', title: '検索エラー', text: error.message, confirmButtonText: '了解' });
+        displayEstimateList(window.cachedListData.estimates);
+      }
+    }
+
+    // =====================================
+    // 見積書検索欄のクリア（直近一覧の表示に戻す）
+    // =====================================
+    function clearEstimateSearch() {
+      document.getElementById('searchKeyword').value = '';
+      document.getElementById('searchEstimateNo').value = '';
+      document.getElementById('searchDateFrom').value = '';
+      document.getElementById('searchDateTo').value = '';
+      if (window.cachedListData) {
+        displayEstimateList(window.cachedListData.estimates);
+      }
+    }
      
     // =====================================
     // 過去の見積書一覧の表示
     // ・「見積書PDFを表示」「コピーして作成」の両方を各行に並べて表示する
     //   （旧：displayViewEstimateList／displayCopyEstimateList を統合）
+    // ・管理者でログインしている場合のみ「削除」ボタンも表示する
     // =====================================
     function displayEstimateList(estimates) {
       const container = document.getElementById('modalListContainer');
@@ -65,6 +121,8 @@
         return;
       }
       
+      const isAdmin = isCurrentUserAdmin();
+
       estimates.forEach(item => {
         const row = document.createElement('div');
         row.style = 'background:white; padding:12px; margin-bottom:8px; border-radius:6px; border:1px solid var(--gray-border); display:flex; flex-direction:column; gap:6px;';
@@ -76,6 +134,16 @@
                見積書PDFを表示
              </a>`
           : '<span style="color:#999; font-size:13px;">（PDFはまだ作成されていません）</span>';
+
+        // ✅ 新設：管理者のみ削除ボタンを表示
+        const deleteButtonSection = isAdmin
+          ? `<button type="button" class="btn btn-secondary" 
+                     style="padding:6px 12px; font-size:13px; width:auto; color:#ef4444; border-color:#fca5a5;" 
+                     onclick="handleDeleteEstimate('${item.id}')">
+                <span class="material-symbols-outlined" style="font-size:18px; vertical-align:middle;">delete</span>
+                削除
+             </button>`
+          : '';
         
         row.innerHTML = `
           <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text-secondary);">
@@ -93,11 +161,64 @@
                   <span class="material-symbols-outlined" style="font-size:18px; vertical-align:middle;">assignment</span>
                   コピーして作成
               </button>
+              ${deleteButtonSection}
             </div>
           </div>
         `;
         container.appendChild(row);
       });
+    }
+
+    // =====================================
+    // 見積書削除の実行（管理者専用）
+    // ✅ 新設：確認ダイアログを2段階（通常確認＋見積番号の入力確認）にし、
+    //   誤操作による削除を防止する。削除後は一覧を再読み込みする。
+    // =====================================
+    async function handleDeleteEstimate(estimateNo) {
+      const confirmResult = await Swal.fire({
+        icon: 'warning',
+        title: '見積書を削除しますか？',
+        html: `見積番号 <strong>${htmlEscape(estimateNo)}</strong> を削除します。<br>
+               この操作は取り消せません。関連するPDFファイルも削除されます。<br><br>
+               確認のため、見積番号を入力してください。`,
+        input: 'text',
+        inputPlaceholder: estimateNo,
+        showCancelButton: true,
+        confirmButtonText: '削除する',
+        confirmButtonColor: '#ef4444',
+        cancelButtonText: 'キャンセル',
+        inputValidator: (value) => {
+          if (value !== estimateNo) {
+            return '見積番号が一致しません。';
+          }
+        }
+      });
+
+      if (!confirmResult.isConfirmed) return;
+
+      document.getElementById('loader').style.display = 'flex';
+      document.getElementById('loaderText').textContent = '見積書を削除中...';
+
+      try {
+        await fetchWithRetry_({
+          action: 'deleteEstimate',
+          payload: {
+            estimateNo: estimateNo,
+            currentUserName: getCurrentUserName(),
+            isAdmin: isCurrentUserAdmin()
+          }
+        });
+
+        document.getElementById('loader').style.display = 'none';
+        Swal.fire({ icon: 'success', title: '削除しました', confirmButtonText: '了解' });
+
+        // 一覧を再読み込みして表示を更新
+        openEstimateListModal('estimate');
+      } catch (error) {
+        document.getElementById('loader').style.display = 'none';
+        console.error('見積書削除エラー:', error);
+        Swal.fire({ icon: 'error', title: '削除に失敗しました', text: error.message, confirmButtonText: '了解' });
+      }
     }
      
     // =====================================
