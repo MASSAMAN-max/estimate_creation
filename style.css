@@ -360,6 +360,14 @@
       gap: 12px;
     }
 
+    /* ✅ 新設：SweetAlert2（確認ダイアログ）が一覧モーダル（z-index:9998）や
+       ローダー（z-index:9999）の背後に隠れてしまう問題を修正。
+       SweetAlert2は常にどの画面より手前に表示されるべきなので、
+       他のどのz-indexよりも高い値を明示的に指定する。 */
+    .swal2-container {
+      z-index: 99999 !important;
+    }
+
     .spinner {
       width: 40px;
       height: 40px;
