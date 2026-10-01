@@ -93,10 +93,10 @@
         </div>
         <div style="display:flex; gap:12px;">
           <button type="button" class="btn btn-primary" style="flex:1; padding:14px; font-size:14px;" onclick="handleMenuClick('NEW_ESTIMATE')">
-            デザインA (通常用)
+            デザインA
           </button>
           <button type="button" class="btn btn-primary" style="flex:1; padding:14px; font-size:14px; background-color:#334155;" onclick="handleMenuClick('NEW_ESTIMATE_B')">
-            デザインB (クリーニング用)
+            デザインB
           </button>
         </div>
       </div>
@@ -192,7 +192,7 @@
       </div>
 
       <div class="footer-flex">
-        <div class="bottom-remarks form-group">
+        <div class="bottom-remarks form-group full-width">
           <label for="remarks">全体備考・特記事項</label>
           <div class="voice-input-wrapper">
             <textarea id="remarks" rows="4" placeholder="見積書の備考欄に記載する内容"></textarea>
@@ -201,32 +201,37 @@
             </button>
           </div>
         </div>
-        
-        <div class="summary-box">
-          <div class="summary-row">
-            <span>小計 (税抜)</span>
-            <span>¥<span id="subtotalLabel">0</span></span>
-          </div>
-          <div class="summary-row">
-            <span>消費税 (10%)</span>
-            <span>¥<span id="taxLabel">0</span></span>
-          </div>
-          <div class="summary-row total">
-            <span>合計金額 (税込)</span>
-            <span>¥<span id="totalLabel">0</span></span>
-          </div>
-          
-          <div style="display: flex; gap: 8px; width: 100%;">
-            <button type="button" class="btn btn-primary" style="background-color: var(--gray-light); color: var(--text-primary); border: 1px solid var(--gray-border); flex: 1;" onclick="showPDFPreview()">
-              <span class="material-symbols-outlined">visibility</span>プレビュー
-            </button>
-            <button type="button" class="btn btn-primary" style="background-color: var(--warning); flex: 1;" onclick="executeSaveProcess('saveDraft')">
-              <span class="material-symbols-outlined">draft</span>下書き保存
-            </button>
-          </div>
-        </div>
+      </div>
+
+      <!-- 共通アクション（プレビュー／下書き保存）：デザインBと表示位置を統一 -->
+      <div style="display:flex; gap:8px; margin-bottom:16px;">
+        <button type="button" class="btn btn-primary" style="background-color: var(--gray-light); color: var(--text-primary); border: 1px solid var(--gray-border); flex: 1;" onclick="showPDFPreview()">
+          <span class="material-symbols-outlined">visibility</span>プレビュー
+        </button>
+        <button type="button" class="btn btn-primary" style="background-color: var(--warning); flex: 1;" onclick="executeSaveProcess('saveDraft')">
+          <span class="material-symbols-outlined">draft</span>下書き保存
+        </button>
       </div>
     </form>
+  </div>
+
+  <!-- デザインAの固定ボトムバー：デザインBと表示位置・見た目を統一
+       （mainAppB表示中のみdisplay:flexにJSで切り替える。03_navigation.js参照） -->
+  <div class="bottom-bar" id="bottomBarA" style="display:none;">
+    <div class="breakdown-grid" style="grid-template-columns: repeat(2, auto);">
+      <div class="breakdown-item">
+        <span class="label">小計 (税抜)</span>
+        <span class="value">¥<span id="subtotalLabel">0</span></span>
+      </div>
+      <div class="breakdown-item">
+        <span class="label">消費税 (10%)</span>
+        <span class="value">¥<span id="taxLabel">0</span></span>
+      </div>
+    </div>
+    <div class="grand-total-wrap">
+      <div class="grand-total-label">合計金額 (税込)</div>
+      <div class="grand-total-amount" id="totalLabel">¥0</div>
+    </div>
   </div>
 
   <!-- =====================================
@@ -239,24 +244,36 @@
         <h2>基本情報</h2>
         <div class="info-grid">
           <div class="info-field">
-            <label>見積日</label>
-            <input type="date" id="infoDate">
+            <label for="infoDate">見積日 <span class="badge-required">必須</span></label>
+            <input type="date" id="infoDate" required>
           </div>
           <div class="info-field">
             <label>見積担当</label>
             <input type="text" id="infoEstimator" placeholder="担当者名">
           </div>
           <div class="info-field">
-            <label>取引先</label>
-            <input type="text" id="infoClient" placeholder="取引先会社名">
+            <label for="infoClientSelect">取引先 <span class="badge-required">必須</span></label>
+            <select id="infoClientSelect" required onchange="toggleNewClientB()">
+              <option value="">-- 選択（読込中...） --</option>
+            </select>
+            <div id="newClientContainerB" class="dynamic-input-container" style="display: none;">
+              <label for="infoClient">新規取引先名 *</label>
+              <input type="text" id="infoClient" placeholder="取引先会社名">
+            </div>
           </div>
           <div class="info-field">
-            <label>担当</label>
-            <input type="text" id="infoClientContact" placeholder="先方担当者名">
+            <label for="infoClientContactSelect">担当</label>
+            <select id="infoClientContactSelect" onchange="toggleNewContactPersonB()">
+              <option value="">-- 取引先を先に選択してください --</option>
+            </select>
+            <div id="newContactPersonContainerB" class="dynamic-input-container" style="display: none;">
+              <label for="infoClientContact">新規担当者名 *</label>
+              <input type="text" id="infoClientContact" placeholder="先方担当者名">
+            </div>
           </div>
           <div class="info-field full-width">
-            <label>件名</label>
-            <input type="text" id="infoSubject" placeholder="例: ○○マンション101号室 原状回復工事">
+            <label for="infoSubject">件名 <span class="badge-required">必須</span></label>
+            <input type="text" id="infoSubject" required placeholder="例: ○○マンション101号室 原状回復工事">
           </div>
           <div class="info-field">
             <label>部番号</label>
