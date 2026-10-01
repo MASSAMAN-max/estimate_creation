@@ -275,6 +275,11 @@
           currentDesignType = 'B';
           appMode = 'NEW_ESTIMATE';
 
+          // ✅ 変更：デザインBも取引先・担当者を選択式にしたため、復元前にマスターデータを
+          //   読み込んでおく（デザインAの復元処理と同じ流れ）
+          document.getElementById('loaderText').textContent = 'マスターデータを読み込んでいます...';
+          await loadMasterLists();
+
           reflectFieldsDesignB_(formData, mode);
 
           document.getElementById('loader').style.display = 'none';
@@ -311,68 +316,11 @@
         const targetDate = mode === 'COPY_CREATE' ? new Date() : new Date(formData.main.estimateDate);
         document.getElementById('estimateDate').value = formatDateToInput(targetDate);
      
-        // ========== ステップ6: クライアント情報設定 ==========
+        // ========== ステップ6〜7: 取引先・担当者情報設定 ==========
         document.getElementById('loaderText').textContent = 'クライアント情報を設定しています...';
-        
-        //  clientSelect をここで定義
-        const clientSelect = document.getElementById('clientSelect');
-        const currentClientName = formData.main.clientSelect || formData.main.clientName;
-        
-        if (clientSelect) {
-          const clientExists = Array.from(clientSelect.options).some(
-            opt => opt.value === currentClientName
-          );
-          
-          if (clientExists) {
-            clientSelect.value = currentClientName;
-          } else {
-            clientSelect.value = '__NEW__';
-            const clientNameInput = document.getElementById('clientName');
-            if (clientNameInput) {
-              clientNameInput.value = currentClientName;
-            }
-            const newClientContainer = document.getElementById('newClientContainer');
-            if (newClientContainer) {
-              newClientContainer.style.display = 'block';
-            }
-          }
-        }
-        
-        // 反映漏れ対策
-        const clientNameInput = document.getElementById('clientName');
-        if (clientNameInput && !clientNameInput.value) {
-          clientNameInput.value = currentClientName || '';
-        }
-     
-        // ========== ステップ7: 担当者情報設定 ==========
-        const contactPersonSelect = document.getElementById('contactPersonSelect');
-        
-        if (contactPersonSelect && currentClientName) {
-          // マスターから担当者リストを更新
-          if (typeof updateContactPersonList === 'function') {
-            updateContactPersonList(currentClientName);
-          }
-          
-          if (formData.main.contactPerson) {
-            const personExists = Array.from(contactPersonSelect.options).some(
-              opt => opt.value === formData.main.contactPerson
-            );
-            
-            if (personExists) {
-              contactPersonSelect.value = formData.main.contactPerson;
-            } else {
-              contactPersonSelect.value = '__NEW__';
-              const contactPersonNameInput = document.getElementById('contactPersonName');
-              if (contactPersonNameInput) {
-                contactPersonNameInput.value = formData.main.contactPerson;
-              }
-              const newContactPersonContainer = document.getElementById('newContactPersonContainer');
-              if (newContactPersonContainer) {
-                newContactPersonContainer.style.display = 'block';
-              }
-            }
-          }
-        }
+
+        const currentClientName = formData.main.clientName;
+        restoreClientSelection_(currentClientName, formData.main.contactPerson, '');
      
         // ========== ステップ8: その他の入力欄を設定 ==========
         document.getElementById('loaderText').textContent = 'フォーム詳細を設定しています...';
