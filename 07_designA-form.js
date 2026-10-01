@@ -198,7 +198,7 @@
           // メインHTMLの流し込み
           breakdownRow.innerHTML = `
             <div class="form-group" style="margin-top: 5px;">
-              <label>仕様・摘要 <span class="badge-required">必須</span></label>
+              <label>仕様・摘要</label>
               <div class="voice-input-wrapper">
                 <input type="text" class="item-name" placeholder="品名・内容など" value="${htmlEscape(String(item.itemName || ''))}">
                 <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)"><span class="material-symbols-outlined">mic</span></button>
@@ -273,7 +273,7 @@
     
       row.innerHTML = `
         <div class="form-group" style="margin-top: 5px;">
-          <label>仕様・摘要 <span class="badge-required">必須</span></label>
+          <label>仕様・摘要</label>
           <div class="voice-input-wrapper">
             <input type="text" class="item-name" placeholder="品名・内容など">
             <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)"><span class="material-symbols-outlined">mic</span></button>
@@ -461,7 +461,9 @@
       
       document.getElementById('subtotalLabel').textContent = subtotal.toLocaleString();
       document.getElementById('taxLabel').textContent = tax.toLocaleString();
-      document.getElementById('totalLabel').textContent = total.toLocaleString();
+      // totalLabelはデザインBのgrand-total-amountと同じ「¥込みで丸ごと1要素」の構成のため、
+      // 数値だけでなく¥記号も一緒に書き込む（他2つはHTML側に¥が固定で入っている）
+      document.getElementById('totalLabel').textContent = '¥' + total.toLocaleString();
       document.getElementById('totalLabel').dataset.value = total;
     }
 
@@ -469,19 +471,7 @@
     // 画面入力値を集める関数
     // =====================================
     function getFormData() {
-      const clientSelect = document.getElementById('clientSelect');
-      let finalClientName = clientSelect.value;
-      if(finalClientName === '__NEW__') {
-        finalClientName = document.getElementById('clientName').value.trim();
-      }
-      
-      const contactPersonSelect = document.getElementById('contactPersonSelect');
-      let finalContactPerson = contactPersonSelect.value;
-      if(finalContactPerson === '__NEW__') {
-        finalContactPerson = document.getElementById('contactPersonName').value.trim();
-      } else if (!finalContactPerson) {
-        finalContactPerson = '';
-      }
+      const { clientName: finalClientName, contactPerson: finalContactPerson } = getClientSelectionValues_('');
       
       const details = [];
       
@@ -519,8 +509,14 @@
           // 値のクレンジング（空なら「式」）
           const finalUnit = unit || '式';
           
-          // 品名がある、または内容1でカテゴリがある場合は行を追加
-          if(name !== "" || (index === 0 && finalCategory !== "")) {
+          // ✅ 変更：品名が空でも、金額（数量×単価）や備考があれば保存対象に含める
+          //   （以前は品名が空だと行ごと捨てられ、画面の合計と保存内容がズレていた）
+          const remarksListEl = row.querySelector('.remarks-list');
+          const hasAnyRemark = remarksListEl
+            ? Array.from(remarksListEl.querySelectorAll('.remark-input')).some(input => input.value.trim() !== '')
+            : false;
+
+          if (name !== "" || amount !== 0 || hasAnyRemark || (index === 0 && finalCategory !== "")) {
             
             // 1. 品名行の追加
             details.push({
