@@ -62,7 +62,7 @@
     }
 
     // 新規作成時の初期化
-    function initializeEstimateFormB() {
+    async function initializeEstimateFormB() {
       currentMode = 'NEW';
       currentOriginId = '';
       currentDesignType = 'B';
@@ -80,6 +80,14 @@
       document.getElementById('infoLayout').value = '';
       document.getElementById('globalRemark').value = '';
 
+      // ✅ 変更：取引先・取引先担当者を選択式にしたため、マスターデータ取得を待ってから
+      //   選択肢を表示する（デザインAのinitializeEstimateFormと同じ流れ）
+      await loadMasterLists();
+      // 取引先が空（未選択）なので、担当者プルダウンは「取引先を先に選択してください」状態にする
+      document.getElementById('infoClientContactSelect').innerHTML = '<option value="">-- 取引先を先に選択してください --</option>';
+      document.getElementById('newClientContainerB').style.display = 'none';
+      document.getElementById('newContactPersonContainerB').style.display = 'none';
+
       renderB();
     }
 
@@ -91,6 +99,15 @@
         const el = document.getElementById(id);
         if (el) el.value = '';
       });
+      // ✅ 変更：取引先・担当者を選択式にしたため、選択状態と新規入力欄もリセットする
+      const clientSelect = document.getElementById('infoClientSelect');
+      if (clientSelect) clientSelect.value = '';
+      const contactSelect = document.getElementById('infoClientContactSelect');
+      if (contactSelect) contactSelect.innerHTML = '<option value="">-- 取引先を先に選択してください --</option>';
+      const newClientContainer = document.getElementById('newClientContainerB');
+      if (newClientContainer) newClientContainer.style.display = 'none';
+      const newContactPersonContainer = document.getElementById('newContactPersonContainerB');
+      if (newContactPersonContainer) newContactPersonContainer.style.display = 'none';
       const container = document.getElementById('categoryContainer');
       if (container) container.innerHTML = '';
     }
@@ -506,10 +523,11 @@
       });
 
       const totals = calculateTotalsB();
+      const { clientName: finalClientNameB, contactPerson: finalContactPersonB } = getClientSelectionValues_('B');
 
       return {
-        clientName: document.getElementById('infoClient').value.trim(),
-        contactPerson: document.getElementById('infoClientContact').value.trim(),
+        clientName: finalClientNameB,
+        contactPerson: finalContactPersonB,
         clientAddress: '', // デザインBには入力欄なし
         estimateDate: document.getElementById('infoDate').value,
         subject: document.getElementById('infoSubject').value.trim(),
@@ -539,12 +557,14 @@
       document.getElementById('infoDate').value =
         mode === 'COPY_CREATE' ? new Date().toISOString().split('T')[0] : formatDateToInput(main.estimateDate);
       document.getElementById('infoEstimator').value = main.estimator || '';
-      document.getElementById('infoClient').value = main.clientName || '';
-      document.getElementById('infoClientContact').value = main.contactPerson || '';
       document.getElementById('infoSubject').value = main.subject || '';
       document.getElementById('infoDeptNo').value = main.deptNo || '';
       document.getElementById('infoLayout').value = main.layout || '';
       document.getElementById('globalRemark').value = main.remarks || '';
+
+      // ✅ 変更：取引先・取引先担当者を選択式にしたため、マスタに存在すれば選択、
+      //   存在しなければ新規入力欄へ反映する共通関数を使う（デザインAと同じ処理）
+      restoreClientSelection_(main.clientName, main.contactPerson, 'B');
 
       appStateB = createEmptyAppStateB_();
 
