@@ -310,39 +310,20 @@
       50%, 99% { opacity: 0.3; }
     }
 
+    /* デザインAの全体備考欄。合計表示は固定ボトムバー（.bottom-bar）に統一したため、
+       ここは備考欄のみのシンプルな1カラム構成 */
     .footer-flex {
       display: grid;
       grid-template-columns: 1fr;
       gap: 12px;
     }
 
-    @media (min-width: 768px) {
-      .footer-flex { grid-template-columns: 2fr 1fr; }
-    }
-
     .bottom-remarks {  grid-column: 1 / -1; }
 
-    .summary-box {
-      background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
-      color: white;
-      padding: 12px;
-      border-radius: var(--radius);
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .summary-row {
-      display: flex;
-      justify-content: space-between;
-      font-size: 16px;
-    }
-
-    .summary-row.total {
-      font-weight: 600;
-      font-size: 16px;
-      padding-top: 8px;
-      border-top: 1px solid rgba(255, 255, 255, 0.3);
+    /* デザインAの固定ボトムバー表示時、本文末尾がバーに隠れないよう余白を確保
+       （デザインBの同用途の余白と合わせて140pxにしている） */
+    #mainApp {
+      padding-bottom: 140px;
     }
 
     #loader {
