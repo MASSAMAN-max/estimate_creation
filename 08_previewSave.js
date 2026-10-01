@@ -4,17 +4,35 @@
  * デザインA・デザインBどちらのフォームからも共通で使われる。
  */
 
+    // =====================================
+    // 必須項目（見積作成日・取引先・件名）の入力チェック（共通）
+    // ✅ 新設：デザインA・B両方、プレビュー／確定保存／下書き保存の
+    //   すべてでチェックする。不足があればアラートを出しfalseを返す。
+    // =====================================
+    function validateEstimateFormData_(data) {
+      if (!data.estimateDate) {
+        Swal.fire({ icon: 'warning', title: '入力不足', text: '見積作成日を入力してください。', confirmButtonText: '了解' });
+        return false;
+      }
+      if (!data.clientName) {
+        Swal.fire({ icon: 'warning', title: '入力不足', text: '取引先を選択してください。', confirmButtonText: '了解' });
+        return false;
+      }
+      if (!data.subject) {
+        Swal.fire({ icon: 'warning', title: '入力不足', text: '件名を入力してください。', confirmButtonText: '了解' });
+        return false;
+      }
+      if (data.details.length === 0) {
+        Swal.fire({ icon: 'warning', title: '入力不足', text: '明細を1件以上入力してください。', confirmButtonText: '了解' });
+        return false;
+      }
+      return true;
+    }
+
     function showPDFPreview() {
       const data = currentDesignType === 'B' ? getFormDataB() : getFormData();
       
-      if(!data.clientName) {
-        Swal.fire({ icon: 'warning', title: '入力不足', text: '取引先を選択してください。', confirmButtonText: '了解' });
-        return;
-      }
-      if(data.details.length === 0) {
-        Swal.fire({ icon: 'warning', title: '入力不足', text: '明細を1件以上入力してください。', confirmButtonText: '了解' });
-        return;
-      }
+      if (!validateEstimateFormData_(data)) return;
       showPreviewDialog(data);
     }
 
@@ -178,14 +196,7 @@
       }
       // デザインBの場合、getFormDataB() が subtotal/tax/total を計算済みのため変換不要
       
-      if (!data.clientName) {
-        Swal.fire({ icon: 'warning', title: '入力不足', text: '取引先を選択してください。', confirmButtonText: '了解' });
-        return;
-      }
-      if (data.details.length === 0) {
-        Swal.fire({ icon: 'warning', title: '入力不足', text: '明細を1件以上入力してください。', confirmButtonText: '了解' });
-        return;
-      }
+      if (!validateEstimateFormData_(data)) return;
       
       const isDraft = actionType === 'saveDraft';
       const loaderMsg = isDraft ? '下書きを保存中...' : '見積番号を発行中...';
