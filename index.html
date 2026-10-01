@@ -203,8 +203,9 @@
         </div>
       </div>
 
-      <!-- 共通アクション（プレビュー／下書き保存）：デザインBと表示位置を統一 -->
-      <div style="display:flex; gap:8px; margin-bottom:16px;">
+      <!-- 共通アクション（プレビュー／下書き保存）：デザインBと表示位置を統一
+           備考欄との間に余白を確保するためmargin-topを指定している -->
+      <div style="display:flex; gap:8px; margin-top:16px; margin-bottom:16px;">
         <button type="button" class="btn btn-primary" style="background-color: var(--gray-light); color: var(--text-primary); border: 1px solid var(--gray-border); flex: 1;" onclick="showPDFPreview()">
           <span class="material-symbols-outlined">visibility</span>プレビュー
         </button>
