@@ -20,10 +20,12 @@
         MASTER_CONTACTPERSONS = masterData.contactPersons || {};  // 担当者マスター
         MASTER_CATEGORIES = masterData.categories || [];
         MASTER_UNITS = masterData.units || [];
+        MASTER_ESTIMATORS = masterData.estimators || [];
       
         // 取引先プルダウンを構築（デザインA・デザインB共通の選択肢）
         buildClientOptions_('clientSelect');
         buildClientOptions_('infoClientSelect');
+        buildEstimatorOptions_('infoEstimator');
       } catch (e) {
         console.error("マスタデータ取得失敗", e);
         Swal.fire({
