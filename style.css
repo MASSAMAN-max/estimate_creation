@@ -310,20 +310,39 @@
       50%, 99% { opacity: 0.3; }
     }
 
-    /* デザインAの全体備考欄。合計表示は固定ボトムバー（.bottom-bar）に統一したため、
-       ここは備考欄のみのシンプルな1カラム構成 */
     .footer-flex {
       display: grid;
       grid-template-columns: 1fr;
       gap: 12px;
     }
 
+    @media (min-width: 768px) {
+      .footer-flex { grid-template-columns: 2fr 1fr; }
+    }
+
     .bottom-remarks {  grid-column: 1 / -1; }
 
-    /* デザインAの固定ボトムバー表示時、本文末尾がバーに隠れないよう余白を確保
-       （デザインBの同用途の余白と合わせて140pxにしている） */
-    #mainApp {
-      padding-bottom: 140px;
+    .summary-box {
+      background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
+      color: white;
+      padding: 12px;
+      border-radius: var(--radius);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 16px;
+    }
+
+    .summary-row.total {
+      font-weight: 600;
+      font-size: 16px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(255, 255, 255, 0.3);
     }
 
     #loader {
@@ -339,14 +358,6 @@
       align-items: center;
       flex-direction: column;
       gap: 12px;
-    }
-
-    /* ✅ 新設：SweetAlert2（確認ダイアログ）が一覧モーダル（z-index:9998）や
-       ローダー（z-index:9999）の背後に隠れてしまう問題を修正。
-       SweetAlert2は常にどの画面より手前に表示されるべきなので、
-       他のどのz-indexよりも高い値を明示的に指定する。 */
-    .swal2-container {
-      z-index: 99999 !important;
     }
 
     .spinner {
@@ -778,6 +789,26 @@
       color: #dc2626;
       border: none;
       padding: 3px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    /* カード右上の操作ボタン（解散・削除）を横並びにする */
+    .item-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .btn-remove-item {
+      background: white;
+      color: #dc2626;
+      border: 1px solid #fca5a5;
+      padding: 3px 8px;
       border-radius: 4px;
       font-size: 10px;
       font-weight: bold;
