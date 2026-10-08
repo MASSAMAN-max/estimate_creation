@@ -11,6 +11,7 @@
     let MASTER_CONTACTPERSONS = {};  // { "取引先": ["担当者1", "担当者2"] }の形式
     let MASTER_CATEGORIES = [];
     let MASTER_UNITS = [];
+    let MASTER_ESTIMATORS = [];  // ★追加：見積担当（デザインB）の選択肢。ユーザー名の配列
     
     // 現在のフォームの状態を追跡する管理変数
     let appMode = 'NEW';      // 'MENU' | 'NEW_ESTIMATE' | 'PAST_ESTIMATE' | 'EDIT_DRAFT'
