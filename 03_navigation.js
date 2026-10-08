@@ -15,6 +15,7 @@
       // 2. 土台のなかでメニュー画面を表示し、作成フォームは隠す（デザインA/B両方）
       document.getElementById('mainApp').style.display = 'none';
       document.getElementById('mainAppB').style.display = 'none';
+      document.getElementById('bottomBarA').style.display = 'none';
       document.getElementById('menuScreen').style.display = 'flex';
       
       // 3. メニュー画面なので、ヘッダーの「メニューに戻る」ボタンは非表示
@@ -35,6 +36,8 @@
       document.getElementById('menuScreen').style.display = 'none';
       document.getElementById('mainAppB').style.display = 'none';
       document.getElementById('mainApp').style.display = 'block';
+      // デザインBと表示位置を統一した固定ボトムバー（小計・消費税・税込合計）を表示
+      document.getElementById('bottomBarA').style.display = 'flex';
       
       // 3. 作成フォーム画面なので、ヘッダーの「メニューに戻る」ボタンを表示！
       document.getElementById('backToMenuBtn').style.display = 'inline-flex';
@@ -50,6 +53,7 @@
       document.getElementById('appWrapper').style.display = 'block';
       document.getElementById('menuScreen').style.display = 'none';
       document.getElementById('mainApp').style.display = 'none';
+      document.getElementById('bottomBarA').style.display = 'none';
       document.getElementById('mainAppB').style.display = 'block';
       document.getElementById('backToMenuBtn').style.display = 'inline-flex';
       document.getElementById('userDisplayLabel').textContent = `ログイン: ${currentUser.userName}`;
@@ -62,6 +66,7 @@
       document.getElementById('menuScreen').style.display = 'none';
       document.getElementById('mainApp').style.display = 'none';
       document.getElementById('mainAppB').style.display = 'none';
+      document.getElementById('bottomBarA').style.display = 'none';
     }
 
     // =====================================
