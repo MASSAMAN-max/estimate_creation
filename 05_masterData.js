@@ -50,6 +50,44 @@
       });
       clientSelect.innerHTML += '<option value="__NEW__">（新規取引先を入力する）</option>';
     }
+
+    // ===== 見積担当（デザインB）のプルダウンの選択肢を構築する =====
+    function buildEstimatorOptions_(selectId) {
+      const select = document.getElementById(selectId);
+      if (!select) return;
+      select.innerHTML = '<option value="">-- 選択してください --</option>';
+      MASTER_ESTIMATORS.forEach(name => {
+        const option = document.createElement('option');
+        option.value = name;
+        option.textContent = name;
+        select.appendChild(option);
+      });
+    }
+
+    // ===== 見積担当の選択状態を復元する =====
+    // ・一覧にある名前 → その担当者を選択
+    // ・保存値が空 → 未選択
+    // ・一覧にない名前 → 未選択に戻す
+    // 戻り値：一覧になかった名前（呼び出し元で利用者への通知に使う）。問題なければ空文字
+    function restoreEstimatorSelection_(selectId, estimatorName) {
+      const select = document.getElementById(selectId);
+      if (!select) return '';
+
+      const name = (estimatorName || '').toString().trim();
+      if (name === '') {
+        select.value = '';
+        return '';
+      }
+
+      const exists = Array.from(select.options).some(opt => opt.value === name);
+      if (exists) {
+        select.value = name;
+        return '';
+      }
+
+      select.value = '';
+      return name;
+    }
     
     // ===== 取引先選択時のイベントハンドラ（共通実装） =====
     // idSuffix：デザインAは ''（clientSelect等）、デザインBは 'B'（infoClientSelect等）
