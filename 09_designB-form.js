@@ -56,17 +56,12 @@
       if (ESTIMATOR_LIST_B.length > 0) return;
 
       try {
-        const res = await fetch(GAS_WEB_APP_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain' },
-          body: JSON.stringify({
-            action: 'loadEstimatorList',
-            payload: { currentUserName: getCurrentUserName() || '' }
-          })
+        // 他の通信と同じ fetchWithRetry_ を使う（成功時は GAS の data 部分がそのまま返る）
+        const names = await fetchWithRetry_({
+          action: 'loadEstimatorList',
+          payload: { currentUserName: getCurrentUserName() || '' }
         });
-        const result = await res.json();
-        if (result.status === 'error') throw new Error(result.message);
-        ESTIMATOR_LIST_B = result.data || [];
+        ESTIMATOR_LIST_B = names || [];
       } catch (e) {
         console.error('見積担当リストの取得に失敗', e);
         Swal.fire({
@@ -148,9 +143,6 @@
       try {
         document.getElementById('infoDate').valueAsDate = new Date();
       } catch (e) {}
-      // 見積担当はリストを取得してから「未選択」で描画する
-      await ensureEstimatorListB_();
-      setEstimatorSelectB_('');
       document.getElementById('infoClient').value = '';
       document.getElementById('infoClientContact').value = '';
       document.getElementById('infoSubject').value = '';
@@ -158,6 +150,14 @@
       document.getElementById('infoLayout').value = '';
       document.getElementById('globalRemark').value = '';
 
+      // 取引先・担当者のマスターと、見積担当の一覧を同時に取得して待つ（表示までの時間を短くするため）
+      await Promise.all([loadMasterLists(), ensureEstimatorListB_()]);
+      // 見積担当は「未選択」で描画する
+      setEstimatorSelectB_('');
+      // 取引先が空（未選択）なので、担当者プルダウンは「取引先を先に選択してください」状態にする
+      document.getElementById('infoClientContactSelect').innerHTML = '<option value="">-- 取引先を先に選択してください --</option>';
+      document.getElementById('newClientContainerB').style.display = 'none';
+      document.getElementById('newContactPersonContainerB').style.display = 'none';
       renderB();
     }
 
@@ -169,6 +169,15 @@
         const el = document.getElementById(id);
         if (el) el.value = '';
       });
+      // 取引先・担当者は選択式のため、選択状態と新規入力欄もリセットする
+      const clientSelect = document.getElementById('infoClientSelect');
+      if (clientSelect) clientSelect.value = '';
+      const contactSelect = document.getElementById('infoClientContactSelect');
+      if (contactSelect) contactSelect.innerHTML = '<option value="">-- 取引先を先に選択してください --</option>';
+      const newClientContainer = document.getElementById('newClientContainerB');
+      if (newClientContainer) newClientContainer.style.display = 'none';
+      const newContactPersonContainer = document.getElementById('newContactPersonContainerB');
+      if (newContactPersonContainer) newContactPersonContainer.style.display = 'none';
       const container = document.getElementById('categoryContainer');
       if (container) container.innerHTML = '';
     }
@@ -321,8 +330,25 @@
       renderB();
     }
 
-    function addCustomItemB(catIdx) {
-      const customName = prompt("追加する内容を入力してください (例: 特注補修):");
+    // =====================================
+    // 自由な内容をカテゴリへ追加する
+    // ネイティブのprompt()ではなく、他の画面と統一してSweetAlert2の入力ダイアログを使う
+    // =====================================
+    async function addCustomItemB(catIdx) {
+      const { value: customName } = await Swal.fire({
+        title: '内容を追加',
+        input: 'text',
+        inputLabel: '追加する内容を入力してください',
+        inputPlaceholder: '例: 特注補修',
+        showCancelButton: true,
+        confirmButtonText: '追加',
+        cancelButtonText: 'キャンセル',
+        inputValidator: (value) => {
+          if (!value || value.trim() === '') {
+            return '内容を入力してください。';
+          }
+        }
+      });
       if (!customName || customName.trim() === "") return;
 
       appStateB[catIdx].items.push({
@@ -423,6 +449,12 @@
       renderB();
     }
 
+    // =====================================
+    // 結合された内容を個別に分割する（結合の逆操作）
+    // 金額は元の合計を割り算して配分せず、分割後の全項目を金額未入力（空欄）にリセットする。
+    // 割り算だと端数が消えて合計金額がズレることがあったため、
+    // 金額はユーザーに個別入力し直してもらう方針にした。
+    // =====================================
     function ungroupItemB(catIdx, itemId) {
       const list = appStateB[catIdx].items;
       const targetIdx = list.findIndex(i => i.id === itemId);
@@ -430,17 +462,16 @@
 
       const target = list[targetIdx];
       const names = [...target.names];
-      const splitAmount = target.amount ? Math.floor(target.amount / names.length) : '';
 
       target.names = [names[0]];
-      target.amount = splitAmount;
+      target.amount = '';
 
       for (let i = 1; i < names.length; i++) {
         list.push({
           id: 'item_' + Date.now() + '_' + i,
           names: [names[i]],
           qty: 1,
-          amount: splitAmount,
+          amount: '',
           remark: '',
           showRemark: false
         });
@@ -578,7 +609,7 @@
             // itemAmount：先頭行のみカテゴリ合計金額、2件目以降は各内容自身の金額（既存の他カテゴリと同じ挙動）
             itemAmount: idx === 0 ? catTotalAmount : (Number(item.amount) || 0),
             // itemIndividualAmount：idx（0件目含む）にかかわらず、その内容自身の金額を常に保持
-            // （ガラス・サッシの「大・中・小」個別金額をPDFの20行目へ書き込む際に使用）
+            // （PDF出力時、各内容を「品名 金額 （備考）」の形でF列に連結表示する際に使用。08_PDFデザインB.js参照）
             itemIndividualAmount: Number(item.amount) || 0,
             itemRemarks: item.remark || ''
           });
@@ -586,10 +617,11 @@
       });
 
       const totals = calculateTotalsB();
+      const { clientName: finalClientNameB, contactPerson: finalContactPersonB } = getClientSelectionValues_('B');
 
       return {
-        clientName: document.getElementById('infoClient').value.trim(),
-        contactPerson: document.getElementById('infoClientContact').value.trim(),
+        clientName: finalClientNameB,
+        contactPerson: finalContactPersonB,
         clientAddress: '', // デザインBには入力欄なし
         estimateDate: document.getElementById('infoDate').value,
         subject: document.getElementById('infoSubject').value.trim(),
@@ -621,13 +653,14 @@
       // 見積担当：保存されていた名前がリスト（現在のユーザー名一覧）に無い場合は未選択に戻す
       // （呼び出し元で ensureEstimatorListB_() を済ませてから呼ぶこと）
       const estimatorCleared = setEstimatorSelectB_(main.estimator);
-      document.getElementById('infoClient').value = main.clientName || '';
-      document.getElementById('infoClientContact').value = main.contactPerson || '';
       document.getElementById('infoSubject').value = main.subject || '';
       document.getElementById('infoDeptNo').value = main.deptNo || '';
       document.getElementById('infoLayout').value = main.layout || '';
       document.getElementById('globalRemark').value = main.remarks || '';
 
+      // 取引先・取引先担当者は選択式のため、マスタに存在すれば選択、
+      // 存在しなければ新規入力欄へ反映する共通関数を使う（デザインAと同じ処理）
+      restoreClientSelection_(main.clientName, main.contactPerson, 'B');
       appStateB = createEmptyAppStateB_();
 
       const details = formData.details || [];
