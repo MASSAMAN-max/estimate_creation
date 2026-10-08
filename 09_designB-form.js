@@ -113,6 +113,38 @@
       'エアコン': '台'
     };
 
+    // =====================================
+    // 各カテゴリのチップ末尾に表示する「その他」チップ
+    // ・押すたびに「その他」という名前のカードが1枚追加され、品名はカード上で編集する
+    // ・MASTER_DATA_B には含めない（表示時に末尾へ付け足すだけ）ため、
+    //   PDF出力・保存・復元の処理には影響しない
+    // =====================================
+    const OTHER_ITEM_NAME_B = 'その他';
+
+    // =====================================
+    // 内容カード（有効化された内容1件分）の初期データを作る共通関数
+    // =====================================
+    function createItemB_(name) {
+      return {
+        id: 'item_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+        names: [name],
+        qty: 1,
+        amount: '',
+        remark: '',
+        showRemark: false
+      };
+    }
+
+    // =====================================
+    // 品名を自由に編集できるカードかどうかを判定する
+    // ・結合されていない（名前が1つ）かつ、そのカテゴリのチップ名にない名前
+    // ・「その他」チップ／「＋自由な内容を追加」で作ったカードが該当する
+    // ・名前で判定するため、保存→復元後も同じ判定になる
+    // =====================================
+    function isFreeTextItemB_(catIdx, item) {
+      return item.names.length === 1 && !MASTER_DATA_B[catIdx].items.includes(item.names[0]);
+    }
+
     // デザインBのフォーム状態（カテゴリindexごとに { manualTotal, items:[...], categoryCount } ）
     let appStateB = {};
 
@@ -229,7 +261,7 @@
             ` : ''}
             <div class="chip-section-title">内容を選択（タップで有効化）</div>
             <div class="chip-group">
-              ${getChipItemNamesB_(cat).map(itemName => {
+              ${cat.items.map(itemName => {
                 const isSelected = activeNames.includes(itemName);
                 return `
                   <div class="chip ${isSelected ? 'selected' : ''}" onclick="toggleItemB(${catIdx}, '${itemName}')">
@@ -237,6 +269,7 @@
                   </div>
                 `;
               }).join('')}
+              <div class="chip chip-add" onclick="addOtherItemB(${catIdx})">${OTHER_ITEM_NAME_B}</div>
             </div>
 
             <div class="active-items-list" id="activeListB_${catIdx}">
@@ -255,20 +288,27 @@
     }
 
     function renderActiveCardB(catIdx, item) {
-      const nameText = item.names.join(' ＋ ');
       const isGrouped = item.names.length > 1;
       const hasRemark = item.remark && item.remark.trim() !== '';
+
+      // 自由入力の内容は品名をその場で編集できる入力欄にし、それ以外は従来どおり固定表示
+      // ※ 品名は利用者が入力した文字列なので、必ずエスケープして埋め込む
+      const nameHtml = isFreeTextItemB_(catIdx, item)
+        ? `<input type="text" class="item-name-input" value="${htmlEscape(item.names[0])}"
+             placeholder="内容を入力"
+             onchange="updateItemNameB(${catIdx}, '${item.id}', this.value)">`
+        : `<span>${htmlEscape(item.names.join(' ＋ '))}</span>`;
 
       return `
         <div class="active-item-card" data-cat="${catIdx}" data-id="${item.id}" draggable="true">
           <div class="item-main">
             <div class="item-handle">
               <span class="drag-icon">☰</span>
-              <span>${nameText}</span>
+              ${nameHtml}
             </div>
             <div class="item-actions">
               ${isGrouped ? `<button class="btn-ungroup" onclick="ungroupItemB(${catIdx}, '${item.id}')">解散</button>` : ''}
-              <button class="btn-remove-item" onclick="removeItemB(${catIdx}, '${item.id}')" title="この内容を削除">削除</button>
+              <button class="btn-delete-item" onclick="deleteItemB(${catIdx}, '${item.id}')">削除</button>
             </div>
           </div>
 
@@ -317,14 +357,7 @@
           list.splice(existingIndex, 1);
         }
       } else {
-        list.push({
-          id: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-          names: [itemName],
-          qty: 1,
-          amount: '',
-          remark: '',
-          showRemark: false
-        });
+        list.push(createItemB_(itemName));
       }
 
       renderB();
@@ -351,14 +384,7 @@
       });
       if (!customName || customName.trim() === "") return;
 
-      appStateB[catIdx].items.push({
-        id: 'custom_' + Date.now(),
-        names: [customName.trim()],
-        qty: 1,
-        amount: '',
-        remark: '',
-        showRemark: false
-      });
+      appStateB[catIdx].items.push(createItemB_(customName.trim()));
 
       renderB();
     }
@@ -658,6 +684,13 @@
       document.getElementById('infoLayout').value = main.layout || '';
       document.getElementById('globalRemark').value = main.remarks || '';
 
+      // 見積担当。一覧にない名前は未選択に戻し、通知用のメッセージを集める
+      const restoreWarnings = [];
+      const missingEstimator = restoreEstimatorSelection_('infoEstimator', main.estimator);
+      if (missingEstimator) {
+        restoreWarnings.push(`見積担当「${missingEstimator}」は一覧にないため、未選択に戻しました。選び直してください。`);
+      }
+
       // 取引先・取引先担当者は選択式のため、マスタに存在すれば選択、
       // 存在しなければ新規入力欄へ反映する共通関数を使う（デザインAと同じ処理）
       restoreClientSelection_(main.clientName, main.contactPerson, 'B');
@@ -739,7 +772,50 @@
       });
 
       renderB();
-
+      // 呼び出し元（04_listModal.js）が通知に使う
+      return restoreWarnings;
       // 呼び出し元が「見積担当を選び直してください」と案内できるよう結果を返す
       return { estimatorCleared: estimatorCleared, savedEstimator: (main.estimator || '').toString().trim() };
+    }
+
+    // =====================================
+    // 「その他」チップ：「その他」という名前のカードを1枚追加する（何度でも追加可）
+    // ・追加直後に品名欄へフォーカスし全選択するので、そのまま上書き入力できる
+    // =====================================
+    function addOtherItemB(catIdx) {
+      const newItem = createItemB_(OTHER_ITEM_NAME_B);
+      appStateB[catIdx].items.push(newItem);
+      renderB();
+
+      const nameInput = document.querySelector(`.active-item-card[data-id="${newItem.id}"] .item-name-input`);
+      if (nameInput) {
+        nameInput.focus();
+        nameInput.select();
+      }
+    }
+
+    // 自由入力カードの品名を更新する
+    function updateItemNameB(catIdx, itemId, val) {
+      const item = appStateB[catIdx].items.find(i => i.id === itemId);
+      if (!item) return;
+
+      // 空欄にされた場合は、品名なしで保存されないよう「その他」に戻す
+      const newName = val.trim();
+      item.names = [newName !== '' ? newName : OTHER_ITEM_NAME_B];
+      renderB();
+    }
+
+    // =====================================
+    // 内容カードを削除する（全カード共通。結合中のカードは結合ごと削除）
+    // ・チップのタップによる取り消しと同じく、確認ダイアログなしで即削除
+    // =====================================
+    function deleteItemB(catIdx, itemId) {
+      const catState = appStateB[catIdx];
+      catState.items = catState.items.filter(i => i.id !== itemId);
+
+      // 内容が1件もなくなったら、手動で上書きしたカテゴリ合計金額も解除する
+      // （残すと、内容がないのに画面の合計にだけ加算され、PDFと金額がズレるため）
+      if (catState.items.length === 0) catState.manualTotal = null;
+
+      renderB();
     }
