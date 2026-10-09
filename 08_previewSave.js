@@ -95,6 +95,8 @@
         // ✅ 修正：デザインAも各内容が独立した自分の金額を持つ形になったため、
         //   デザインBと同じシンプルなロジックで表示する（特別扱いの行はない）
         group.items.forEach(item => {
+          if (item.isCategoryOnly) return; // 金額のみの項目は項目行だけ表示する
+
           // 品名または備考の表示
           let displayName = htmlEscape(item.itemName || '');
           if (!item.itemName && item.itemRemarks) {
