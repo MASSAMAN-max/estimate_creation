@@ -31,77 +31,6 @@
     ];
 
     // =====================================
-    // 全カテゴリ共通で、内容チップの末尾に必ず追加するデフォルトの内容名
-    // ※MASTER_DATA_B側へ各カテゴリごとに書き足さず、描画時にここから補う
-    //   （カテゴリ追加・内容追加のたびに「その他」を書き忘れないようにするため）
-    // =====================================
-    const DEFAULT_ITEM_NAME_B = 'その他';
-
-    // カテゴリの内容チップ一覧（マスター定義＋デフォルトの「その他」）を返す
-    // ※マスター側に同名の内容がすでにある場合は重複して追加しない
-    function getChipItemNamesB_(cat) {
-      return cat.items.includes(DEFAULT_ITEM_NAME_B)
-        ? cat.items
-        : [...cat.items, DEFAULT_ITEM_NAME_B];
-    }
-
-    // =====================================
-    // 見積担当（ホワイトリスト＝ログインマスターの「ユーザー名」列）
-    // ・GASの loadEstimatorList から取得して保持する（ページを開いている間は使い回す）
-    // ・取得に失敗／0件の場合は保持せず、次回のフォーム表示時にもう一度取得する
-    // =====================================
-    let ESTIMATOR_LIST_B = [];
-
-    async function ensureEstimatorListB_() {
-      if (ESTIMATOR_LIST_B.length > 0) return;
-
-      try {
-        // 他の通信と同じ fetchWithRetry_ を使う（成功時は GAS の data 部分がそのまま返る）
-        const names = await fetchWithRetry_({
-          action: 'loadEstimatorList',
-          payload: { currentUserName: getCurrentUserName() || '' }
-        });
-        ESTIMATOR_LIST_B = names || [];
-      } catch (e) {
-        console.error('見積担当リストの取得に失敗', e);
-        Swal.fire({
-          icon: 'warning',
-          title: '見積担当リストの取得に失敗',
-          text: '見積担当を選択できません。通信状況を確認し、メニューに戻ってもう一度開いてください。',
-          confirmButtonText: '了解'
-        });
-      }
-    }
-
-    // 見積担当プルダウンを描画し、selectedName が一覧にあれば選択状態にする
-    // 戻り値：selectedName が指定されたのに一覧に無く、未選択に戻した場合は true
-    function setEstimatorSelectB_(selectedName) {
-      const select = document.getElementById('infoEstimator');
-      if (!select) return false;
-
-      select.innerHTML = '';
-      const placeholder = document.createElement('option');
-      placeholder.value = '';
-      placeholder.textContent = '-- 選択してください --';
-      select.appendChild(placeholder);
-
-      ESTIMATOR_LIST_B.forEach(userName => {
-        const option = document.createElement('option');
-        option.value = userName;
-        option.textContent = userName;
-        select.appendChild(option);
-      });
-
-      const name = (selectedName || '').toString().trim();
-      if (name !== '' && ESTIMATOR_LIST_B.includes(name)) {
-        select.value = name;
-        return false;
-      }
-      select.value = '';
-      return name !== '';  // 一覧に無い担当者名は復元せず、選び直してもらう
-    }
-
-    // =====================================
     // カテゴリ名へ括弧書きで付記する「項目数量」を持つカテゴリと、その単位のマップ
     // 例：「和室」なら室数 → 「和室（2室）」、「エアコン」なら台数 → 「エアコン（2台）」
     // ※ここでの数量はあくまでカテゴリ名に付記する表示用ラベルであり、金額計算には使用しない
@@ -175,6 +104,7 @@
       try {
         document.getElementById('infoDate').valueAsDate = new Date();
       } catch (e) {}
+      document.getElementById('infoEstimator').value = '';
       document.getElementById('infoClient').value = '';
       document.getElementById('infoClientContact').value = '';
       document.getElementById('infoSubject').value = '';
@@ -182,14 +112,14 @@
       document.getElementById('infoLayout').value = '';
       document.getElementById('globalRemark').value = '';
 
-      // 取引先・担当者のマスターと、見積担当の一覧を同時に取得して待つ（表示までの時間を短くするため）
-      await Promise.all([loadMasterLists(), ensureEstimatorListB_()]);
-      // 見積担当は「未選択」で描画する
-      setEstimatorSelectB_('');
+      // ✅ 変更：取引先・取引先担当者を選択式にしたため、マスターデータ取得を待ってから
+      //   選択肢を表示する（デザインAのinitializeEstimateFormと同じ流れ）
+      await loadMasterLists();
       // 取引先が空（未選択）なので、担当者プルダウンは「取引先を先に選択してください」状態にする
       document.getElementById('infoClientContactSelect').innerHTML = '<option value="">-- 取引先を先に選択してください --</option>';
       document.getElementById('newClientContainerB').style.display = 'none';
       document.getElementById('newContactPersonContainerB').style.display = 'none';
+
       renderB();
     }
 
@@ -201,7 +131,7 @@
         const el = document.getElementById(id);
         if (el) el.value = '';
       });
-      // 取引先・担当者は選択式のため、選択状態と新規入力欄もリセットする
+      // ✅ 変更：取引先・担当者を選択式にしたため、選択状態と新規入力欄もリセットする
       const clientSelect = document.getElementById('infoClientSelect');
       if (clientSelect) clientSelect.value = '';
       const contactSelect = document.getElementById('infoClientContactSelect');
@@ -365,7 +295,8 @@
 
     // =====================================
     // 自由な内容をカテゴリへ追加する
-    // ネイティブのprompt()ではなく、他の画面と統一してSweetAlert2の入力ダイアログを使う
+    // ✅ 変更：ネイティブのprompt()ではなく、他の画面と統一してSweetAlert2の
+    //   入力ダイアログを使うようにした
     // =====================================
     async function addCustomItemB(catIdx) {
       const { value: customName } = await Swal.fire({
@@ -382,34 +313,11 @@
           }
         }
       });
+
       if (!customName || customName.trim() === "") return;
 
       appStateB[catIdx].items.push(createItemB_(customName.trim()));
-
       renderB();
-    }
-
-    // 有効化されている内容（カード）を1件削除する
-    // ・マスターのチップ由来／自由追加のどちらでも削除できる
-    // ・誤操作防止のため確認ダイアログを挟む
-    // ・グループ化（「A ＋ B」）されたカードは、まとめて削除される
-    async function removeItemB(catIdx, itemId) {
-      const list = appStateB[catIdx].items;
-      const target = list.find(i => i.id === itemId);
-      if (!target) return;
-
-      const result = await Swal.fire({
-        icon: 'question',
-        title: '内容を削除しますか？',
-        text: `「${target.names.join(' ＋ ')}」を削除します。`,
-        showCancelButton: true,
-        confirmButtonText: '削除',
-        cancelButtonText: 'キャンセル'
-      });
-      if (!result.isConfirmed) return;
-
-      appStateB[catIdx].items = list.filter(i => i.id !== itemId);
-      renderB();  // 合計金額もここで再計算される
     }
 
     function changeQtyB(catIdx, itemId, delta) {
@@ -477,9 +385,9 @@
 
     // =====================================
     // 結合された内容を個別に分割する（結合の逆操作）
-    // 金額は元の合計を割り算して配分せず、分割後の全項目を金額未入力（空欄）にリセットする。
-    // 割り算だと端数が消えて合計金額がズレることがあったため、
-    // 金額はユーザーに個別入力し直してもらう方針にした。
+    // ✅ 変更：金額は元の合計を割り算して配分せず、分割後の全項目を金額未入力（空欄）に
+    //   リセットする。割り算だと端数が消えて合計金額がズレることがあったため、
+    //   金額はユーザーに個別入力し直してもらう方針にした。
     // =====================================
     function ungroupItemB(catIdx, itemId) {
       const list = appStateB[catIdx].items;
@@ -676,29 +584,26 @@
 
       document.getElementById('infoDate').value =
         mode === 'COPY_CREATE' ? new Date().toISOString().split('T')[0] : formatDateToInput(main.estimateDate);
-      // 見積担当：保存されていた名前がリスト（現在のユーザー名一覧）に無い場合は未選択に戻す
-      // （呼び出し元で ensureEstimatorListB_() を済ませてから呼ぶこと）
-      const estimatorCleared = setEstimatorSelectB_(main.estimator);
       document.getElementById('infoSubject').value = main.subject || '';
       document.getElementById('infoDeptNo').value = main.deptNo || '';
       document.getElementById('infoLayout').value = main.layout || '';
       document.getElementById('globalRemark').value = main.remarks || '';
 
+      // ✅ 変更：取引先・取引先担当者を選択式にしたため、マスタに存在すれば選択、
+      //   存在しなければ新規入力欄へ反映する共通関数を使う（デザインAと同じ処理）
+      restoreClientSelection_(main.clientName, main.contactPerson, 'B');
+
+      appStateB = createEmptyAppStateB_();
+
+      const details = formData.details || [];
+      let currentCatIdx = -1;
+      let currentItem = null;
       // 見積担当。一覧にない名前は未選択に戻し、通知用のメッセージを集める
       const restoreWarnings = [];
       const missingEstimator = restoreEstimatorSelection_('infoEstimator', main.estimator);
       if (missingEstimator) {
         restoreWarnings.push(`見積担当「${missingEstimator}」は一覧にないため、未選択に戻しました。選び直してください。`);
       }
-
-      // 取引先・取引先担当者は選択式のため、マスタに存在すれば選択、
-      // 存在しなければ新規入力欄へ反映する共通関数を使う（デザインAと同じ処理）
-      restoreClientSelection_(main.clientName, main.contactPerson, 'B');
-      appStateB = createEmptyAppStateB_();
-
-      const details = formData.details || [];
-      let currentCatIdx = -1;
-      let currentItem = null;
 
       details.forEach(row => {
         const catName = (row.itemCategory || '').toString().trim();
@@ -772,10 +677,7 @@
       });
 
       renderB();
-      // 呼び出し元（04_listModal.js）が通知に使う
-      return restoreWarnings;
-      // 呼び出し元が「見積担当を選び直してください」と案内できるよう結果を返す
-      return { estimatorCleared: estimatorCleared, savedEstimator: (main.estimator || '').toString().trim() };
+      return restoreWarnings;   // ★追加：呼び出し元（04_listModal.js）が通知に使う
     }
 
     // =====================================
