@@ -689,6 +689,8 @@
     }
 
     .item-handle {
+      flex: 1;
+      min-width: 0;
       display: flex;
       align-items: center;
       gap: 6px;
@@ -946,4 +948,41 @@
       line-height: 1.2;
       margin-top: 1px;
       white-space: nowrap;
+    }
+
+    /* 内容カード右上の操作ボタン群（解散・削除） */
+    .item-actions {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .btn-delete-item {
+      background: white;
+      color: #dc2626;
+      border: 1px solid #fca5a5;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    /* 自由入力カードの品名欄 */
+    .item-name-input {
+      flex: 1;
+      min-width: 0;
+      padding: 4px 6px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-weight: bold;
+      background: white;
+    }
+
+    /* 「その他」チップ：選択状態にならず、タップのたびにカードを追加するため点線で区別 */
+    .chip.chip-add {
+      background: white;
+      border-style: dashed;
+      border-color: var(--primary);
+      color: var(--primary);
     }
