@@ -18,17 +18,17 @@
           action: 'loadRecentList',
           payload: {}
         });
-
+        
         window.cachedListData = resultData;
-
+        
         // モーダルのタイトルを動的に変更
         const modalTitle = document.getElementById('listModalTitle');
         const container = document.getElementById('modalListContainer');
         const searchBar = document.getElementById('estimateSearchBar');
-
+        
         // 初期化
         container.innerHTML = '<div style="text-align:center; color:var(--text-secondary);">読み込み中...</div>';
-
+        
         if (listType === 'estimate') {
           modalTitle.textContent = '過去の見積書（PDF表示／コピーして作成）';
           searchBar.style.display = 'flex';
@@ -39,7 +39,7 @@
           searchBar.style.display = 'none';
           displayDraftList(resultData.drafts);
         }
-
+        
         // リスト表示完了後にモーダルを表示
         document.getElementById('listModal').style.display = 'flex';
         
@@ -58,7 +58,7 @@
         showMenuScreen();
       }
     }
-     
+
     // =====================================
     // 見積書検索の実行
     // ✅ 新設：取引先名・見積番号・見積日の範囲で絞り込み検索する。
@@ -101,12 +101,11 @@
       document.getElementById('searchEstimateNo').value = '';
       document.getElementById('searchDateFrom').value = '';
       document.getElementById('searchDateTo').value = '';
-
       if (window.cachedListData) {
         displayEstimateList(window.cachedListData.estimates);
       }
     }
-
+     
     // =====================================
     // 過去の見積書一覧の表示
     // ・「見積書PDFを表示」「コピーして作成」の両方を各行に並べて表示する
@@ -169,7 +168,7 @@
         container.appendChild(row);
       });
     }
-     
+
     // =====================================
     // 見積書削除の実行（管理者専用）
     // ✅ 新設：確認ダイアログを2段階（通常確認＋見積番号の入力確認）にし、
@@ -221,7 +220,7 @@
         Swal.fire({ icon: 'error', title: '削除に失敗しました', text: error.message, confirmButtonText: '了解' });
       }
     }
-
+     
     // =====================================
     // 下書き編集リストの表示
     // =====================================
@@ -266,6 +265,7 @@
           action: 'loadFormData',
           payload: { targetId: id }
         });
+
         const targetDesignType = (formData.main && formData.main.designType) || 'A';
 
         // ---- デザインBのデータの場合は専用の復元処理へ分岐 ----
@@ -275,17 +275,13 @@
           currentDesignType = 'B';
           appMode = 'NEW_ESTIMATE';
 
-          // デザインBも取引先・担当者を選択式にしたため、復元前にマスターデータを読み込んでおく
-          // （デザインAの復元処理と同じ流れ）。見積担当のプルダウン復元用の一覧も同時に用意する
+          // ✅ 変更：デザインBも取引先・担当者を選択式にしたため、復元前にマスターデータを
+          //   読み込んでおく（デザインAの復元処理と同じ流れ）
           document.getElementById('loaderText').textContent = 'マスターデータを読み込んでいます...';
-          await Promise.all([loadMasterLists(), ensureEstimatorListB_()]);
-          const restoreWarnings = reflectFieldsDesignB_(formData, mode);
+          await loadMasterLists();
 
-          // 保存されていた見積担当がリストに無かった場合は、選び直しを案内する
-          let doneText = mode === 'DRAFT_EDIT' ? '下書きを読み込みました。' : '見積書をコピーしました。';
-          if (reflectResult && reflectResult.estimatorCleared) {
-            doneText += `\n見積担当「${reflectResult.savedEstimator}」は一覧にないため未選択です。選び直してください。`;
-          }
+          // 変更後
+          const restoreWarnings = reflectFieldsDesignB_(formData, mode);
 
           document.getElementById('loader').style.display = 'none';
           const baseMessage = mode === 'DRAFT_EDIT' ? '下書きを読み込みました。' : '見積書をコピーしました。';
@@ -325,9 +321,10 @@
      
         // ========== ステップ6〜7: 取引先・担当者情報設定 ==========
         document.getElementById('loaderText').textContent = 'クライアント情報を設定しています...';
+
         const currentClientName = formData.main.clientName;
         restoreClientSelection_(currentClientName, formData.main.contactPerson, '');
-
+     
         // ========== ステップ8: その他の入力欄を設定 ==========
         document.getElementById('loaderText').textContent = 'フォーム詳細を設定しています...';
         
