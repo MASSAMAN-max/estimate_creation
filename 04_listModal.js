@@ -279,7 +279,7 @@
           // （デザインAの復元処理と同じ流れ）。見積担当のプルダウン復元用の一覧も同時に用意する
           document.getElementById('loaderText').textContent = 'マスターデータを読み込んでいます...';
           await Promise.all([loadMasterLists(), ensureEstimatorListB_()]);
-          const reflectResult = reflectFieldsDesignB_(formData, mode);
+          const restoreWarnings = reflectFieldsDesignB_(formData, mode);
 
           // 保存されていた見積担当がリストに無かった場合は、選び直しを案内する
           let doneText = mode === 'DRAFT_EDIT' ? '下書きを読み込みました。' : '見積書をコピーしました。';
@@ -288,10 +288,12 @@
           }
 
           document.getElementById('loader').style.display = 'none';
+          const baseMessage = mode === 'DRAFT_EDIT' ? '下書きを読み込みました。' : '見積書をコピーしました。';
+          // 注意メッセージがある場合は、同じダイアログに追記して警告アイコンで表示する
           Swal.fire({
-            icon: 'success',
+            icon: restoreWarnings.length > 0 ? 'warning' : 'success',
             title: 'データ読み込み完了',
-            text: doneText,
+            html: [htmlEscape(baseMessage), ...restoreWarnings.map(w => htmlEscape(w))].join('<br><br>'),
             confirmButtonText: '了解'
           });
           showMainAppB();
