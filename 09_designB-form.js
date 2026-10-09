@@ -266,7 +266,7 @@
 
           ${(item.showRemark || hasRemark) ? `
             <div class="remark-field">
-              <input type="text" class="remark-input" value="${item.remark || ''}"
+              <input type="text" class="remark-input" value="${htmlEscape(item.remark || '')}"
                 placeholder="この項目に関する備考・特記事項..."
                 onchange="updateRemarkB(${catIdx}, '${item.id}', this.value)">
             </div>
@@ -513,6 +513,7 @@
     //         2件目以降＝itemCategoryは空、個別の金額をそのまま内訳として保持
     //         和室・洋室は室数が入力されていれば「和室（2室）」のようにカテゴリ名へ付記する
     //         （室数は表示ラベルのみに使用。金額計算には影響しない）
+    //         内容が0件でも項目合計金額が入力されていれば「金額のみの項目」として1行出力する
     // =====================================================================
     function getFormDataB() {
       const details = [];
@@ -520,7 +521,6 @@
       MASTER_DATA_B.forEach((cat, catIdx) => {
         const catState = appStateB[catIdx];
         const items = (catState && catState.items) || [];
-        if (items.length === 0) return;
 
         const isManual = catState.manualTotal !== null && catState.manualTotal !== '';
         const autoTotal = items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
@@ -532,6 +532,25 @@
         const categoryDisplayName = (countUnit && catState.categoryCount)
           ? `${cat.category}（${catState.categoryCount}${countUnit}）`
           : cat.category;
+
+        // 内容が1件もなくても、項目合計金額が入力されていれば「金額のみの項目」として出力する
+        // （画面の合計 calculateTotalsB はこの金額を加算するため、明細にも出さないとズレる）
+        if (items.length === 0) {
+          if (catTotalAmount > 0) {
+            details.push({
+              itemCategory: categoryDisplayName,
+              itemName: '',
+              itemQty: '',
+              itemUnit: '式',
+              itemPrice: '',
+              itemAmount: catTotalAmount,
+              itemIndividualAmount: 0,
+              itemRemarks: '',
+              isCategoryOnly: true   // 内容なし・金額のみの目印（保存時に空の内訳行を作らないため）
+            });
+          }
+          return;
+        }
 
         items.forEach((item, idx) => {
           details.push({
@@ -578,6 +597,7 @@
     //       自動計算だったかは区別できないため）。自動計算に戻したい場合は各カテゴリの
     //       「自動」ボタンで再計算してください。
     //       和室・洋室は「和室（2室）」のような表記から室数を分離して復元します。
+    // 戻り値：利用者へ通知すべきメッセージの配列（問題なければ空配列）
     // =====================================================================
     function reflectFieldsDesignB_(formData, mode) {
       const main = formData.main || {};
@@ -593,17 +613,18 @@
       //   存在しなければ新規入力欄へ反映する共通関数を使う（デザインAと同じ処理）
       restoreClientSelection_(main.clientName, main.contactPerson, 'B');
 
-      appStateB = createEmptyAppStateB_();
-
-      const details = formData.details || [];
-      let currentCatIdx = -1;
-      let currentItem = null;
       // 見積担当。一覧にない名前は未選択に戻し、通知用のメッセージを集める
       const restoreWarnings = [];
       const missingEstimator = restoreEstimatorSelection_('infoEstimator', main.estimator);
       if (missingEstimator) {
         restoreWarnings.push(`見積担当「${missingEstimator}」は一覧にないため、未選択に戻しました。選び直してください。`);
       }
+
+      appStateB = createEmptyAppStateB_();
+
+      const details = formData.details || [];
+      let currentCatIdx = -1;
+      let currentItem = null;
 
       details.forEach(row => {
         const catName = (row.itemCategory || '').toString().trim();
@@ -634,6 +655,7 @@
           // ✅ 修正：見積管理シートの保存形式変更（項目を独立行に分離）に対応。
           //   カテゴリ名はあるが品名が空の行＝カテゴリ合計金額だけを運ぶ「項目行」。
           //   カテゴリ判定・カテゴリ合計金額の復元だけ行い、内訳（items）には登録しない。
+          //   （内容0件の「金額のみの項目」も、この処理で合計金額が復元される）
           if (!hasNameInRow) {
             const categoryAmount = (row.itemAmount === '' || row.itemAmount === undefined) ? null : Number(row.itemAmount);
             appStateB[currentCatIdx].manualTotal = categoryAmount;
@@ -677,7 +699,7 @@
       });
 
       renderB();
-      return restoreWarnings;   // ★追加：呼び出し元（04_listModal.js）が通知に使う
+      return restoreWarnings;   // 呼び出し元（04_listModal.js）が通知に使う
     }
 
     // =====================================
@@ -710,14 +732,11 @@
     // =====================================
     // 内容カードを削除する（全カード共通。結合中のカードは結合ごと削除）
     // ・チップのタップによる取り消しと同じく、確認ダイアログなしで即削除
+    // ・項目合計金額（manualTotal）は、内容が0件になっても残す
+    //   （内容なしの「金額のみの項目」としてPDF・保存に出力されるため）
     // =====================================
     function deleteItemB(catIdx, itemId) {
       const catState = appStateB[catIdx];
       catState.items = catState.items.filter(i => i.id !== itemId);
-
-      // 内容が1件もなくなったら、手動で上書きしたカテゴリ合計金額も解除する
-      // （残すと、内容がないのに画面の合計にだけ加算され、PDFと金額がズレるため）
-      if (catState.items.length === 0) catState.manualTotal = null;
-
       renderB();
     }
