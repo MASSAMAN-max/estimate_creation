@@ -22,7 +22,6 @@
         document.getElementById('estimateDate').value = getTodayInputValue();
         
         // 初期行を1行追加
-        //for(let i = 0; i < 1; i++) addTableRow();
         
         updateTotalSummary();
         
@@ -85,14 +84,10 @@
       // ========== データがある場合は値を埋め込む（完全に条件分岐） ==========
       if (itemData) {
         try {
-          const isGroupData = Array.isArray(itemData);
-          if (isGroupData) {
-            // グループ（複数行）の場合 ➔ 内部でHTMLを直接 appendChild する（addBreakdownRowは呼ばない）
-            populateDetailCardWithGroup(card, itemData);
-          } else {
-            // 単一行の場合
-            populateDetailCard(card, itemData);
-          }
+          // グループ（複数行）の場合 ➔ 内部でHTMLを直接 appendChild する（addBreakdownRowは呼ばない）
+          // ✅ 修正：単一行の場合に呼んでいた populateDetailCard は存在しない関数（呼ぶとエラー）だった。
+          //   単一行は「1行だけのグループ」として同じ処理で埋め込む
+          populateDetailCardWithGroup(card, Array.isArray(itemData) ? itemData : [itemData]);
         } catch (error) {
           console.error('❌ Error populating card with data:', error);
           throw error;
@@ -151,9 +146,7 @@
           const displayAmount = Number(item.itemAmount || 0);
           
           // 数量・単位セレクトの生成
-          const qtyOptions = Array.from({length: 99}, (_, i) => 
-            `<option value="${i+1}" ${(i+1) === displayQty ? 'selected' : ''}>${i+1}</option>`
-          ).join('');
+          const qtyOptions = QTY_OPTIONS_HTML_; // 選択状態は、行を組み立てた後に設定する（下記）
           
           const unitOptions = (!MASTER_UNITS.includes('式') ? '<option value="式">式</option>' : '') + 
                               MASTER_UNITS.filter(u => u && u.trim()).map(u => 
@@ -213,7 +206,7 @@
                 </div>
                 <div class="form-group">
                   <label>単位</label>
-                  <select class="item-unit" onchange="checkUnitConstraint(this.closest('.detail-card'))">${unitOptions}</select>
+                  <select class="item-unit">${unitOptions}</select>
                 </div>
                 <div class="form-group">
                   <label>単価</label>
@@ -245,12 +238,16 @@
             ` : ''}
           `;
           
+          // 数量プルダウンの選択状態を設定する（1〜99の整数以外は、従来どおり先頭の「1」のまま）
+          if (Number.isInteger(displayQty) && displayQty >= 1 && displayQty <= 99) {
+            breakdownRow.querySelector('.item-qty').value = String(displayQty);
+          }
+
           // DOMに追加
           breakdownContainer.appendChild(breakdownRow);
         });
         
         // ========== ステップ4: 全体の更新 ==========
-        checkUnitConstraint(card);
         updateCardTotal(card);
         
       } catch (error) {
@@ -267,7 +264,7 @@
       row.className = 'breakdown-row';
       row.style = 'border: 1px solid #f1f3f5; padding: 8px; margin-bottom: 8px; border-radius: 4px; background: #fff;';
       
-      const qtyOptions = Array.from({length: 99}, (_, i) => `<option value="${i+1}">${i+1}</option>`).join('');
+      const qtyOptions = QTY_OPTIONS_HTML_;
       const unitOptions = (!MASTER_UNITS.includes('式') ? '<option value="式">式</option>' : '') + 
                           MASTER_UNITS.filter(u => u && u.trim()).map(u => `<option value="${htmlEscape(u.trim())}">${htmlEscape(u.trim())}</option>`).join('');
     
@@ -288,7 +285,7 @@
             </div>
             <div class="form-group">
               <label>単位</label>
-              <select class="item-unit" onchange="checkUnitConstraint(this.closest('.detail-card'))">${unitOptions}</select>
+              <select class="item-unit">${unitOptions}</select>
             </div>
             <div class="form-group">
               <label>単価</label>
@@ -330,7 +327,6 @@
       }
       
       // 状態チェック後に金額計算を実行
-      checkUnitConstraint(card);
       calculateBreakdownAmount(row.querySelector('.item-qty'));
     }
     
@@ -367,16 +363,6 @@
     // 内訳の数による単位制限ルールを制御する関数
     // =====================================
     // =====================================
-    // 【廃止】内容1（1行目）を数量・単位・単価固定にする制約
-    // ✅ 変更：内容1に他の内容の合計金額を持たせる仕組みを廃止し、
-    //   内容が何件あっても各内容が独立して自分の数量・単価・金額を持つ形にしたため、
-    //   このロック処理自体が不要になった。呼び出し元との整合性のため関数自体は残すが、
-    //   内部では何もしない（空実装）。
-    // =====================================
-    function checkUnitConstraint(card) {
-      // 何もしない（内容1のロック制約は廃止）
-    }
-
     // =====================================
     // 項目行（親）を削除する関数
     // =====================================
@@ -395,7 +381,6 @@
       row.remove();
       
       requestAnimationFrame(() => {
-        checkUnitConstraint(card);
         updateCardTotal(card);
       });
     }
@@ -670,3 +655,10 @@
 
       return true;
     }
+
+    // =====================================
+    // 数量プルダウン（1〜99）の選択肢HTML
+    // ・以前は内訳の行を作るたびに99個の選択肢を組み立て直していたため、1回だけ作って使い回す
+    //   （行が増えるほど、追加・復元が重くなっていた）
+    // =====================================
+    const QTY_OPTIONS_HTML_ = Array.from({ length: 99 }, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join('');
