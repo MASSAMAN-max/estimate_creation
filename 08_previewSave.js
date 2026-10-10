@@ -195,12 +195,8 @@
       const isDesignB = currentDesignType === 'B';
       const data = isDesignB ? getFormDataB() : getFormData();
       
-      if (!isDesignB) {
-        // ★ここで画面のカンマ付き文字列を数値に変換し、dataオブジェクトに覚えさせる（これで他と統一できます）
-        data.subtotal = parseFloat(document.getElementById('subtotalLabel').textContent.replace(/,/g, '')) || 0;
-        data.tax = parseFloat(document.getElementById('taxLabel').textContent.replace(/,/g, '')) || 0;
-      }
-      // デザインBの場合、getFormDataB() が subtotal/tax/total を計算済みのため変換不要
+      // 小計・消費税・合計は、getFormData() / getFormDataB() がすでに計算済みの値を返すため、
+      // ここで画面の表示から読み直す必要はない（以前はデザインAだけ二重に読み取っていた）
       
       if (!validateEstimateFormData_(data)) return;
       
@@ -285,13 +281,42 @@
         document.getElementById('loaderText').innerHTML = 
           `見積番号発行完了（${generatedId}）<br><span style="color: #cff5ff; font-weight: bold;">続けて見積書PDFを生成しています... (約5～10秒)</span>`;
 
+        // ✅ 新設：PDF生成に失敗した場合、同じ見積番号のままPDFだけを作り直せるようにする。
+        //   （そのまま再保存すると別の見積番号が発行され、番号だけが残ってしまうため）
+        //   ・採番とメイン行の保存は済んでいるので、やり直すのはPDF生成だけ
+        //   ・「中止」を選ぶと、下の catch で「未完了である旨」を案内して終了する
         const pdfPayload = buildPayload({ estimateNo: generatedId });
-        const pdfResultData = await fetchWithRetry_({ action: 'savePdfToDriveBackground', payload: pdfPayload }, 60000);
+        let pdfUrl = '';
+        while (!pdfUrl) {
+          try {
+            const pdfResultData = await fetchWithRetry_({ action: 'savePdfToDriveBackground', payload: pdfPayload }, 60000);
+            if (!pdfResultData?.pdfUrl) {
+              throw new Error('PDF URL missing in response');
+            }
+            pdfUrl = pdfResultData.pdfUrl;
+          } catch (pdfError) {
+            console.error('❌ PDF生成に失敗:', pdfError);
+            document.getElementById('loader').style.display = 'none';
 
-        if (!pdfResultData?.pdfUrl) {
-          throw new Error('PDF URL missing in response');
+            const retryAnswer = await Swal.fire({
+              icon: 'error',
+              title: 'PDFの作成に失敗しました',
+              html: `見積番号 <strong>${htmlEscape(generatedId)}</strong> は発行済みです。<br>同じ見積番号でPDFだけ作り直しますか？<br><br><code style="font-size:11px;">${htmlEscape(pdfError.message)}</code>`,
+              showCancelButton: true,
+              confirmButtonText: 'もう一度PDFを作成',
+              cancelButtonText: '中止',
+              allowOutsideClick: false
+            });
+
+            if (!retryAnswer.isConfirmed) {
+              throw pdfError; // 中止 → 外側の catch で、未完了の案内を表示する
+            }
+
+            document.getElementById('loader').style.display = 'flex';
+            document.getElementById('loaderText').innerHTML =
+              `見積番号 ${htmlEscape(generatedId)} のPDFを作り直しています... (約5～10秒)`;
+          }
         }
-        const pdfUrl = pdfResultData.pdfUrl;
 
         // ========== 確定保存 3. 明細行の保存を先に起動する（ここでは待たない） ==========
         // ✅ 修正：以前は完了画面を閉じるまで明細保存が始まらず、画面を放置したり
@@ -301,6 +326,11 @@
           action: 'saveEstimateDetailsBackground',
           payload: buildPayload({ estimateNo: generatedId })
         }).then(() => {
+          // 新しい取引先・項目がマスターへ自動追加されている可能性があるため、
+          // キャッシュを捨てて最新を取り直しておく（次にフォームを開くときに反映される）
+          invalidateMasterListsCache_();
+          preloadMasterLists_();
+
           // 明細まで保存できたので、ここで初めて元の下書きを削除する
           // （削除に失敗しても確定保存自体は成功しているため、ログだけ残す）
           if (originDraftIdToDelete) {
@@ -370,7 +400,7 @@
         // 見積番号を発行した後に失敗した場合は、番号だけが残っていることを案内する
         // （入力内容と下書きは残っているが、再度保存すると別の見積番号が発行されるため）
         const issuedNote = issuedEstimateNo
-          ? `<br><br>※ 見積番号 <strong>${htmlEscape(issuedEstimateNo)}</strong> は発行済みですが、PDFの作成が完了していません。入力内容はこの画面に残っています。再度保存すると別の見積番号が発行されるため、お手数ですが担当者にご連絡ください。`
+          ? `<br><br>※ 見積番号 <strong>${htmlEscape(issuedEstimateNo)}</strong> は発行済みですが、PDFの作成が完了していません。この番号の登録は未完了のまま残るため、管理者に連絡して削除を依頼してください。入力内容はこの画面に残っているので、保存し直すこともできます（その場合は別の見積番号が発行されます）。`
           : '';
 
         Swal.fire({
