@@ -101,9 +101,8 @@
 
       appStateB = createEmptyAppStateB_();
 
-      try {
-        document.getElementById('infoDate').valueAsDate = new Date();
-      } catch (e) {}
+      // ✅ 修正：valueAsDate はUTC基準のため、日本時間の0:00〜9:00に前日になっていた
+      document.getElementById('infoDate').value = getTodayInputValue();
       document.getElementById('infoEstimator').value = '';
       document.getElementById('infoClient').value = '';
       document.getElementById('infoClientContact').value = '';
@@ -603,7 +602,7 @@
       const main = formData.main || {};
 
       document.getElementById('infoDate').value =
-        mode === 'COPY_CREATE' ? new Date().toISOString().split('T')[0] : formatDateToInput(main.estimateDate);
+        mode === 'COPY_CREATE' ? getTodayInputValue() : formatDateToInput(main.estimateDate);
       document.getElementById('infoSubject').value = main.subject || '';
       document.getElementById('infoDeptNo').value = main.deptNo || '';
       document.getElementById('infoLayout').value = main.layout || '';
