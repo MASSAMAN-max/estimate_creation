@@ -64,6 +64,20 @@
       };
     }
 
+    // 保存済みの明細行（シートから読み込んだ1行）から、画面用の項目データを作る（復元用）
+    // 品名は「 ＋ 」区切りで保存されているため、分割して names に戻す
+    function createItemFromRowB_(row) {
+      const names = (row.itemName || '').toString().split(' ＋ ').filter(Boolean);
+      return {
+        id: 'item_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+        names: names.length > 0 ? names : ['（項目名なし）'],
+        qty: Number(row.itemQty) || 1,
+        amount: (row.itemAmount === '' || row.itemAmount === undefined) ? '' : Number(row.itemAmount),
+        remark: row.itemRemarks || '',
+        showRemark: !!row.itemRemarks
+      };
+    }
+
     // =====================================
     // 品名を自由に編集できるカードかどうかを判定する
     // ・結合されていない（名前が1つ）かつ、そのカテゴリのチップ名にない名前
@@ -143,76 +157,99 @@
       if (container) container.innerHTML = '';
     }
 
-    // 画面描画
+    // 画面描画：1つのカテゴリカードのHTML要素を組み立てて返す（描画の最小単位）
+    function buildCategoryCardB_(catIdx) {
+      const cat = MASTER_DATA_B[catIdx];
+      const catState = appStateB[catIdx];
+      const activeList = catState.items || [];
+      const activeNames = activeList.flatMap(item => item.names);
+
+      const autoTotal = activeList.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+      const isManual = catState.manualTotal !== null && catState.manualTotal !== '';
+      const displayTotal = isManual ? catState.manualTotal : (autoTotal > 0 ? autoTotal : '');
+
+      const catCard = document.createElement('div');
+      catCard.className = 'category-card';
+
+      catCard.innerHTML = `
+        <div class="category-header">
+          <span>${cat.category}</span>
+          <div class="category-total-wrap">
+            <span style="color:var(--text-muted);">合計:</span>
+            <input type="number"
+              class="category-total-input ${isManual ? 'manual-override' : ''}"
+              value="${displayTotal}"
+              placeholder="0"
+              onchange="updateCategoryTotalB(${catIdx}, this.value)">
+            <span>円</span>
+            ${isManual ? `<button class="btn-reset-manual" onclick="resetCategoryTotalB(${catIdx})" title="自動計算に戻す">自動</button>` : ''}
+          </div>
+        </div>
+
+        <div class="category-body">
+          ${CATEGORY_COUNT_UNIT_MAP_B[cat.category] ? `
+            <div style="display:flex; align-items:center; gap:6px; margin-bottom:12px;">
+              <label style="font-size:12px; font-weight:bold; color:var(--text-muted);">数量:</label>
+              <input type="number" min="1"
+                value="${catState.categoryCount || ''}"
+                placeholder="例: 2"
+                style="width:60px; padding:6px; border:1px solid var(--border); border-radius:6px; font-size:14px; text-align:center;"
+                onchange="updateCategoryCountB(${catIdx}, this.value)">
+              <span style="font-size:12px; color:var(--text-muted);">${CATEGORY_COUNT_UNIT_MAP_B[cat.category]}</span>
+            </div>
+          ` : ''}
+          <div class="chip-section-title">内容を選択（タップで有効化）</div>
+          <div class="chip-group">
+            ${cat.items.map(itemName => {
+              const isSelected = activeNames.includes(itemName);
+              return `
+                <div class="chip ${isSelected ? 'selected' : ''}" onclick="toggleItemB(${catIdx}, '${itemName}')">
+                  ${isSelected ? '✓ ' : ''}${itemName}
+                </div>
+              `;
+            }).join('')}
+            <div class="chip chip-add" onclick="addOtherItemB(${catIdx})">${OTHER_ITEM_NAME_B}</div>
+          </div>
+
+          <div class="active-items-list" id="activeListB_${catIdx}">
+            ${activeList.map(item => renderActiveCardB(catIdx, item)).join('')}
+          </div>
+
+          <button class="btn-add-custom" onclick="addCustomItemB(${catIdx})">＋ 自由な内容を追加</button>
+        </div>
+      `;
+
+      return catCard;
+    }
+
+    // 画面描画（全カテゴリ）：初期表示・リセット・保存済みデータの復元など、全体が変わるときに使う
     function renderB() {
       const container = document.getElementById('categoryContainer');
       if (!container) return;
       container.innerHTML = '';
 
       MASTER_DATA_B.forEach((cat, catIdx) => {
-        const catState = appStateB[catIdx];
-        const activeList = catState.items || [];
-        const activeNames = activeList.flatMap(item => item.names);
-
-        const autoTotal = activeList.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
-        const isManual = catState.manualTotal !== null && catState.manualTotal !== '';
-        const displayTotal = isManual ? catState.manualTotal : (autoTotal > 0 ? autoTotal : '');
-
-        const catCard = document.createElement('div');
-        catCard.className = 'category-card';
-
-        catCard.innerHTML = `
-          <div class="category-header">
-            <span>${cat.category}</span>
-            <div class="category-total-wrap">
-              <span style="color:var(--text-muted);">合計:</span>
-              <input type="number"
-                class="category-total-input ${isManual ? 'manual-override' : ''}"
-                value="${displayTotal}"
-                placeholder="0"
-                onchange="updateCategoryTotalB(${catIdx}, this.value)">
-              <span>円</span>
-              ${isManual ? `<button class="btn-reset-manual" onclick="resetCategoryTotalB(${catIdx})" title="自動計算に戻す">自動</button>` : ''}
-            </div>
-          </div>
-
-          <div class="category-body">
-            ${CATEGORY_COUNT_UNIT_MAP_B[cat.category] ? `
-              <div style="display:flex; align-items:center; gap:6px; margin-bottom:12px;">
-                <label style="font-size:12px; font-weight:bold; color:var(--text-muted);">数量:</label>
-                <input type="number" min="1"
-                  value="${catState.categoryCount || ''}"
-                  placeholder="例: 2"
-                  style="width:60px; padding:6px; border:1px solid var(--border); border-radius:6px; font-size:14px; text-align:center;"
-                  onchange="updateCategoryCountB(${catIdx}, this.value)">
-                <span style="font-size:12px; color:var(--text-muted);">${CATEGORY_COUNT_UNIT_MAP_B[cat.category]}</span>
-              </div>
-            ` : ''}
-            <div class="chip-section-title">内容を選択（タップで有効化）</div>
-            <div class="chip-group">
-              ${cat.items.map(itemName => {
-                const isSelected = activeNames.includes(itemName);
-                return `
-                  <div class="chip ${isSelected ? 'selected' : ''}" onclick="toggleItemB(${catIdx}, '${itemName}')">
-                    ${isSelected ? '✓ ' : ''}${itemName}
-                  </div>
-                `;
-              }).join('')}
-              <div class="chip chip-add" onclick="addOtherItemB(${catIdx})">${OTHER_ITEM_NAME_B}</div>
-            </div>
-
-            <div class="active-items-list" id="activeListB_${catIdx}">
-              ${activeList.map(item => renderActiveCardB(catIdx, item)).join('')}
-            </div>
-
-            <button class="btn-add-custom" onclick="addCustomItemB(${catIdx})">＋ 自由な内容を追加</button>
-          </div>
-        `;
-
-        container.appendChild(catCard);
+        container.appendChild(buildCategoryCardB_(catIdx));
         setupDragAndDropB(catIdx);
       });
 
+      calculateTotalsB();
+    }
+
+    // 画面描画（1カテゴリのみ）：数量・金額・備考など、1つのカテゴリの中だけが変わる操作で使う
+    // ✅ 高速化：以前は操作のたびに全カテゴリのHTMLを作り直していたため、項目が増えるほど重く、
+    //   他のカテゴリに入力中のカーソルや、直後のクリックも失われていた。
+    //   操作した1カテゴリのカードだけを差し替え、合計は再計算する。
+    function renderCategoryB(catIdx) {
+      const container = document.getElementById('categoryContainer');
+      const oldCard = container ? container.children[catIdx] : null;
+      if (!oldCard) {
+        renderB(); // 想定外に画面が未構築の場合は、全体を描画し直す
+        return;
+      }
+
+      container.replaceChild(buildCategoryCardB_(catIdx), oldCard);
+      setupDragAndDropB(catIdx);
       calculateTotalsB();
     }
 
@@ -289,7 +326,7 @@
         list.push(createItemB_(itemName));
       }
 
-      renderB();
+      renderCategoryB(catIdx);
     }
 
     // =====================================
@@ -316,7 +353,7 @@
       if (!customName || customName.trim() === "") return;
 
       appStateB[catIdx].items.push(createItemB_(customName.trim()));
-      renderB();
+      renderCategoryB(catIdx);
     }
 
     function changeQtyB(catIdx, itemId, delta) {
@@ -331,7 +368,7 @@
         }
 
         item.qty = newQty;
-        renderB();
+        renderCategoryB(catIdx);
       }
     }
 
@@ -339,7 +376,7 @@
       const item = appStateB[catIdx].items.find(i => i.id === itemId);
       if (item) {
         item.qty = Math.max(1, Number(val) || 1);
-        renderB();
+        renderCategoryB(catIdx);
       }
     }
 
@@ -347,7 +384,7 @@
       const item = appStateB[catIdx].items.find(i => i.id === itemId);
       if (item) {
         item.amount = val !== '' ? Number(val) : '';
-        renderB();
+        renderCategoryB(catIdx);
       }
     }
 
@@ -355,7 +392,7 @@
       const item = appStateB[catIdx].items.find(i => i.id === itemId);
       if (item) {
         item.showRemark = !item.showRemark;
-        renderB();
+        renderCategoryB(catIdx);
       }
     }
 
@@ -368,18 +405,18 @@
 
     function updateCategoryTotalB(catIdx, val) {
       appStateB[catIdx].manualTotal = val !== '' ? Number(val) : null;
-      renderB();
+      renderCategoryB(catIdx);
     }
 
     function resetCategoryTotalB(catIdx) {
       appStateB[catIdx].manualTotal = null;
-      renderB();
+      renderCategoryB(catIdx);
     }
 
     // カテゴリ名へ付記する「項目数量」を更新する（表示名にのみ反映。金額計算には影響しない）
     function updateCategoryCountB(catIdx, val) {
       appStateB[catIdx].categoryCount = val !== '' ? Number(val) : null;
-      renderB();
+      renderCategoryB(catIdx);
     }
 
     // =====================================
@@ -400,17 +437,10 @@
       target.amount = '';
 
       for (let i = 1; i < names.length; i++) {
-        list.push({
-          id: 'item_' + Date.now() + '_' + i,
-          names: [names[i]],
-          qty: 1,
-          amount: '',
-          remark: '',
-          showRemark: false
-        });
+        list.push(createItemB_(names[i]));
       }
 
-      renderB();
+      renderCategoryB(catIdx);
     }
 
     // 集計計算（基本クリーニング／エアコン／補修 の3分類＋消費税）
@@ -502,7 +532,7 @@
         }
 
         appStateB[catIdx].items = list.filter(i => i.id !== sourceId);
-        renderB();
+        renderCategoryB(catIdx);
       }
     }
 
@@ -662,15 +692,7 @@
             return;
           }
 
-          const names = (row.itemName || '').toString().split(' ＋ ').filter(Boolean);
-          currentItem = {
-            id: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-            names: names.length > 0 ? names : ['（項目名なし）'],
-            qty: Number(row.itemQty) || 1,
-            amount: (row.itemAmount === '' || row.itemAmount === undefined) ? '' : Number(row.itemAmount),
-            remark: row.itemRemarks || '',
-            showRemark: !!row.itemRemarks
-          };
+          currentItem = createItemFromRowB_(row);
           appStateB[currentCatIdx].items.push(currentItem);
 
         } else if (currentCatIdx !== -1) {
@@ -678,15 +700,7 @@
 
           if (hasName) {
             // 内訳の個別項目行
-            const names = (row.itemName || '').toString().split(' ＋ ').filter(Boolean);
-            const newItem = {
-              id: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-              names: names.length > 0 ? names : ['（項目名なし）'],
-              qty: Number(row.itemQty) || 1,
-              amount: (row.itemAmount === '' || row.itemAmount === undefined) ? '' : Number(row.itemAmount),
-              remark: row.itemRemarks || '',
-              showRemark: !!row.itemRemarks
-            };
+            const newItem = createItemFromRowB_(row);
             appStateB[currentCatIdx].items.push(newItem);
             currentItem = newItem;
           } else if (row.itemRemarks && currentItem) {
@@ -708,7 +722,7 @@
     function addOtherItemB(catIdx) {
       const newItem = createItemB_(OTHER_ITEM_NAME_B);
       appStateB[catIdx].items.push(newItem);
-      renderB();
+      renderCategoryB(catIdx);
 
       const nameInput = document.querySelector(`.active-item-card[data-id="${newItem.id}"] .item-name-input`);
       if (nameInput) {
@@ -725,7 +739,7 @@
       // 空欄にされた場合は、品名なしで保存されないよう「その他」に戻す
       const newName = val.trim();
       item.names = [newName !== '' ? newName : OTHER_ITEM_NAME_B];
-      renderB();
+      renderCategoryB(catIdx);
     }
 
     // =====================================
@@ -737,5 +751,5 @@
     function deleteItemB(catIdx, itemId) {
       const catState = appStateB[catIdx];
       catState.items = catState.items.filter(i => i.id !== itemId);
-      renderB();
+      renderCategoryB(catIdx);
     }
