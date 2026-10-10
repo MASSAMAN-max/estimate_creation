@@ -19,7 +19,7 @@
         await loadMasterLists();
         
         // 今日の日付をセット
-        document.getElementById('estimateDate').value = new Date().toISOString().split('T')[0];
+        document.getElementById('estimateDate').value = getTodayInputValue();
         
         // 初期行を1行追加
         //for(let i = 0; i < 1; i++) addTableRow();
@@ -585,4 +585,88 @@
         tax: currentTax,
         total: currentTotal
       };
+    }
+
+    // =====================================
+    // 【上限】デザインAの親項目（明細カード）の最大数
+    // ・見積書シート（PDF 1ページ目）の明細欄が16行で、親項目は1件につき1行使うため、
+    //   最大16件までしか載せられない。超えると17件目以降がPDFに出なくなるので、
+    //   入力の段階で追加・保存できないようにする
+    // ・PDF側の16行（07_PDFデザインA.js）と必ず同じ値にすること
+    // =====================================
+    const MAX_DETAIL_CARDS_A = 16;
+
+    // 「項目追加」ボタン用：上限に達していたら追加せず、理由を案内する
+    // （過去データの復元は addTableRow を直接呼ぶため、この上限の対象外）
+    function handleAddDetailCardClick() {
+      const currentCount = document.querySelectorAll('#detailsContainer .detail-card').length;
+      if (currentCount >= MAX_DETAIL_CARDS_A) {
+        Swal.fire({
+          icon: 'warning',
+          title: '項目数の上限です',
+          text: `親項目は最大${MAX_DETAIL_CARDS_A}件までです。内容をまとめるか、不要な項目を削除してください。`,
+          confirmButtonText: '了解'
+        });
+        return;
+      }
+      addTableRow();
+    }
+
+    // =====================================
+    // 保存・プレビュー前の入力チェック（デザインA専用）
+    //  1. 親項目が未選択（新規入力も空）なのに、内容が入力されているカードがないか
+    //     → 以前はチェックがなく、前のカードに合流したり、PDFから行が消えたりしていた
+    //  2. 親項目の数が上限（MAX_DETAIL_CARDS_A）を超えていないか
+    //     → 過去データの復元などで上限を超えて表示された場合の保険
+    // 問題があれば案内を出して false を返す
+    // =====================================
+    function validateDetailCardsA_() {
+      const cards = document.querySelectorAll('#detailsContainer .detail-card');
+      let categoryCardCount = 0;
+
+      for (const card of cards) {
+        const select = card.querySelector('.item-category-select');
+        let category = select ? select.value : '';
+        if (category === '__NEW__') {
+          category = card.querySelector('.item-category-input').value.trim();
+        }
+
+        if (category !== '') {
+          categoryCardCount++;
+          continue;
+        }
+
+        // 親項目が空のカード：内容（品名・金額・備考）が入っている場合だけ問題とする
+        // （何も入力していない空のカードは、保存時に無視されるため問題にしない）
+        const hasContent = Array.from(card.querySelectorAll('.breakdown-row')).some(row => {
+          const name = row.querySelector('.item-name').value.trim();
+          const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+          const price = parseFloat(row.querySelector('.item-price').value) || 0;
+          const hasRemark = Array.from(row.querySelectorAll('.remark-input')).some(input => input.value.trim() !== '');
+          return name !== '' || Math.floor(qty * price) !== 0 || hasRemark;
+        });
+
+        if (hasContent) {
+          card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          Swal.fire({
+            icon: 'warning',
+            title: '入力不足',
+            text: '親項目が未選択の項目があります。親項目を選択（または新規項目名を入力）してください。',
+            confirmButtonText: '了解'
+          });
+          return false;
+        }
+      }
+
+      if (categoryCardCount > MAX_DETAIL_CARDS_A) {
+        Swal.fire({
+          icon: 'warning',
+          title: '項目数の上限を超えています',
+          text: `親項目は最大${MAX_DETAIL_CARDS_A}件までです（現在${categoryCardCount}件）。内容をまとめるか、不要な項目を削除してください。`,
+          confirmButtonText: '了解'
+        });
+        return false;
+      }
+
+      return true;
     }
