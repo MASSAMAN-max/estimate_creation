@@ -273,7 +273,6 @@
           currentMode = mode;
           currentOriginId = id;
           currentDesignType = 'B';
-          appMode = 'NEW_ESTIMATE';
 
           // ✅ 変更：デザインBも取引先・担当者を選択式にしたため、復元前にマスターデータを
           //   読み込んでおく（デザインAの復元処理と同じ流れ）
@@ -300,7 +299,6 @@
         // ステップ2: フォーム状態を設定
         currentMode = mode;
         currentOriginId = id;
-        appMode = 'NEW_ESTIMATE';
      
         // ステップ3: フォーム初期化
         document.getElementById('estimateForm').reset();
@@ -438,8 +436,7 @@
           // --- ステップ9-D: すべて配置し終わった後に一括計算 ---
           const allCards = detailsContainer.querySelectorAll('.detail-card');
           allCards.forEach(card => {
-            if (typeof checkUnitConstraint === 'function') checkUnitConstraint(card);
-            if (typeof updateCardTotal === 'function') updateCardTotal(card);
+            updateCardTotal(card);
           });
 
         } else {
