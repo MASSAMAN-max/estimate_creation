@@ -6,15 +6,54 @@
  *   共通関数に整理し、A・B両方から呼べるようにした。
  */
 
+    // =====================================
+    // マスターデータのキャッシュと先読み（速度改善）
+    // ・フォームを開く・過去データを復元するたびにGASへ問い合わせていたため、毎回数秒待たされていた。
+    //   取得結果を一定時間使い回すことで、2回目以降はほぼ待たずにフォームが開く
+    // ・メニュー画面の表示時に先読みしておくと、1回目も「新規作成」を押す頃には取得が終わっている
+    //   （取得中に押された場合は、その取得の完了を待つだけで、二重に問い合わせはしない）
+    // ・保存後は、取引先・項目が自動でマスターへ追加されている可能性があるため、キャッシュを捨てて取り直す
+    // ・シートのマスターを直接編集した場合は、最長 MASTER_CACHE_TTL_MS 後
+    //   （または次の保存後・ページ再読み込み後）にフォームへ反映される
+    // =====================================
+    const MASTER_CACHE_TTL_MS = 5 * 60 * 1000; // キャッシュの有効時間（5分）
+    let masterListsCache_ = null; // { fetchedAt: 取得開始時刻, promise: 取得結果のPromise }
+
+    function fetchMasterListsCached_() {
+      const now = Date.now();
+      if (masterListsCache_ && (now - masterListsCache_.fetchedAt) < MASTER_CACHE_TTL_MS) {
+        return masterListsCache_.promise;
+      }
+
+      const cacheEntry = { fetchedAt: now, promise: null };
+      cacheEntry.promise = fetchWithRetry_({
+        action: 'loadMasterLists',
+        payload: {
+          currentUserName: currentUser?.userName || '',
+          userId: currentUser?.userId || ''
+        }
+      }).then(data => data || {}).catch(error => {
+        // 失敗した結果は使い回さない（次に呼ばれたときに取り直す）
+        if (masterListsCache_ === cacheEntry) masterListsCache_ = null;
+        throw error;
+      });
+      masterListsCache_ = cacheEntry;
+      return cacheEntry.promise;
+    }
+
+    // キャッシュを破棄する（保存後・ログイン／ログアウト時に使う）
+    function invalidateMasterListsCache_() {
+      masterListsCache_ = null;
+    }
+
+    // 画面に影響させず、裏でマスターを取得しておく（失敗しても何もしない。本番の取得時に改めてエラー表示される）
+    function preloadMasterLists_() {
+      fetchMasterListsCached_().catch(() => {});
+    }
+
     async function loadMasterLists() {
       try {
-        const masterData = await fetchWithRetry_({
-          action: 'loadMasterLists',
-          payload: {
-            currentUserName: currentUser?.userName || '',
-            userId: currentUser?.userId || ''
-          }
-        }) || {};
+        const masterData = await fetchMasterListsCached_();
 
         MASTER_CLIENTS = masterData.clients || [];
         MASTER_CONTACTPERSONS = masterData.contactPersons || {};  // 担当者マスター
@@ -89,14 +128,37 @@
       return name;
     }
     
+    // ===== 取引先・担当者まわりの入力欄ID（デザインA/Bの対応表） =====
+    // ・以前は各関数の冒頭で「idSuffix ? 'B用ID' : 'A用ID'」を何度も書いていたため、ここに集約した
+    // ・IDを変更・追加するときはこの表だけを直せばよい
+    // ・idSuffix：デザインAは ''、デザインBは 'B'
+    const CLIENT_FIELD_IDS_ = {
+      '': {
+        select: 'clientSelect',            // 取引先プルダウン
+        newContainer: 'newClientContainer', // 新規取引先の入力欄の枠
+        input: 'clientName',               // 新規取引先名の入力欄
+        contactSelect: 'contactPersonSelect',            // 担当者プルダウン
+        newContactContainer: 'newContactPersonContainer', // 新規担当者の入力欄の枠
+        contactInput: 'contactPersonName'                 // 新規担当者名の入力欄
+      },
+      'B': {
+        select: 'infoClientSelect',
+        newContainer: 'newClientContainerB',
+        input: 'infoClient',
+        contactSelect: 'infoClientContactSelect',
+        newContactContainer: 'newContactPersonContainerB',
+        contactInput: 'infoClientContact'
+      }
+    };
+    function getClientFieldIds_(idSuffix) {
+      return CLIENT_FIELD_IDS_[idSuffix ? 'B' : ''];
+    }
+
     // ===== 取引先選択時のイベントハンドラ（共通実装） =====
     // idSuffix：デザインAは ''（clientSelect等）、デザインBは 'B'（infoClientSelect等）
     function toggleNewClient_(idSuffix) {
-      const selectId = idSuffix ? 'infoClientSelect' : 'clientSelect';
-      const containerId = idSuffix ? 'newClientContainerB' : 'newClientContainer';
-      const inputId = idSuffix ? 'infoClient' : 'clientName';
-      const contactSelectId = idSuffix ? 'infoClientContactSelect' : 'contactPersonSelect';
-      const newContactContainerId = idSuffix ? 'newContactPersonContainerB' : 'newContactPersonContainer';
+      const { select: selectId, newContainer: containerId, input: inputId,
+              contactSelect: contactSelectId, newContactContainer: newContactContainerId } = getClientFieldIds_(idSuffix);
 
       const select = document.getElementById(selectId);
       const container = document.getElementById(containerId);
@@ -127,9 +189,8 @@
 
     // ===== 取引先に紐付く担当者リストを更新する関数（共通実装） =====
     function updateContactPersonList_(selectedClient, idSuffix) {
-      const contactSelectId = idSuffix ? 'infoClientContactSelect' : 'contactPersonSelect';
-      const newContactContainerId = idSuffix ? 'newContactPersonContainerB' : 'newContactPersonContainer';
-      const contactInputId = idSuffix ? 'infoClientContact' : 'contactPersonName';
+      const { contactSelect: contactSelectId, newContactContainer: newContactContainerId,
+              contactInput: contactInputId } = getClientFieldIds_(idSuffix);
 
       const contactPersonSelect = document.getElementById(contactSelectId);
       const newContactPersonContainer = document.getElementById(newContactContainerId);
@@ -162,14 +223,11 @@
       contactPersonInput.required = false;
       contactPersonInput.value = '';
     }
-    // 旧関数名（デザインAから直接呼ばれている）は共通実装への薄いラッパーとして残す
-    function updateContactPersonList(selectedClient) { updateContactPersonList_(selectedClient, ''); }
      
     // ===== 担当者選択時のイベントハンドラ（共通実装） =====
     function toggleNewContactPerson_(idSuffix) {
-      const selectId = idSuffix ? 'infoClientContactSelect' : 'contactPersonSelect';
-      const containerId = idSuffix ? 'newContactPersonContainerB' : 'newContactPersonContainer';
-      const inputId = idSuffix ? 'infoClientContact' : 'contactPersonName';
+      const { contactSelect: selectId, newContactContainer: containerId,
+              contactInput: inputId } = getClientFieldIds_(idSuffix);
 
       const select = document.getElementById(selectId);
       const container = document.getElementById(containerId);
@@ -191,10 +249,8 @@
     // ===== 取引先・担当者の選択欄から、確定値（選択済み or 新規入力値）を取り出す共通関数 =====
     // idSuffix：デザインAは ''、デザインBは 'B'
     function getClientSelectionValues_(idSuffix) {
-      const selectId = idSuffix ? 'infoClientSelect' : 'clientSelect';
-      const inputId = idSuffix ? 'infoClient' : 'clientName';
-      const contactSelectId = idSuffix ? 'infoClientContactSelect' : 'contactPersonSelect';
-      const contactInputId = idSuffix ? 'infoClientContact' : 'contactPersonName';
+      const { select: selectId, input: inputId,
+              contactSelect: contactSelectId, contactInput: contactInputId } = getClientFieldIds_(idSuffix);
 
       const clientSelect = document.getElementById(selectId);
       let finalClientName = clientSelect.value;
@@ -217,12 +273,9 @@
     // idSuffix：デザインAは ''、デザインBは 'B'
     // マスタに存在する値なら選択式にセット、存在しなければ「新規」扱いで入力欄に反映する
     function restoreClientSelection_(clientName, contactPersonName, idSuffix) {
-      const selectId = idSuffix ? 'infoClientSelect' : 'clientSelect';
-      const containerId = idSuffix ? 'newClientContainerB' : 'newClientContainer';
-      const inputId = idSuffix ? 'infoClient' : 'clientName';
-      const contactSelectId = idSuffix ? 'infoClientContactSelect' : 'contactPersonSelect';
-      const newContactContainerId = idSuffix ? 'newContactPersonContainerB' : 'newContactPersonContainer';
-      const contactInputId = idSuffix ? 'infoClientContact' : 'contactPersonName';
+      const { select: selectId, newContainer: containerId, input: inputId,
+              contactSelect: contactSelectId, newContactContainer: newContactContainerId,
+              contactInput: contactInputId } = getClientFieldIds_(idSuffix);
 
       const clientSelect = document.getElementById(selectId);
       if (clientSelect) {
