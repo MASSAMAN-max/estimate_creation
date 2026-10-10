@@ -23,6 +23,9 @@
       
       // 4. ユーザー名を表示（IDが1つになったので確実に動作します）
       document.getElementById('userDisplayLabel').textContent = `ログイン: ${currentUser.userName}`;
+
+      // 5. 「新規作成」を押したときに待たされないよう、マスターデータを裏で先読みしておく
+      preloadMasterLists_();
     }
     
     function showMainApp() {
@@ -80,15 +83,13 @@
       loader.style.display = 'flex';
       loaderText.textContent = '読み込み中...';
       
-      // 描画が完了するのを待つ
-      await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 50)));
+      // ローダーが描画されるのを待つ
+      await waitForNextPaint_();
       
       try {
         switch(menuType) {
           case 'NEW_ESTIMATE':
             loaderText.textContent = 'データを読み込んでいます...';
-            await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 20)));
-            
             await initializeEstimateForm();
             loader.style.display = 'none'; // フォーム初期化完了後に消す
             showMainApp();
@@ -96,28 +97,20 @@
 
           case 'NEW_ESTIMATE_B':
             loaderText.textContent = 'データを読み込んでいます...';
-            await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 20)));
-
             await initializeEstimateFormB();
             loader.style.display = 'none';
             showMainAppB();
             break;
             
           case 'PAST_ESTIMATE':
-            appMode = 'PAST_ESTIMATE';
             loaderText.textContent = '過去の見積書を読み込んでいます...';
-            await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 20)));
-            
             // ✅ 変更：「過去の見積書から作成」「見積書を確認」を統合したため、
             //   一覧では各行にPDF表示ボタンとコピー作成ボタンを両方表示する（04_listModal.js 参照）
             await openEstimateListModal('estimate');
             break;
             
           case 'EDIT_DRAFT':
-            appMode = 'EDIT_DRAFT';
             loaderText.textContent = '下書きデータを読み込んでいます...';
-            await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 20)));
-            
             await openEstimateListModal('draft');
             break;
             
