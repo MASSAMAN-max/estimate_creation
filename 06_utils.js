@@ -110,6 +110,15 @@
       return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     }
 
+    // =====================================
+    // 今日の日付（ブラウザのローカル時刻基準）を yyyy-MM-dd 形式で返す
+    // ✅ 修正：以前は new Date().toISOString() を使っていたが、これはUTC基準のため、
+    //   日本時間の0:00〜9:00に開くと「前日」の日付が入ってしまっていた。
+    // =====================================
+    function getTodayInputValue() {
+      return formatDateToInput(new Date());
+    }
+
     // 音声入力関数
     function startVoiceInput(button) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
