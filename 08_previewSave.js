@@ -26,6 +26,10 @@
         Swal.fire({ icon: 'warning', title: '入力不足', text: '明細を1件以上入力してください。', confirmButtonText: '了解' });
         return false;
       }
+      // デザインAのみ：親項目の未選択・上限超過を、画面のカードを直接見てチェックする
+      if (currentDesignType === 'A' && !validateDetailCardsA_()) {
+        return false;
+      }
       return true;
     }
 
@@ -207,6 +211,14 @@
       document.getElementById('loader').style.display = 'flex';
       document.getElementById('loaderText').textContent = loaderMsg;
 
+      // ✅ 変更：下書きから編集していた場合の「元の下書きID」。
+      //   下書きの削除は、確定保存（明細まで）が成功した後に行う。
+      //   画面の状態（currentMode等）が変わる前のここで控えておく。
+      const originDraftIdToDelete = (currentMode === 'DRAFT_EDIT' && currentOriginId.startsWith('DRAFT-')) ? currentOriginId : '';
+
+      // 見積番号を発行済みかどうか（途中で失敗したとき、エラーメッセージで案内するために使う）
+      let issuedEstimateNo = '';
+
       // GASへ送る共通のペイロード（見積番号(estimateNo)は呼び出し側で追加する）
       const buildPayload = (extra = {}) => ({
         clientName: data.clientName,
@@ -234,8 +246,7 @@
         if (isDraft) {
           // ✅ 変更：編集元が下書き（DRAFT_EDIT）であれば、元の下書きIDを一緒に送信し、
           //   サーバー側で新規採番せず上書き更新してもらう（重複下書きの発生を防止）
-          const isEditingExistingDraft = currentMode === 'DRAFT_EDIT' && currentOriginId.startsWith('DRAFT-');
-          const draftPayload = buildPayload(isEditingExistingDraft ? { originDraftId: currentOriginId } : {});
+          const draftPayload = buildPayload(originDraftIdToDelete ? { originDraftId: originDraftIdToDelete } : {});
 
           const draftResult = await fetchWithRetry_({ action: actionType, payload: draftPayload });
           const generatedId = draftResult?.draftId;
@@ -244,8 +255,8 @@
           // ✅ 注：currentMode/currentOriginIdはここではリセットしない。
           //   リセットしてしまうと、同じ編集セッション中に2回目の下書き保存をした際に
           //   「編集元なし＝新規」と判定され、別の下書きが重複作成されてしまうため。
-          //   これらは新規作成開始時（initializeEstimateForm等）や、確定保存後の
-          //   下書き削除処理（handlePostSaveAction）でリセットされる。
+          //   これらは新規作成開始時（initializeEstimateForm等）や、確定保存の完了後
+          //   （resetEditOriginState_）でリセットされる。
 
           document.getElementById('loader').style.display = 'none';
           Swal.fire({
@@ -264,9 +275,11 @@
         const mainResult = await fetchWithRetry_({ action: 'saveEstimateMainOnly', payload: buildPayload() });
         const generatedId = mainResult?.estimateNo;
         if (!generatedId) throw new Error('No estimate number returned from server');
+        issuedEstimateNo = generatedId;
 
-        // 確定保存が成功したので、下書きから編集していた場合は元の下書きを削除する
-        handlePostSaveAction(actionType);
+        // ✅ 変更：元の下書きの削除は、ここでは行わない。
+        //   以前はここで削除していたため、この後のPDF生成や明細保存に失敗すると、
+        //   下書きだけが先に消えてしまっていた。明細保存の成功後（下記3.）に削除する。
 
         // ========== 確定保存 2. PDF生成 ==========
         document.getElementById('loaderText').innerHTML = 
@@ -280,10 +293,26 @@
         }
         const pdfUrl = pdfResultData.pdfUrl;
 
-        // ========== 確定保存 3. PDF完成後、すぐ完了画面を表示 ==========
+        // ========== 確定保存 3. 明細行の保存を先に起動する（ここでは待たない） ==========
+        // ✅ 修正：以前は完了画面を閉じるまで明細保存が始まらず、画面を放置したり
+        //   タブを閉じたりすると、明細とマスタ自動登録が保存されないままになっていた。
+        //   完了画面を出す「前」に起動することで、画面操作に関係なく保存が進む。
+        const detailsSavePromise = fetchWithRetry_({
+          action: 'saveEstimateDetailsBackground',
+          payload: buildPayload({ estimateNo: generatedId })
+        }).then(() => {
+          // 明細まで保存できたので、ここで初めて元の下書きを削除する
+          // （削除に失敗しても確定保存自体は成功しているため、ログだけ残す）
+          if (originDraftIdToDelete) {
+            return fetchWithRetry_({ action: 'deleteDraft', payload: { draftId: originDraftIdToDelete } })
+              .catch(err => console.error('下書き削除リクエスト失敗:', err));
+          }
+        });
+
+        // ========== 確定保存 4. PDF完成後、すぐ完了画面を表示 ==========
         document.getElementById('loader').style.display = 'none';
 
-        await Swal.fire({
+        const successDialogPromise = Swal.fire({
           icon: 'success',
           title: successTitle,
           html: `
@@ -311,37 +340,44 @@
           confirmButtonColor: '#666',
           allowOutsideClick: false
         });
-        
-        resetAllForms_();
-        showMenuScreen();
 
-        // ========== 確定保存 4. 明細行の保存を背景で実行（完了画面は待たない） ==========
-        // ⚠️ 完了画面より後ろで await せずに呼ぶことで、ユーザーの画面遷移をブロックしない。
-        //   失敗（自動リトライ後も失敗）した場合のみ、エラーが確定した時点で
-        //   その時どの画面にいても割り込みでアラートを表示する。
-        fetchWithRetry_({
-          action: 'saveEstimateDetailsBackground',
-          payload: buildPayload({ estimateNo: generatedId })
-        }).catch(bgError => {
-          console.error('❌ 明細データの背景保存に失敗:', bgError);
+        // 明細保存が（自動リトライ後も）失敗した場合の通知。
+        // 完了画面（PDFリンク）を別のダイアログで押し流さないよう、完了画面が閉じられてから表示する
+        detailsSavePromise.catch(async bgError => {
+          console.error('❌ 明細データの保存に失敗:', bgError);
+          await successDialogPromise;
           Swal.fire({
             icon: 'error',
             title: '明細データの保存に失敗しました',
-            html: `見積番号 <strong>${generatedId}</strong> の明細データ保存でエラーが発生しました。<br><br>
+            html: `見積番号 <strong>${htmlEscape(generatedId)}</strong> の明細データ保存でエラーが発生しました。<br><br>
                    <code style="font-size:11px;">${htmlEscape(bgError.message)}</code><br><br>
                    お手数ですが、担当者にご連絡いただくか、後ほど再度ご確認ください。`,
             confirmButtonText: '了解'
           });
         });
+
+        await successDialogPromise;
+
+        // 確定保存が完了したので、編集元の状態を新規に戻して画面を初期化する
+        resetEditOriginState_();
+        resetAllForms_();
+        showMenuScreen();
         
       } catch (error) {
         document.getElementById('loader').style.display = 'none';
         console.error('❌ Error in executeSaveProcess:', error);
+
+        // 見積番号を発行した後に失敗した場合は、番号だけが残っていることを案内する
+        // （入力内容と下書きは残っているが、再度保存すると別の見積番号が発行されるため）
+        const issuedNote = issuedEstimateNo
+          ? `<br><br>※ 見積番号 <strong>${htmlEscape(issuedEstimateNo)}</strong> は発行済みですが、PDFの作成が完了していません。入力内容はこの画面に残っています。再度保存すると別の見積番号が発行されるため、お手数ですが担当者にご連絡ください。`
+          : '';
+
         Swal.fire({
           icon: 'error',
           title: 'エラーが発生しました',
-          html: `<strong>${error.name}</strong><br><br><code style="font-size:11px; text-align:left;">${error.message}</code>`,
-          confirmButtonText: '了解'
+          html: `<strong>${htmlEscape(error.name)}</strong><br><br><code style="font-size:11px; text-align:left;">${htmlEscape(error.message)}</code>${issuedNote}`,
+          confirmButtonText: '閉じる'
         });
       }
     }
