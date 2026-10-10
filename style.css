@@ -75,20 +75,6 @@
       color: var(--primary);
     }
 
-    .estimate-no-disp {
-      font-size: 12px;
-      color: var(--text-secondary);
-      background: var(--gray-light);
-      padding: 6px 12px;
-      border-radius: var(--radius);
-    }
-
-    .estimate-no-disp span {
-      font-weight: 600;
-      color: var(--primary);
-      font-size: 14px;
-    }
-
     .form-grid {
       display: grid;
       grid-template-columns: 1fr;
@@ -328,29 +314,6 @@
        （デザインBの同用途の余白と合わせて140pxにしている） */
     #mainApp {
       padding-bottom: 140px;
-    }
-
-    .summary-box {
-      background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
-      color: white;
-      padding: 12px;
-      border-radius: var(--radius);
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .summary-row {
-      display: flex;
-      justify-content: space-between;
-      font-size: 16px;
-    }
-
-    .summary-row.total {
-      font-weight: 600;
-      font-size: 16px;
-      padding-top: 8px;
-      border-top: 1px solid rgba(255, 255, 255, 0.3);
     }
 
     #loader {
@@ -819,18 +782,6 @@
       display: flex;
       align-items: center;
       gap: 6px;
-      flex-shrink: 0;
-    }
-
-    .btn-remove-item {
-      background: white;
-      color: #dc2626;
-      border: 1px solid #fca5a5;
-      padding: 3px 8px;
-      border-radius: 4px;
-      font-size: 10px;
-      font-weight: bold;
-      cursor: pointer;
       flex-shrink: 0;
     }
 
