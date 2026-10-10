@@ -37,6 +37,7 @@
 
         currentUser = resultData;
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        invalidateMasterListsCache_(); // 前のログイン時のマスターを使い回さない
 
         // ログイン成功後はメニュー画面へ（ページ再読み込み時と遷移を統一）
         showMenuScreen();
@@ -63,6 +64,7 @@
         if (result.isConfirmed) {
           localStorage.removeItem('currentUser');
           currentUser = null;
+          invalidateMasterListsCache_(); // 次にログインする人に、前の人のマスターを使い回さない
           
           resetAllForms_();
           document.getElementById('loginIdInput').value = '';
@@ -102,8 +104,3 @@
     function isCurrentUserAdmin() {
       return !!(currentUser && currentUser.isAdmin);
     }
-    
-    /**
-     * 既存の保存・確定処理完了時のコールバックに組み込む処理
-     * 下書きから編集して確定保存（本番保存）が成功した際、古い下書きデータを消去する
-     */
