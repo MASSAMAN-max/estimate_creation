@@ -483,13 +483,13 @@
       }
     }
 
-    function handlePostSaveAction(actionType) {
-      if (actionType === 'saveEstimate' && currentMode === 'DRAFT_EDIT' && currentOriginId.startsWith('DRAFT-')) {
-        // 確定保存が成功したため、古い下書きの消去をGASへ非同期命令
-        fetchWithRetry_({ action: 'deleteDraft', payload: { draftId: currentOriginId } })
-          .catch(err => console.error('下書き削除リクエスト失敗:', err));
-      }
-      // 保存完了後は状態を新規に戻す
+    // =====================================
+    // 確定保存の完了後に、編集元（下書き／コピー元）の状態を新規作成に戻す
+    // ✅ 変更：以前は元の下書きの削除もここで行っていたが、PDF生成や明細保存に
+    //   失敗したときに下書きだけが先に消えてしまうため、削除は確定保存の成功後
+    //   （08_previewSave.js の executeSaveProcess）に移した。
+    // =====================================
+    function resetEditOriginState_() {
       currentMode = 'NEW';
       currentOriginId = '';
     }
