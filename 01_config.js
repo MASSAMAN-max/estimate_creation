@@ -42,7 +42,7 @@
       if (parsedUser) {
         currentUser = parsedUser;
         // 今日の日付を自動セット（重要な処理なので残します）
-        document.getElementById('estimateDate').value = new Date().toISOString().split('T')[0];
+        document.getElementById('estimateDate').value = getTodayInputValue();
         showMenuScreen();  // メニュー画面を表示
       } else {
         showLoginScreen();
