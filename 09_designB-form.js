@@ -128,10 +128,9 @@
       // ✅ 変更：取引先・取引先担当者を選択式にしたため、マスターデータ取得を待ってから
       //   選択肢を表示する（デザインAのinitializeEstimateFormと同じ流れ）
       await loadMasterLists();
-      // 取引先が空（未選択）なので、担当者プルダウンは「取引先を先に選択してください」状態にする
-      document.getElementById('infoClientContactSelect').innerHTML = '<option value="">-- 取引先を先に選択してください --</option>';
-      document.getElementById('newClientContainerB').style.display = 'none';
-      document.getElementById('newContactPersonContainerB').style.display = 'none';
+      // 取引先が空（未選択）なので、担当者プルダウンは「取引先を先に選択してください」状態にし、
+      // 新規入力欄も隠す（デザインAと共通の初期化）
+      resetClientFieldsUi_('B');
 
       renderB();
     }
@@ -144,15 +143,8 @@
         const el = document.getElementById(id);
         if (el) el.value = '';
       });
-      // ✅ 変更：取引先・担当者を選択式にしたため、選択状態と新規入力欄もリセットする
-      const clientSelect = document.getElementById('infoClientSelect');
-      if (clientSelect) clientSelect.value = '';
-      const contactSelect = document.getElementById('infoClientContactSelect');
-      if (contactSelect) contactSelect.innerHTML = '<option value="">-- 取引先を先に選択してください --</option>';
-      const newClientContainer = document.getElementById('newClientContainerB');
-      if (newClientContainer) newClientContainer.style.display = 'none';
-      const newContactPersonContainer = document.getElementById('newContactPersonContainerB');
-      if (newContactPersonContainer) newContactPersonContainer.style.display = 'none';
+      // 取引先・担当者は選択式のため、選択状態と新規入力欄もリセットする（デザインAと共通の初期化）
+      resetClientFieldsUi_('B');
       const container = document.getElementById('categoryContainer');
       if (container) container.innerHTML = '';
     }
