@@ -28,10 +28,7 @@
       const cacheEntry = { fetchedAt: now, promise: null };
       cacheEntry.promise = fetchWithRetry_({
         action: 'loadMasterLists',
-        payload: {
-          currentUserName: currentUser?.userName || '',
-          userId: currentUser?.userId || ''
-        }
+        payload: {} // 本人確認のトークンは fetchWithRetry_ が自動で付与する
       }).then(data => data || {}).catch(error => {
         // 失敗した結果は使い回さない（次に呼ばれたときに取り直す）
         if (masterListsCache_ === cacheEntry) masterListsCache_ = null;
