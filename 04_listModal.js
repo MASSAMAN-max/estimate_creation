@@ -202,10 +202,9 @@
       try {
         await fetchWithRetry_({
           action: 'deleteEstimate',
+          // ユーザー名・管理者かどうかは、サーバーがログイントークンから確定するため送らない
           payload: {
-            estimateNo: estimateNo,
-            currentUserName: getCurrentUserName(),
-            isAdmin: isCurrentUserAdmin()
+            estimateNo: estimateNo
           }
         });
 
