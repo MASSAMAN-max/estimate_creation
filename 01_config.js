@@ -38,6 +38,15 @@
         }
       }
 
+      // 旧バージョン（トークン導入前）のログイン情報にはトークンが無く、サーバーに認証されない。
+      // そのため破棄して、再ログインしてもらう（利用者は1回だけ再ログインが必要になる）
+      let needsReloginNotice = false;
+      if (parsedUser && !parsedUser.token) {
+        localStorage.removeItem('currentUser');
+        parsedUser = null;
+        needsReloginNotice = true;
+      }
+
       if (parsedUser) {
         currentUser = parsedUser;
         // 今日の日付を自動セット（重要な処理なので残します）
@@ -45,5 +54,13 @@
         showMenuScreen();  // メニュー画面を表示
       } else {
         showLoginScreen();
+        if (needsReloginNotice) {
+          Swal.fire({
+            icon: 'info',
+            title: '再ログインをお願いします',
+            text: 'セキュリティ強化のため、お手数ですが、もう一度ログインしてください。',
+            confirmButtonText: '了解'
+          });
+        }
       }
     });
