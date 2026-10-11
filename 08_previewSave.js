@@ -229,8 +229,7 @@
         tax: data.tax,
         totalAmount: data.total, // 税込合計
         details: data.details,
-        currentUserName: userName,
-        designType: currentDesignType,
+        designType: currentDesignType, // ユーザー名は、サーバーがログイントークンから確定する
         estimator: data.estimator || '',
         deptNo: data.deptNo || '',
         layout: data.layout || '',
