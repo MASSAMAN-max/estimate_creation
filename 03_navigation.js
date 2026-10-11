@@ -4,72 +4,79 @@
  */
 
     // =====================================
-    // メニュー画面の表示切り替え関数群（共通土台対応版）
+    // 画面の表示切り替え（ログイン／メニュー／デザインA作成／デザインB作成）
     // =====================================
-    function showMenuScreen() {
-      document.getElementById('loginScreen').style.display = 'none';
-      
-      // 1. まず共通の土台（ヘッダー枠）を表示する
-      document.getElementById('appWrapper').style.display = 'block';
-      
-      // 2. 土台のなかでメニュー画面を表示し、作成フォームは隠す（デザインA/B両方）
-      document.getElementById('mainApp').style.display = 'none';
-      document.getElementById('mainAppB').style.display = 'none';
-      document.getElementById('bottomBarA').style.display = 'none';
-      document.getElementById('menuScreen').style.display = 'flex';
-      
-      // 3. メニュー画面なので、ヘッダーの「メニューに戻る」ボタンは非表示
-      document.getElementById('backToMenuBtn').style.display = 'none';
-      
-      // 4. ユーザー名を表示（IDが1つになったので確実に動作します）
-      document.getElementById('userDisplayLabel').textContent = `ログイン: ${currentUser.userName}`;
+    // 【考え方】
+    // ・画面は「共通の土台（appWrapper）」の中で、メニュー・デザインA・デザインBの
+    //   どれか1つを表示する作りになっている
+    // ・各画面で「どの要素をどう表示するか」を、下の対応表（SCREEN_LAYOUTS_）にまとめた。
+    //   以前は画面ごとの関数に同じ表示切り替えを手書きしていたため、要素を追加・変更するときに
+    //   3〜4か所を直す必要があった。今後は、この表だけを直せばよい
+    // ・値は、各要素に元から指定されている表示方法（flex／block／inline-flex）
+    // ・表に書かれていない要素は変更しない（ログイン画面では「メニューに戻る」ボタンに触れない）
+    const SCREEN_LAYOUTS_ = {
+      // ログイン画面だけを表示し、アプリ全体の土台を隠す
+      LOGIN: {
+        loginScreen: 'flex', appWrapper: 'none',
+        menuScreen: 'none', mainApp: 'none', mainAppB: 'none', bottomBarA: 'none'
+      },
+      // メニュー画面（作成フォームは隠す）。ヘッダーの「メニューに戻る」ボタンは不要
+      MENU: {
+        loginScreen: 'none', appWrapper: 'block',
+        menuScreen: 'flex', mainApp: 'none', mainAppB: 'none', bottomBarA: 'none',
+        backToMenuBtn: 'none'
+      },
+      // デザインAの作成フォーム。小計・消費税・税込合計の固定ボトムバーも表示する
+      DESIGN_A: {
+        loginScreen: 'none', appWrapper: 'block',
+        menuScreen: 'none', mainApp: 'block', mainAppB: 'none', bottomBarA: 'flex',
+        backToMenuBtn: 'inline-flex'
+      },
+      // デザインBの作成フォーム（デザインAと共通の土台・ヘッダーを利用）
+      DESIGN_B: {
+        loginScreen: 'none', appWrapper: 'block',
+        menuScreen: 'none', mainApp: 'none', mainAppB: 'block', bottomBarA: 'none',
+        backToMenuBtn: 'inline-flex'
+      }
+    };
 
-      // 5. 「新規作成」を押したときに待たされないよう、マスターデータを裏で先読みしておく
+    // 指定した画面を表示する（表示切り替えの共通処理）
+    function showScreen_(screenName) {
+      const layout = SCREEN_LAYOUTS_[screenName];
+      if (!layout) throw new Error(`不正な画面名です: ${screenName}`);
+
+      Object.entries(layout).forEach(([elementId, display]) => {
+        document.getElementById(elementId).style.display = display;
+      });
+
+      // ログイン画面以外では、ヘッダーにログイン中のユーザー名を表示する
+      if (screenName !== 'LOGIN') {
+        document.getElementById('userDisplayLabel').textContent = `ログイン: ${currentUser.userName}`;
+      }
+    }
+
+    // ---- 以下は、各画面へ切り替えるときの入口（呼び出し元の名前はそのまま使える） ----
+
+    function showMenuScreen() {
+      showScreen_('MENU');
+
+      // 「新規作成」を押したときに待たされないよう、マスターデータを裏で先読みしておく
       preloadMasterLists_();
     }
-    
+
     function showMainApp() {
       currentDesignType = 'A';
-      document.getElementById('loginScreen').style.display = 'none';
-      
-      // 1. まず共通の土台（ヘッダー枠）を表示する
-      document.getElementById('appWrapper').style.display = 'block';
-      
-      // 2. 土台のなかでメニュー画面を隠し、作成フォーム（デザインA）を表示する
-      document.getElementById('menuScreen').style.display = 'none';
-      document.getElementById('mainAppB').style.display = 'none';
-      document.getElementById('mainApp').style.display = 'block';
-      // デザインBと表示位置を統一した固定ボトムバー（小計・消費税・税込合計）を表示
-      document.getElementById('bottomBarA').style.display = 'flex';
-      
-      // 3. 作成フォーム画面なので、ヘッダーの「メニューに戻る」ボタンを表示！
-      document.getElementById('backToMenuBtn').style.display = 'inline-flex';
-      
-      // 4. ユーザー名を表示
-      document.getElementById('userDisplayLabel').textContent = `ログイン: ${currentUser.userName}`;
+      showScreen_('DESIGN_A');
     }
 
     // デザインB用フォーム画面を表示（デザインAと共通の土台・ヘッダーを利用）
     function showMainAppB() {
       currentDesignType = 'B';
-      document.getElementById('loginScreen').style.display = 'none';
-      document.getElementById('appWrapper').style.display = 'block';
-      document.getElementById('menuScreen').style.display = 'none';
-      document.getElementById('mainApp').style.display = 'none';
-      document.getElementById('bottomBarA').style.display = 'none';
-      document.getElementById('mainAppB').style.display = 'block';
-      document.getElementById('backToMenuBtn').style.display = 'inline-flex';
-      document.getElementById('userDisplayLabel').textContent = `ログイン: ${currentUser.userName}`;
+      showScreen_('DESIGN_B');
     }
-    
+
     function showLoginScreen() {
-      // ログイン画面だけを表示し、アプリ全体の土台を非表示にする
-      document.getElementById('loginScreen').style.display = 'flex';
-      document.getElementById('appWrapper').style.display = 'none';
-      document.getElementById('menuScreen').style.display = 'none';
-      document.getElementById('mainApp').style.display = 'none';
-      document.getElementById('mainAppB').style.display = 'none';
-      document.getElementById('bottomBarA').style.display = 'none';
+      showScreen_('LOGIN');
     }
 
     // =====================================
