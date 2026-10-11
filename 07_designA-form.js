@@ -14,6 +14,8 @@
         currentOriginId = '';
         document.getElementById('estimateForm').reset();
         document.getElementById('detailsContainer').innerHTML = '';
+        // reset() では戻らない「新規入力欄の表示」と「担当者リストの選択肢」も初期状態に戻す
+        resetClientFieldsUi_('');
         
         // マスターデータ取得（await で完了を待つ）
         await loadMasterLists();
