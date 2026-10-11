@@ -154,6 +154,37 @@
       return CLIENT_FIELD_IDS_[idSuffix ? 'B' : ''];
     }
 
+    // ===== 取引先・担当者まわりの入力欄を、初期状態（未選択）に戻す共通関数 =====
+    // ・取引先は未選択、担当者プルダウンは「取引先を先に選択してください」の1件だけにし、
+    //   新規取引先・新規担当者の入力欄は、非表示・空・必須なし に戻す
+    // ・✅ 修正：以前はデザインBだけがこの初期化を手書きしており、デザインAは
+    //   estimateForm.reset() だけだったため、「新規取引先名／新規担当者名」の入力欄が
+    //   表示されたまま残ったり、前回の取引先の担当者リストが残ったりしていた
+    //   （reset() は入力値しか戻さず、表示状態やプルダウンの選択肢は戻さないため）
+    // ・idSuffix：デザインAは ''、デザインBは 'B'
+    function resetClientFieldsUi_(idSuffix) {
+      const ids = getClientFieldIds_(idSuffix);
+
+      const clientSelect = document.getElementById(ids.select);
+      if (clientSelect) clientSelect.value = '';
+
+      const contactSelect = document.getElementById(ids.contactSelect);
+      if (contactSelect) {
+        contactSelect.innerHTML = '<option value="">-- 取引先を先に選択してください --</option>';
+      }
+
+      // 新規入力欄：[枠, 入力欄] の組を、どちらも非表示・空・必須なしにする
+      [[ids.newContainer, ids.input], [ids.newContactContainer, ids.contactInput]].forEach(([containerId, inputId]) => {
+        const container = document.getElementById(containerId);
+        if (container) container.style.display = 'none';
+        const input = document.getElementById(inputId);
+        if (input) {
+          input.value = '';
+          input.required = false;
+        }
+      });
+    }
+
     // ===== 取引先選択時のイベントハンドラ（共通実装） =====
     // idSuffix：デザインAは ''（clientSelect等）、デザインBは 'B'（infoClientSelect等）
     function toggleNewClient_(idSuffix) {
