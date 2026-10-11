@@ -12,6 +12,7 @@
     function resetAllForms_() {
       document.getElementById('estimateForm').reset();
       document.getElementById('detailsContainer').innerHTML = '';
+      resetClientFieldsUi_(''); // デザインAの取引先・担当者まわりも初期状態に戻す
       resetFormB_();
     }
 
