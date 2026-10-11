@@ -28,6 +28,15 @@
     // 戻り値：成功時は { status: 'success', data: {...} } の data 部分（result.data）
     // =====================================
     async function fetchWithRetry_(body, timeoutMs = null) {
+      // ✅ 認証：ログイン以外の通信には、保存しているログイントークンを自動で付ける
+      //   （サーバーはこのトークンから、ユーザー名・管理者権限を自分で確定する。
+      //    呼び出し側で currentUserName や isAdmin を送る必要はない）
+      const authToken = getAuthToken_();
+      if (authToken && body.action !== 'login') {
+        const payload = body.payload || {};
+        body = { ...body, payload: { ...payload, token: payload.token || authToken } };
+      }
+
       // 通信レベルの失敗を示すマーカー（リトライしてよい失敗かどうかの目印）
       class TransportError_ extends Error {}
 
@@ -76,22 +85,39 @@
 
         if (result.status !== 'success') {
           // ✅ サーバーが明確に返した業務エラーは、通常のErrorとして投げる（リトライ対象外）
-          throw new Error(result.message || '不明なエラーが発生しました');
+          // サーバーが認証エラーの種類（code）を返した場合は、画面側で判別できるよう保持する
+          const businessError = new Error(result.message || '不明なエラーが発生しました');
+          businessError.code = result.code || '';
+          throw businessError;
         }
 
         return result.data;
       };
 
       try {
-        return await attemptFetch();
-      } catch (firstError) {
-        if (!(firstError instanceof TransportError_)) {
-          // 業務エラーはリトライせずそのまま投げる
-          throw firstError;
+        try {
+          return await attemptFetch();
+        } catch (firstError) {
+          if (!(firstError instanceof TransportError_)) {
+            // 業務エラーはリトライせずそのまま投げる
+            throw firstError;
+          }
+          console.warn(`通信に失敗しました。1回だけ自動で再試行します（action: ${body.action}）:`, firstError.message);
+          // 通信レベルの失敗のみ、1回だけ自動リトライ
+          return await attemptFetch();
         }
-        console.warn(`通信に失敗しました。1回だけ自動で再試行します（action: ${body.action}）:`, firstError.message);
-        // 通信レベルの失敗のみ、1回だけ自動リトライ
-        return await attemptFetch();
+      } catch (finalError) {
+        // ✅ ログインの有効期限切れ・無効なトークンの場合は、ログイン画面へ戻す（呼び出し元の
+        //   エラー処理は、そのまま続行される。ここでは画面の切り替えだけを行う）
+        // （画面切り替えで例外が出ても、元のエラー（code付き）が失われないよう保護する）
+        if (finalError.code === 'AUTH_EXPIRED') {
+          try {
+            handleAuthExpired_(finalError.message);
+          } catch (uiError) {
+            console.error('ログイン期限切れの画面切り替えに失敗しました:', uiError);
+          }
+        }
+        throw finalError;
       }
     }
 
