@@ -1,8 +1,7 @@
-/**
- * 【このファイルの役割】
- * ログイン・ログアウトまわりの処理。
- */
-
+    /**
+    * 【このファイルの役割】
+    * ログイン・ログアウトまわりの処理。
+    */
     function togglePasswordVisibility() {
       const input = document.getElementById('loginPasswordInput');
       const icon = document.getElementById('eyeIcon');
@@ -34,12 +33,12 @@
           action: 'login',
           payload: { loginId: loginId, password: password }
         });
-
+    
         currentUser = resultData; // サーバーが返した token（ログイントークン）も含まれる
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
         isHandlingAuthExpired_ = false; // 再ログインできたので、期限切れ処理の抑止を解除する
         invalidateMasterListsCache_(); // 前のログイン時のマスターを使い回さない
-
+    
         // ログイン成功後はメニュー画面へ（ページ再読み込み時と遷移を統一）
         showMenuScreen();
       } catch (error) {
@@ -49,7 +48,7 @@
         loginBtn.textContent = 'ログイン';
       }
     }
-
+    
     // =====================================
     // ログアウト後メニュー画面に戻る
     // =====================================
@@ -69,12 +68,12 @@
           localStorage.removeItem('currentUser');
           currentUser = null;
           invalidateMasterListsCache_(); // 次にログインする人に、前の人のマスターを使い回さない
-          
+        　resetProjectCache_(); // 前のログイン者の案件リストを使い回さない    
           resetAllForms_();
           document.getElementById('loginIdInput').value = '';
           document.getElementById('loginPasswordInput').value = '';
           showLoginScreen();
-
+    
           if (tokenToRevoke) {
             fetchWithRetry_({ action: 'logout', payload: { token: tokenToRevoke } }, 10000)
               .catch(error => console.error('サーバー側のトークン失効に失敗しました:', error));
@@ -82,7 +81,7 @@
         }
       });
     }
-
+    
     // =====================================
     // 保存しているログイントークンを取得する
     // ・fetchWithRetry_ が、通信のたびにこれを自動で付与する
@@ -97,7 +96,7 @@
         return '';
       }
     }
-
+    
     // =====================================
     // ログインの有効期限切れ・無効なトークンを検知したときの処理（ログイン画面へ戻す）
     // ・fetchWithRetry_ が、サーバーから AUTH_EXPIRED を受け取ったときに呼ぶ
@@ -106,15 +105,15 @@
     //   SweetAlert2は同時に1つしか表示されないため、後から出た同じ趣旨の表示に置き換わるだけで、重なることはない
     // =====================================
     let isHandlingAuthExpired_ = false;
-
+    
     function handleAuthExpired_(message) {
       if (isHandlingAuthExpired_) return;
       isHandlingAuthExpired_ = true;
-
+    
       localStorage.removeItem('currentUser');
       currentUser = null;
       invalidateMasterListsCache_();
-
+    　invalidateMasterListsCache_(); // 次にログインする人に、前の人のマスターを使い回さない
       // 表示中のローダー・一覧モーダルを閉じてから、ログイン画面へ戻す
       ['loader', 'listModal'].forEach(id => {
         const el = document.getElementById(id);
@@ -122,7 +121,7 @@
       });
       resetAllForms_();
       showLoginScreen();
-
+    
       Swal.fire({
         icon: 'info',
         title: '再ログインが必要です',
@@ -153,7 +152,7 @@
       }
       return null;
     }
-
+    
     // =====================================
     // 現在ログイン中のユーザーが管理者かどうかを判定する共通関数
     // ✅ 新設：見積書削除など、管理者専用の機能の「ボタンを表示するか」の判定で使用する
