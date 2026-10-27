@@ -1,5 +1,5 @@
 /**
- * 【このファイルの役割】
+ * 09_designB-form.js
  * デザインB（新フォーマット）専用のロジック一式。
  * マスターデータ定義、フォーム状態管理、画面描画、
  * フォームデータの取得（getFormDataB）、保存データの復元（reflectFieldsDesignB_）まで。
@@ -131,7 +131,7 @@
       // 取引先が空（未選択）なので、担当者プルダウンは「取引先を先に選択してください」状態にし、
       // 新規入力欄も隠す（デザインAと共通の初期化）
       resetClientFieldsUi_('B');
-
+      resetCaseSelection_('B');
       renderB();
     }
 
@@ -570,6 +570,7 @@
               isCategoryOnly: true   // 内容なし・金額のみの目印（保存時に空の内訳行を作らないため）
             });
           }
+        
           return;
         }
 
@@ -594,6 +595,7 @@
       const { clientName: finalClientNameB, contactPerson: finalContactPersonB } = getClientSelectionValues_('B');
 
       return {
+        caseNos: caseNosB.slice(),
         clientName: finalClientNameB,
         contactPerson: finalContactPersonB,
         clientAddress: '', // デザインBには入力欄なし
@@ -702,7 +704,12 @@
           }
         }
       });
-
+      // 案件Noの復元（コピー作成では引き継がず、案件を選び直してもらう）
+      const restoredCaseNos = mode === 'COPY_CREATE' ? [] : (main.caseNos || []);
+      setCaseSelection_('B', restoredCaseNos);
+      if (restoredCaseNos.length === 0) {
+        restoreWarnings.push('案件が未選択です。案件を選択してください（選択すると、取引先・担当者・件名が上書きされます）。');
+      }
       renderB();
       return restoreWarnings;   // 呼び出し元（04_listModal.js）が通知に使う
     }
