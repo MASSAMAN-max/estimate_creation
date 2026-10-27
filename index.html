@@ -122,6 +122,11 @@
   <div id="mainApp" style="display:none; width:100%;">
     <form id="estimateForm">
       <div class="form-grid">
+        <div class="form-group" style="grid-column: 1 / -1;">
+          <label>案件 <span class="badge-required">必須</span></label>
+          <div id="projectPickerA"></div>
+          <div class="case-lock-hint">案件を選ぶと、取引先・担当者・現場住所・件名が自動入力されます。案件がない場合は「紐付け案件無し」を選ぶと手入力できます。</div>
+        </div>
         <div class="form-group">
           <label for="estimateDate">見積作成日 <span class="badge-required">必須</span></label>
           <input type="date" id="estimateDate" required>
@@ -249,6 +254,11 @@
       <div class="info-card">
         <h2>基本情報</h2>
         <div class="info-grid">
+          <div class="info-field full-width">
+            <label>案件 <span class="badge-required">必須</span></label>
+            <div id="projectPickerB"></div>
+            <div class="case-lock-hint">案件を選ぶと、取引先・担当者・件名が自動入力されます。案件がない場合は「紐付け案件無し」を選ぶと手入力できます。</div>
+          </div>
           <div class="info-field">
             <label for="infoDate">見積日 <span class="badge-required">必須</span></label>
             <input type="date" id="infoDate" required>
@@ -354,6 +364,7 @@
       <div style="display:flex; gap:8px; flex-wrap:wrap;">
         <input type="text" id="searchKeyword" placeholder="取引先名で検索" style="flex:1; min-width:140px; padding:8px; border:1px solid var(--gray-border); border-radius:6px;">
         <input type="text" id="searchEstimateNo" placeholder="見積番号で検索" style="flex:1; min-width:140px; padding:8px; border:1px solid var(--gray-border); border-radius:6px;">
+        <input type="text" id="searchCaseNo" placeholder="案件Noで検索（完全一致）" style="flex:1; min-width:140px; padding:8px; border:1px solid var(--gray-border); border-radius:6px;">
       </div>
       <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
         <label style="font-size:12px; color:var(--text-secondary);">見積日</label>
@@ -389,6 +400,7 @@
   <script src="./07_designA-form.js"></script>
   <script src="./08_previewSave.js"></script>
   <script src="./09_designB-form.js"></script>
+  <script src="./10_project_picker.js"></script>
   
 </body>
 </html>
