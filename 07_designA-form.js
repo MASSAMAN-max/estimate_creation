@@ -16,7 +16,7 @@
         document.getElementById('detailsContainer').innerHTML = '';
         // reset() では戻らない「新規入力欄の表示」と「担当者リストの選択肢」も初期状態に戻す
         resetClientFieldsUi_('');
-        
+        resetCaseSelection_('A');
         // マスターデータ取得（await で完了を待つ）
         await loadMasterLists();
         
@@ -558,6 +558,7 @@
       const currentTotal    = getValueFromDisplay('totalLabel');    
 
       return {
+        caseNos: caseNosA.slice(),
         clientName: finalClientName,
         contactPerson: finalContactPerson,
         clientAddress: document.getElementById('clientAddress').value.trim(),
