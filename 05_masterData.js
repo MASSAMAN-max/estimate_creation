@@ -62,6 +62,7 @@
         buildClientOptions_('clientSelect');
         buildClientOptions_('infoClientSelect');
         buildEstimatorOptions_('infoEstimator');
+        buildEstimatorOptions_('estimatorSelect'); // デザインAの見積担当
       } catch (e) {
         console.error("マスタデータ取得失敗", e);
         Swal.fire({
