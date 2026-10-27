@@ -62,6 +62,8 @@
 
       // 「新規作成」を押したときに待たされないよう、マスターデータを裏で先読みしておく
       preloadMasterLists_();
+      // 案件マスタは件数が多く遅いため、メニュー表示後に裏で取得しておく（古ければ取り直す）
+      loadProjectsIfNeeded_();
     }
 
     function showMainApp() {
