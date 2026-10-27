@@ -321,7 +321,11 @@
 
         const currentClientName = formData.main.clientName;
         restoreClientSelection_(currentClientName, formData.main.contactPerson, '');
-     
+        const restoreWarningsA = [];
+        const missingEstimatorA = restoreEstimatorSelection_('estimatorSelect', formData.main.estimator);
+        if (missingEstimatorA) {
+          restoreWarningsA.push(`見積担当「${missingEstimatorA}」は一覧にないため、未選択に戻しました。選び直してください。`);
+        }
         // ========== ステップ8: その他の入力欄を設定 ==========
         document.getElementById('loaderText').textContent = 'フォーム詳細を設定しています...';
         
@@ -452,9 +456,9 @@
         // 成功メッセージ
         const successMsg = mode === 'DRAFT_EDIT' ? '下書きを読み込みました。' : '見積書をコピーしました。';
         Swal.fire({
-          icon: 'success',
+          icon: restoreWarningsA.length > 0 ? 'warning' : 'success',
           title: 'データ読み込み完了',
-          text: successMsg,
+          html: [htmlEscape(successMsg), ...restoreWarningsA.map(w => htmlEscape(w))].join('<br><br>'),
           confirmButtonText: '了解'
         });
      
