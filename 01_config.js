@@ -12,7 +12,18 @@
     let MASTER_CATEGORIES = [];
     let MASTER_UNITS = [];
     let MASTER_ESTIMATORS = [];  // ★追加：見積担当（デザインB）の選択肢。ユーザー名の配列
-    
+        // ===== 案件マスタ（案件選択部品の選択肢。10_project_picker.js で裏読込する） =====
+    let projectListCache = [];          // [{no, name, client, contact, address, __searchText}]
+    let projectMapByNo = new Map();     // 案件No → 案件（チップ表示・4項目の自動反映用）
+    let clientListCache = [];           // 発注元の選択肢（あいうえお順）：[{name, gyou}]
+    let contactsByClient = new Map();   // 発注元 → 担当者の一覧
+    let projectListStatus = "idle";     // idle／loading／ready／error
+    let projectListErrorMessage = "";
+    let projectListFetchedAt = 0;       // 最後に取得できた時刻（一定時間ごとの取り直し用）
+
+    // 選択中の案件No。部品が同じ配列を直接書き換えるため、空にするときは .length = 0 を使う（再代入しない）
+    const caseNosA = [];  // デザインA
+    const caseNosB = [];  // デザインB
     // 現在のフォームの状態を追跡する管理変数
     let currentUser = null;   // ログインユーザー情報
     let currentMode = 'NEW';  // 'NEW'(新規), 'DRAFT_EDIT'(下書き編集), 'COPY_CREATE'(過去コピーから作成)
