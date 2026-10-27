@@ -1,5 +1,5 @@
 /**
- * 【このファイルの役割】
+ * 04_listModal.js
  * 過去データ一覧モーダル（過去の見積書／下書き編集）の
  * 表示と、選択したデータの画面への復元処理。
  */
@@ -70,9 +70,9 @@
       const estimateNo = document.getElementById('searchEstimateNo').value.trim();
       const dateFrom = document.getElementById('searchDateFrom').value;
       const dateTo = document.getElementById('searchDateTo').value;
-
+      const caseNo = document.getElementById('searchCaseNo').value.trim();
       // 何も条件が入力されていない場合は、通常の直近一覧をそのまま表示する
-      if (!keyword && !estimateNo && !dateFrom && !dateTo) {
+      if (!keyword && !estimateNo && !dateFrom && !dateTo && !caseNo) {
         displayEstimateList(window.cachedListData.estimates);
         return;
       }
@@ -83,7 +83,7 @@
       try {
         const resultData = await fetchWithRetry_({
           action: 'searchEstimates',
-          payload: { keyword, estimateNo, dateFrom, dateTo }
+          payload: { keyword, estimateNo, dateFrom, dateTo, caseNo }
         });
         displayEstimateList(resultData);
       } catch (error) {
@@ -97,6 +97,7 @@
     // 見積書検索欄のクリア（直近一覧の表示に戻す）
     // =====================================
     function clearEstimateSearch() {
+      document.getElementById('searchCaseNo').value = '';
       document.getElementById('searchKeyword').value = '';
       document.getElementById('searchEstimateNo').value = '';
       document.getElementById('searchDateFrom').value = '';
@@ -148,6 +149,7 @@
         row.innerHTML = `
           <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text-secondary);">
             <span>ID: <b>${htmlEscape(String(item.id))}</b></span>
+            <span>案件: ${htmlEscape((item.caseNos || []).map(n => n === CASE_NONE ? CASE_NONE_LABEL : n).join(', ') || '－')}</span>
             <span>作成日: ${formatDateToInput(item.date)}</span>
           </div>
           <div style="font-weight:600; color:var(--text-primary); font-size:14px;">${htmlEscape(item.client || '取引先名なし')} — <span style="font-weight:500; font-size:13px;">${htmlEscape(item.subject || '（件名なし）')}</span></div>
@@ -322,6 +324,11 @@
         const currentClientName = formData.main.clientName;
         restoreClientSelection_(currentClientName, formData.main.contactPerson, '');
         const restoreWarningsA = [];
+        const restoredCaseNos = mode === 'COPY_CREATE' ? [] : (formData.main.caseNos || []);
+        setCaseSelection_('A', restoredCaseNos);
+        if (restoredCaseNos.length === 0) {
+          restoreWarningsA.push('案件が未選択です。案件を選択してください（選択すると、取引先・担当者・件名・現場住所が上書きされます）。');
+        }
         const missingEstimatorA = restoreEstimatorSelection_('estimatorSelect', formData.main.estimator);
         if (missingEstimatorA) {
           restoreWarningsA.push(`見積担当「${missingEstimatorA}」は一覧にないため、未選択に戻しました。選び直してください。`);
