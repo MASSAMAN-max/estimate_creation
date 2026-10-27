@@ -562,6 +562,7 @@
         contactPerson: finalContactPerson,
         clientAddress: document.getElementById('clientAddress').value.trim(),
         estimateDate: document.getElementById('estimateDate').value,
+        estimator: document.getElementById('estimatorSelect').value.trim(),
         subject: document.getElementById('subject').value.trim(),
         validity: document.getElementById('validity').value.trim(),
         paymentTerms: document.getElementById('paymentTerms').value.trim(),
