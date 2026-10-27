@@ -1,5 +1,5 @@
 /**
- * 【このファイルの役割】
+ * 08_previewSave.js
  * プレビュー表示・下書き保存・確定保存＆PDF生成のリクエスト処理。
  * デザインA・デザインBどちらのフォームからも共通で使われる。
  */
@@ -12,6 +12,10 @@
     function validateEstimateFormData_(data) {
       if (!data.estimateDate) {
         Swal.fire({ icon: 'warning', title: '入力不足', text: '見積作成日を入力してください。', confirmButtonText: '了解' });
+        return false;
+      }
+      if (!data.caseNos || data.caseNos.length === 0) {
+        Swal.fire({ icon: 'warning', title: '入力不足', text: '案件を選択してください。案件がない場合は「紐付け案件無し」を選択してください。', confirmButtonText: '了解' });
         return false;
       }
       if (!data.clientName) {
@@ -233,6 +237,7 @@
         estimator: data.estimator || '',
         deptNo: data.deptNo || '',
         layout: data.layout || '',
+        caseNos: data.caseNos || [],
         ...extra
       });
 
