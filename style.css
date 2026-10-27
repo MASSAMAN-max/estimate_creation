@@ -937,3 +937,38 @@
       border-color: var(--primary);
       color: var(--primary);
     }
+
+   /* ===== 案件選択部品（10_project_picker.js） ===== */
+   .project-picker { border: 2px solid #cbd5e1; border-radius: 10px; padding: 10px; background: #fff; transition: border-color 0.2s, background 0.2s; }
+   .project-picker.is-open { border-color: var(--primary); background: #f8fbff; }
+   .project-picker-row { display:flex; gap:12px; margin-bottom:8px; }
+   .project-picker-col { flex:1; min-width:0; }
+   .project-picker-label { display:block; font-size:12px; font-weight:bold; color:var(--text-secondary); margin-bottom:4px; }
+   .project-picker select, .project-picker input[type="text"] { width:100%; padding:8px 10px; }
+   .project-picker select:disabled { background:#f1f5f9; color:#94a3b8; cursor:not-allowed; }
+   .project-picker-status { font-size:12px; color:var(--text-secondary); margin:6px 0 4px; }
+   .project-picker-status.is-error { color:#dc2626; }
+   .project-picker-retry { margin-left:6px; padding:2px 10px; font-size:12px; cursor:pointer; border:1px solid #dc2626; border-radius:6px; background:white; color:#dc2626; }
+   .project-picker-list { max-height:220px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:8px; margin-top:8px; }
+   .project-picker-list:empty { display:none; }
+   .project-picker-item { display:flex; align-items:baseline; gap:8px; width:100%; padding:8px 10px; border:none; border-bottom:1px solid #f1f5f9;
+     background:white; text-align:left; font-family:inherit; font-size:13px; cursor:pointer; }
+   .project-picker-item:hover:not(:disabled) { background:#f0f9ff; }
+   .project-picker-item:disabled { background:#f8fafc; color:#94a3b8; cursor:default; }
+   .project-picker-item-no { font-weight:bold; flex-shrink:0; }
+   .project-picker-item-sub { margin-left:auto; padding-left:8px; font-size:12px; color:#94a3b8; flex-shrink:0; }
+   .project-picker-toggle { display:flex; justify-content:space-between; align-items:center; width:100%; padding:8px 14px;
+     background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; font-family:inherit; font-size:13px; font-weight:bold; color:#475569; cursor:pointer; }
+   .project-picker-toggle:hover { background:#f1f5f9; }
+   .project-picker-toggle-icon { transition:transform 0.2s; }
+   .project-picker-body { margin-top:10px; padding-top:10px; border-top:1px dashed #cbd5e1; }
+   .project-picker-selected { margin-top:8px; }
+   .project-picker-selected:empty { display:none; }
+   .link-chip { display:inline-flex; align-items:center; gap:6px; background:#e0f2fe; color:#0369a1;
+     padding:4px 10px; border-radius:14px; font-size:13px; margin:2px; }
+   .link-chip .remove { cursor:pointer; font-weight:bold; }
+   
+   /* 案件を選ぶまで入力できない欄（取引先・担当者・件名・現場住所）の見た目 */
+   .form-group input:disabled, .form-group select:disabled, .form-group textarea:disabled,
+   .info-field input:disabled, .info-field select:disabled { background:#f1f5f9; color:#94a3b8; cursor:not-allowed; }
+   .case-lock-hint { font-size:12px; color:var(--text-secondary); margin-top:6px; }
