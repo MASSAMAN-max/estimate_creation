@@ -14,6 +14,8 @@
       document.getElementById('detailsContainer').innerHTML = '';
       resetClientFieldsUi_(''); // デザインAの取引先・担当者まわりも初期状態に戻す
       resetFormB_();
+      resetCaseSelection_('A'); // 案件の選択を外し、4項目を再びロックする
+      resetCaseSelection_('B');
     }
 
     // =====================================
