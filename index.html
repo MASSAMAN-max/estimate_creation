@@ -147,7 +147,12 @@
             <input type="text" id="contactPersonName" placeholder="山田太郎">
           </div>
         </div>
-        
+        <div class="form-group">
+          <label for="estimatorSelect">見積担当</label>
+          <select id="estimatorSelect">
+            <option value="">-- 選択（読込中...） --</option>
+          </select>
+        </div>
         <div class="form-group full-width">
           <label for="clientAddress">現場 住所</label>
           <div class="voice-input-wrapper">
@@ -273,12 +278,6 @@
               <label for="infoClientContact">新規担当者名 *</label>
               <input type="text" id="infoClientContact" placeholder="先方担当者名">
             </div>
-          </div>
-          <div class="form-group">
-            <label for="estimatorSelect">見積担当</label>
-            <select id="estimatorSelect">
-              <option value="">-- 選択（読込中...） --</option>
-            </select>
           </div>
           <div class="info-field full-width">
             <label for="infoSubject">件名 <span class="badge-required">必須</span></label>
