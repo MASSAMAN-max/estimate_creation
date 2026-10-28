@@ -459,7 +459,9 @@ function resetCaseSelection_(design) {
 // デザインA・Bの案件選択部品（読み込み時に1回だけ作る）
 const projectPickers = {
   A: createProjectPicker('projectPickerA', caseNosA, { title: '案件の選択（必須）', onChange: list => applyCaseSelectionToForm_('A', list) }),
-  B: createProjectPicker('projectPickerB', caseNosB, { title: '案件の選択（必須）', onChange: list => applyCaseSelectionToForm_('B', list) })
+  B: createProjectPicker('projectPickerB', caseNosB, { title: '案件の選択（必須）', onChange: list => applyCaseSelectionToForm_('B', list) }),
+  // 後から案件を紐付けるモーダル用。4項目の自動反映はしない（作成済みのPDFと食い違わないため）
+  L: createProjectPicker('projectPickerLink', caseNosLink, { title: '案件の選択（複数可）', allowNone: false, onChange: () => {} })
 };
 
 function refreshAllProjectPickers() {
