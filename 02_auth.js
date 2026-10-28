@@ -1,5 +1,5 @@
     /**
-    * 【このファイルの役割】
+    * 02_auth.js
     * ログイン・ログアウトまわりの処理。
     */
     function togglePasswordVisibility() {
