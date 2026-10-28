@@ -358,7 +358,25 @@
       <h3 id="listModalTitle" style="color:var(--primary); font-size:18px;">データを選択</h3>
       <button type="button" class="mini-logout-btn" onclick="document.getElementById('listModal').style.display='none';">✕ 閉じる</button>
     </div>
-
+    <!-- ✅ 新設：「紐付け案件無し」の見積書に、後から案件を紐付けるモーダル -->
+    <div id="linkCaseModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.5); z-index:9998; justify-content:center; align-items:center; padding:12px; box-sizing:border-box;">
+      <div style="background:white; width:100%; max-width:600px; max-height:85vh; overflow-y:auto; border-radius:var(--radius); padding:20px; box-sizing:border-box; display:flex; flex-direction:column; gap:14px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid var(--gray-border); padding-bottom:10px;">
+          <h3 style="color:var(--primary); font-size:18px;">案件を紐付ける</h3>
+          <button type="button" class="mini-logout-btn" onclick="closeLinkCaseModal()">✕ 閉じる</button>
+        </div>
+        <div id="linkCaseTargetLabel" style="font-size:14px; font-weight:bold;"></div>
+        <div id="projectPickerLink"></div>
+        <div class="case-lock-hint">
+          取引先・担当・件名・現場住所は変更されません（作成済みのPDFと食い違わないため）。<br>
+          案件フォルダに、この見積書PDFのショートカットが作成されます。一度紐付けると、この画面からは変更できません。
+        </div>
+        <button type="button" class="btn btn-primary" onclick="executeLinkCases()">
+          <span class="material-symbols-outlined">link</span>この案件を紐付ける
+        </button>
+      </div>
+    </div>
+    
     <!-- ✅ 新設：見積書検索欄（「過去の見積書」表示時のみ表示） -->
     <div id="estimateSearchBar" style="display:none; flex-direction:column; gap:8px; background:#f1f5f9; padding:12px; border-radius:var(--radius);">
       <div style="display:flex; gap:8px; flex-wrap:wrap;">
