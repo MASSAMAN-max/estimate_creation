@@ -115,7 +115,7 @@
       invalidateMasterListsCache_();
     　invalidateMasterListsCache_(); // 次にログインする人に、前の人のマスターを使い回さない
       // 表示中のローダー・一覧モーダルを閉じてから、ログイン画面へ戻す
-      ['loader', 'listModal'].forEach(id => {
+      ['loader', 'listModal', 'linkCaseModal'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
       });
