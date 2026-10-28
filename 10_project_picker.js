@@ -155,7 +155,6 @@ function filterProjects(filters) {
 // =================================================================
 // 案件選択部品
 // =================================================================
-
 /**
  * 案件選択部品を、指定した要素の中に作る。
  * @param {string} containerId 部品を表示する要素のid
@@ -257,8 +256,10 @@ function createProjectPicker(containerId, selectedList, options) {
   function renderList(keepScroll) {
     const scrollTop = keepScroll ? listEl.scrollTop : 0;
     // 「紐付け案件無し」は、案件リストの読み込み状況に関係なく、常に先頭へ表示する（読み込み失敗でも保存できるように）
-    const noneHtml = buildItemHtml(CASE_NONE, CASE_NONE_LABEL, "案件に関係しない見積", selectedList.includes(CASE_NONE));
-
+    // ※ allowNone: false の部品（後から案件を紐付けるモーダル）では表示しない
+    const noneHtml = options.allowNone === false
+      ? ""
+      : buildItemHtml(CASE_NONE, CASE_NONE_LABEL, "案件に関係しない見積", selectedList.includes(CASE_NONE));
     if (projectListStatus === "error") {
       statusEl.className = "project-picker-status is-error";
       statusEl.innerHTML = `案件リストを読み込めませんでした（${htmlEscape(projectListErrorMessage)}）
