@@ -24,6 +24,7 @@
     // 選択中の案件No。部品が同じ配列を直接書き換えるため、空にするときは .length = 0 を使う（再代入しない）
     const caseNosA = [];  // デザインA
     const caseNosB = [];  // デザインB
+    const caseNosLink = [];  // 後から案件を紐付けるモーダルで、選択中の案件No
     // 現在のフォームの状態を追跡する管理変数
     let currentUser = null;   // ログインユーザー情報
     let currentMode = 'NEW';  // 'NEW'(新規), 'DRAFT_EDIT'(下書き編集), 'COPY_CREATE'(過去コピーから作成)
