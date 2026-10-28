@@ -342,6 +342,37 @@
               .catch(err => console.error('下書き削除リクエスト失敗:', err));
           }
         });
+        // ========== 確定保存 3-2. 案件フォルダへのショートカット作成も、裏で起動する（ここでは待たない） ==========
+        // 「紐付け案件無し」だけの場合は不要。サーバー側は再実行しても二重に作らないため、通信失敗時の自動リトライも安全
+        const needsCaseFolder = (data.caseNos || []).some(no => no !== CASE_NONE);
+        const caseFolderPromise = needsCaseFolder
+          ? fetchWithRetry_({ action: 'saveCaseFolderShortcutsBackground', payload: { estimateNo: generatedId, caseNos: data.caseNos } }, 120000)
+          : Promise.resolve(null);
+
+        // 案件フォルダ側の失敗・警告は、完了画面（PDFリンク）が閉じられてから通知する（PDF自体は保存済み）
+        caseFolderPromise.then(async result => {
+          if (!result || !result.warnings || result.warnings.length === 0) return;
+          await successDialogPromise;
+          Swal.fire({
+            icon: 'warning',
+            title: '案件フォルダへの保存が一部できませんでした',
+            html: `見積書PDF自体は保存されています。<br>案件フォルダへのショートカットが作成できなかった案件があります。<br><br>
+                   <code style="font-size:11px; text-align:left; display:block;">${result.warnings.map(w => htmlEscape(w)).join('<br>')}</code><br>
+                   お手数ですが、担当者にご連絡ください。`,
+            confirmButtonText: '了解'
+          });
+        }).catch(async caseFolderError => {
+          console.error('❌ 案件フォルダへの保存に失敗:', caseFolderError);
+          await successDialogPromise;
+          Swal.fire({
+            icon: 'warning',
+            title: '案件フォルダへの保存に失敗しました',
+            html: `見積書PDF自体は保存されています。<br><br>
+                   <code style="font-size:11px;">${htmlEscape(caseFolderError.message)}</code><br><br>
+                   お手数ですが、担当者にご連絡ください。`,
+            confirmButtonText: '了解'
+          });
+        });
 
         // ========== 確定保存 4. PDF完成後、すぐ完了画面を表示 ==========
         document.getElementById('loader').style.display = 'none';
