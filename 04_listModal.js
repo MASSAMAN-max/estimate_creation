@@ -135,7 +135,17 @@
                見積書PDFを表示
              </a>`
           : '<span style="color:#999; font-size:13px;">（PDFはまだ作成されていません）</span>';
-
+        // ✅ 新設：案件が未紐付け（紐付け案件無し／旧データ）で、PDFがある見積書だけ「案件を紐付け」ボタンを表示
+        const caseNos = item.caseNos || [];
+        const isUnlinked = caseNos.length === 0 || (caseNos.length === 1 && caseNos[0] === CASE_NONE);
+        const linkButtonSection = (isUnlinked && item.fileUrl)
+          ? `<button type="button" class="btn btn-secondary"
+                     style="padding:6px 12px; font-size:13px; width:auto;"
+                     onclick="openLinkCaseModal('${htmlEscape(String(item.id))}')">
+                <span class="material-symbols-outlined" style="font-size:18px; vertical-align:middle;">link</span>
+                案件を紐付け
+             </button>`
+          : '';
         // ✅ 新設：管理者のみ削除ボタンを表示
         const deleteButtonSection = isAdmin
           ? `<button type="button" class="btn btn-secondary" 
@@ -163,6 +173,7 @@
                   <span class="material-symbols-outlined" style="font-size:18px; vertical-align:middle;">assignment</span>
                   コピーして作成
               </button>
+              ${linkButtonSection}
               ${deleteButtonSection}
             </div>
           </div>
@@ -499,4 +510,72 @@
     function resetEditOriginState_() {
       currentMode = 'NEW';
       currentOriginId = '';
+    }
+
+    // =====================================
+    // 「紐付け案件無し」の見積書に、後から案件を紐付ける
+    // ・取引先・担当・件名・現場住所は変更しない（サーバー側も、案件Noと案件フォルダだけを更新する）
+    // =====================================
+    let linkTargetEstimateNo = '';
+
+    function openLinkCaseModal(estimateNo) {
+      linkTargetEstimateNo = estimateNo;
+      document.getElementById('linkCaseTargetLabel').textContent = `見積番号：${estimateNo}`;
+      caseNosLink.length = 0;       // 配列は再代入せず、中身だけ空にする（部品が同じ配列を参照しているため）
+      projectPickers.L.reset();
+      loadProjectsIfNeeded_();      // 案件リストが未取得・失敗・古い場合は取り直す
+      document.getElementById('linkCaseModal').style.display = 'flex';
+    }
+
+    function closeLinkCaseModal() {
+      document.getElementById('linkCaseModal').style.display = 'none';
+    }
+
+    async function executeLinkCases() {
+      if (caseNosLink.length === 0) {
+        Swal.fire({ icon: 'warning', title: '入力不足', text: '紐付ける案件を選択してください。', confirmButtonText: '了解' });
+        return;
+      }
+
+      const labels = caseNosLink.map(caseNo => htmlEscape(getProjectChipLabel(caseNo))).join('<br>');
+      const confirmResult = await Swal.fire({
+        icon: 'question',
+        title: '案件を紐付けますか？',
+        html: `見積番号 <strong>${htmlEscape(linkTargetEstimateNo)}</strong><br><br>${labels}<br><br>
+               <span style="font-size:12px;">紐付けた後は、この画面からは変更できません。</span>`,
+        showCancelButton: true,
+        confirmButtonText: '紐付ける',
+        cancelButtonText: 'キャンセル'
+      });
+      if (!confirmResult.isConfirmed) return;
+
+      document.getElementById('loader').style.display = 'flex';
+      document.getElementById('loaderText').textContent = '案件を紐付けています...（案件フォルダにも保存します）';
+
+      try {
+        const result = await fetchWithRetry_({
+          action: 'linkEstimateToCases',
+          payload: { estimateNo: linkTargetEstimateNo, caseNos: caseNosLink.slice() }
+        }, 120000);
+
+        closeLinkCaseModal();
+        await openEstimateListModal('estimate'); // 一覧を再読み込み（ローダーもここで消える）
+
+        if (result.warnings && result.warnings.length > 0) {
+          Swal.fire({
+            icon: 'warning',
+            title: '案件は紐付けましたが、案件フォルダへの保存が一部できませんでした',
+            html: `<code style="font-size:11px; text-align:left; display:block;">${result.warnings.map(w => htmlEscape(w)).join('<br>')}</code><br>
+                   お手数ですが、担当者にご連絡ください。`,
+            confirmButtonText: '了解'
+          });
+        } else {
+          Swal.fire({ icon: 'success', title: '案件を紐付けました', confirmButtonText: '了解' });
+        }
+      } catch (error) {
+        document.getElementById('loader').style.display = 'none';
+        console.error('案件の紐付けエラー:', error);
+        Swal.fire({ icon: 'error', title: '紐付けに失敗しました', text: error.message, confirmButtonText: '了解' });
+        // モーダルは開いたままにして、やり直せるようにする
+      }
     }
