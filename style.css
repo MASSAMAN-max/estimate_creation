@@ -142,14 +142,66 @@
       gap: 16px;
       margin-bottom: 16px;
     }
+    /* 明細カード：番号は CSS の自動採番、色は6色を順番に繰り返す。
+       途中のカードを削除しても、番号は自動で詰まる */
+    #detailsContainer { counter-reset: detail-card; }
+
     .detail-card {
+      counter-increment: detail-card;
+      --card-accent: #1976D2;   /* 左の太線・バッジ・合計金額の色 */
+      --card-tint: #E3F2FD;     /* カードの薄い背景色 */
       border: 1px solid var(--gray-border);
+      border-left: 6px solid var(--card-accent);
       border-radius: var(--radius);
       padding: 16px;
-      background: #FAFAFA;
+      background: var(--card-tint);
       box-shadow: 0 2px 4px rgba(0,0,0,0.02);
     }
+    .detail-card:nth-child(6n+2) { --card-accent: #2E7D32; --card-tint: #E8F5E9; }
+    .detail-card:nth-child(6n+3) { --card-accent: #EF6C00; --card-tint: #FFF3E0; }
+    .detail-card:nth-child(6n+4) { --card-accent: #7B1FA2; --card-tint: #F3E5F5; }
+    .detail-card:nth-child(6n+5) { --card-accent: #00838F; --card-tint: #E0F7FA; }
+    .detail-card:nth-child(6n+6) { --card-accent: #C2185B; --card-tint: #FCE4EC; }
 
+    /* 「項目 1」「項目 2」のバッジ */
+    .card-number-badge {
+      display: inline-block;
+      background: var(--card-accent);
+      color: white;
+      font-size: 13px;
+      font-weight: bold;
+      padding: 3px 12px;
+      border-radius: 14px;
+      margin-bottom: 10px;
+    }
+    .card-number-badge::before { content: "項目 " counter(detail-card); }
+
+    /* 上段：親項目（左・伸縮）＋項目合計金額（右・固定幅） */
+    .card-top-row {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+      margin-bottom: 12px;
+      background: #fff;
+      padding: 12px;
+      border-radius: 4px;
+      border: 1px solid #e9ecef;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .card-category-box { margin-bottom: 0; flex: 1; min-width: 0; }
+    .card-total-box { flex: 0 0 140px; min-width: 0; }
+
+    /* 下段：「内容を追加」と「項目ごと削除」を横一列に */
+    .card-action-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-top: 10px;
+      border-top: 1px dashed #dee2e6;
+      padding-top: 10px;
+    }
     /* 【2・3行目の土台】古いGridを解除して縦に並べる */
     .card-row-lower {
       display: block;
