@@ -222,6 +222,56 @@
       padding-top: 10px;
     }
 
+    /* 「内容を追加」ボタン：濃い緑の背景に白文字（大きさは従来どおり） */
+    .btn-add-content {
+      background-color: #2E7D32;
+      color: white;
+      padding: 6px 12px;
+      font-size: 14px;
+    }
+    .btn-add-content:hover {
+      background-color: #256427;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(46, 125, 50, 0.3);
+    }
+
+    /* 「項目追加」ボタン：青の背景に白文字。横長にして押しやすくする */
+    .btn-add-card {
+      background-color: var(--primary);
+      color: white;
+      min-width: 260px;
+      padding: 14px 32px;
+    }
+    .btn-add-card:hover {
+      background-color: var(--primary-dark);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
+    }
+    /* 「項目追加」ボタンを置く行は、ボタンを中央に寄せる */
+    .table-section-header.add-card-row { justify-content: center; }
+
+    /* 仕様・摘要の番号：項目の色の丸い数字（内訳の追加・削除で自動的に詰まる） */
+    .breakdown-container { counter-reset: breakdown-row; }
+    .breakdown-row { counter-increment: breakdown-row; }
+    .breakdown-title {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .breakdown-number {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--card-accent);
+      color: white;
+      font-size: 13px;
+      font-weight: bold;
+    }
+    .breakdown-number::before { content: counter(breakdown-row); }
+
     /* 【2・3行目の土台】古いGridを解除して縦に並べる */
     .card-row-lower {
       display: block;
@@ -268,7 +318,7 @@
     .card-total-box .card-total-amount-box {
       height: 46px;
       padding: 0 12px;
-      background: transparent;
+      background: #fff;               /* 欄の中は白 */
       border: 2px solid var(--card-accent);
       border-radius: var(--radius);
       color: var(--card-accent);
