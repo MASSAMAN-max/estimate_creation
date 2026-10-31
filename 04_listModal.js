@@ -8,6 +8,26 @@
     let currentListType = null;
 
     // =====================================
+    // 一覧モーダルのボタン操作（イベント委譲）
+    // ・ボタンに onclick="関数('ID')" を埋め込むと、IDに特殊文字が含まれたときに
+    //   スクリプトとして実行されてしまうため、data属性から読み取る方式にしている
+    // ・新しいボタンを足すときは、data-action を付けて、ここに分岐を1つ足す
+    // ・ファイルの読み込み時に1回だけ登録する（一覧を開くたびに登録すると二重に動くため）
+    // =====================================
+    document.getElementById('modalListContainer').addEventListener('click', (e) => {
+      const button = e.target.closest('[data-action]');
+      if (!button) return;
+      const id = button.dataset.id;
+
+      switch (button.dataset.action) {
+        case 'copy':       fetchAndReflectFields(id, 'COPY_CREATE'); break;
+        case 'edit-draft': fetchAndReflectFields(id, 'DRAFT_EDIT'); break;
+        case 'link-case':  openLinkCaseModal(id); break;
+        case 'delete':     handleDeleteEstimate(id); break;
+      }
+    });
+
+    // =====================================
     // 見積書リストモーダル（複数用途対応版）
     // =====================================
     async function openEstimateListModal(listType) {
@@ -17,25 +37,6 @@
         const resultData = await fetchWithRetry_({
           action: 'loadRecentList',
           payload: {}
-        });
-
-        // =====================================
-        // 一覧モーダルのボタン操作（イベント委譲）
-        // ・ボタンに onclick="関数('ID')" を埋め込むと、IDに特殊文字が含まれたときに
-        //   スクリプトとして実行されてしまうため、data属性から読み取る方式にしている
-        // ・新しいボタンを足すときは、data-action を付けて、ここに分岐を1つ足す
-        // =====================================
-        document.getElementById('modalListContainer').addEventListener('click', (e) => {
-          const button = e.target.closest('[data-action]');
-          if (!button) return;
-          const id = button.dataset.id;
-        
-          switch (button.dataset.action) {
-            case 'copy':       fetchAndReflectFields(id, 'COPY_CREATE'); break;
-            case 'edit-draft': fetchAndReflectFields(id, 'DRAFT_EDIT'); break;
-            case 'link-case':  openLinkCaseModal(id); break;
-            case 'delete':     handleDeleteEstimate(id); break;
-          }
         });
         
         window.cachedListData = resultData;
@@ -146,17 +147,23 @@
       estimates.forEach(item => {
         const row = document.createElement('div');
         row.style = 'background:white; padding:12px; margin-bottom:8px; border-radius:6px; border:1px solid var(--gray-border); display:flex; flex-direction:column; gap:6px;';
-        
-        // PDFが存在する場合のみ「見積書PDFを表示」ボタンを表示（未作成の場合はボタンなしでその旨のみ表示）PDFリンク（URLもエスケープする）
+
+        // 案件が未紐付け（紐付け案件無し／旧データ）かどうか
+        const caseNos = item.caseNos || [];
+        const isUnlinked = caseNos.length === 0 || (caseNos.length === 1 && caseNos[0] === CASE_NONE);
+
+        // ボタンに持たせるID（クリック処理は、ファイル上部のイベント委譲で行う）
+        const idAttr = htmlEscape(String(item.id));
+
+        // PDFが存在する場合のみ「見積書PDFを表示」ボタンを表示（URLもエスケープする）
         const fileUrlSection = item.fileUrl
           ? `<a href="${htmlEscape(item.fileUrl)}" target="_blank" rel="noopener" class="btn btn-secondary" style="padding:6px 12px; font-size:13px; width:auto; text-decoration:none;">
                <span class="material-symbols-outlined" style="font-size:18px; vertical-align:middle;">description</span>
                見積書PDFを表示
              </a>`
           : '<span style="color:#999; font-size:13px;">（PDFはまだ作成されていません）</span>';
-        
-        const idAttr = htmlEscape(String(item.id)); // ボタンに持たせるID（クリック処理は下部のイベント委譲で行う）
-        
+
+        // 案件が未紐付けで、PDFがある見積書だけ「案件を紐付け」ボタンを表示
         const linkButtonSection = (isUnlinked && item.fileUrl)
           ? `<button type="button" class="btn btn-secondary" data-action="link-case" data-id="${idAttr}"
                      style="padding:6px 12px; font-size:13px; width:auto;">
@@ -164,7 +171,8 @@
                 案件を紐付け
              </button>`
           : '';
-        
+
+        // 管理者のみ削除ボタンを表示
         const deleteButtonSection = isAdmin
           ? `<button type="button" class="btn btn-secondary" data-action="delete" data-id="${idAttr}"
                      style="padding:6px 12px; font-size:13px; width:auto; color:#ef4444; border-color:#fca5a5;">
@@ -172,11 +180,11 @@
                 削除
              </button>`
           : '';
-        
+
         row.innerHTML = `
           <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text-secondary);">
-            <span>ID: <b>${htmlEscape(String(item.id))}</b></span>
-            <span>案件: ${htmlEscape((item.caseNos || []).map(n => n === CASE_NONE ? CASE_NONE_LABEL : n).join(', ') || '－')}</span>
+            <span>ID: <b>${idAttr}</b></span>
+            <span>案件: ${htmlEscape(caseNos.map(n => n === CASE_NONE ? CASE_NONE_LABEL : n).join(', ') || '－')}</span>
             <span>作成日: ${formatDateToInput(item.date)}</span>
           </div>
           <div style="font-weight:600; color:var(--text-primary); font-size:14px;">${htmlEscape(item.client || '取引先名なし')} — <span style="font-weight:500; font-size:13px;">${htmlEscape(item.subject || '（件名なし）')}</span></div>
@@ -184,9 +192,8 @@
             <span style="color:var(--primary); font-weight:bold;">¥${Number(item.amount).toLocaleString()}</span>
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
               ${fileUrlSection}
-              <button type="button" class="btn btn-primary" 
-                      style="padding:6px 12px; font-size:13px; width:auto;" 
-                      onclick="fetchAndReflectFields('${item.id}', 'COPY_CREATE')">
+              <button type="button" class="btn btn-primary" data-action="copy" data-id="${idAttr}"
+                      style="padding:6px 12px; font-size:13px; width:auto;">
                   <span class="material-symbols-outlined" style="font-size:18px; vertical-align:middle;">assignment</span>
                   コピーして作成
               </button>
