@@ -47,10 +47,13 @@
         <div class="card-number-badge"></div>
 
         <div class="card-top-row">
-          <div class="form-group card-category-box">
-            <label style="font-weight: bold; color: #495057; display: block; margin-bottom: 4px;">親項目 <span class="badge-required">必須</span></label>
+          <div class="card-category-box">
+            <div class="card-title-line">
+              <span class="card-number-badge"></span>
+              <span class="badge-required">必須</span>
+            </div>
             <select class="item-category-select" style="width: 100%; box-sizing: border-box;" onchange="toggleNewCategory(this)">
-              <option value="">-- 選択 --</option>
+              <option value="">-- 親項目を選択 --</option>
               ${categoryOptions}
             </select>
             <div class="dynamic-input-container" style="display:none; margin-top: 5px;">
@@ -59,8 +62,8 @@
           </div>
 
           <div class="card-total-box">
-            <label style="font-weight: bold; display: block; font-size: 12px; color: #6c757d; margin-bottom: 4px;">項目合計金額</label>
-            <div class="amount-display-box" style="background: #fff; padding: 10px 12px; border-radius: 4px; border: 1px solid var(--card-accent); font-weight: bold; font-size: 15px; color: var(--card-accent); width: 100%; box-sizing: border-box; display: flex; justify-content: space-between; align-items: center;">
+            <div class="card-total-label">項目合計金額</div>
+            <div class="amount-display-box card-total-amount-box">
               <span>¥</span>
               <span class="card-total-amount" data-value="0">0</span>
             </div>
