@@ -44,8 +44,10 @@
       const categoryOptions = MASTER_CATEGORIES.map(cat => `<option value="${htmlEscape(cat)}">${htmlEscape(cat)}</option>`).join('') + '<option value="__NEW__">＋新規項目</option>';
 
       card.innerHTML = `
-        <div style="display: flex; gap: 6px; align-items: flex-start; margin-bottom: 12px; background: #fff; padding: 12px; border-radius: 4px; border: 1px solid #e9ecef; width: 100%; box-sizing: border-box;">
-          <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 0;">
+        <div class="card-number-badge"></div>
+
+        <div class="card-top-row">
+          <div class="form-group card-category-box">
             <label style="font-weight: bold; color: #495057; display: block; margin-bottom: 4px;">親項目 <span class="badge-required">必須</span></label>
             <select class="item-category-select" style="width: 100%; box-sizing: border-box;" onchange="toggleNewCategory(this)">
               <option value="">-- 選択 --</option>
@@ -55,26 +57,22 @@
               <input type="text" class="item-category-input" style="width: 100%; box-sizing: border-box;" placeholder="新規項目名">
             </div>
           </div>
-        </div>
-        
-        <div class="breakdown-container"></div>
 
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-top: 10px; border-top: 1px dashed #dee2e6; padding-top: 10px; width: 100%; box-sizing: border-box;">           
-          <div style="flex: 1; text-align: left;">
-            <button type="button" class="btn" style="background-color: #e8f5e9; color: #2e7d32; padding: 6px 12px; font-size: 14px; font-weight: bold;" onclick="addBreakdownRow(this.closest('.detail-card'), this.closest('.detail-card').querySelector('.breakdown-container'), false)">
-              <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle;">add</span> 内訳を追加
-            </button>
-          </div> 
-          <div style="flex: 1; max-width: 50%; min-width: 0; text-align: right;">
+          <div class="card-total-box">
             <label style="font-weight: bold; display: block; font-size: 12px; color: #6c757d; margin-bottom: 4px;">項目合計金額</label>
-            <div class="amount-display-box" style="background: #e3f2fd; padding: 6px 12px; border-radius: 4px; border: 1px solid #b3e5fc; font-weight: bold; font-size: 15px; color: #0d47a1; text-align: right; width: 100%; box-sizing: border-box; display: flex; justify-content: space-between; align-items: center;">
+            <div class="amount-display-box" style="background: #fff; padding: 10px 12px; border-radius: 4px; border: 1px solid var(--card-accent); font-weight: bold; font-size: 15px; color: var(--card-accent); width: 100%; box-sizing: border-box; display: flex; justify-content: space-between; align-items: center;">
               <span>¥</span>
               <span class="card-total-amount" data-value="0">0</span>
             </div>
           </div>
         </div>
-        
-        <div style="text-align: right; margin-top: 12px;">
+
+        <div class="breakdown-container"></div>
+
+        <div class="card-action-row">
+          <button type="button" class="btn" style="background-color: #e8f5e9; color: #2e7d32; padding: 6px 12px; font-size: 14px; font-weight: bold;" onclick="addBreakdownRow(this.closest('.detail-card'), this.closest('.detail-card').querySelector('.breakdown-container'), false)">
+            <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle;">add</span> 内容を追加
+          </button>
           <button type="button" class="btn btn-danger" style="padding: 6px 12px; font-size: 14px;" onclick="deleteTableRow(this)">
             <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle;">delete</span> 項目ごと削除
           </button>
