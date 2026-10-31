@@ -23,8 +23,8 @@
         // 今日の日付をセット
         document.getElementById('estimateDate').value = getTodayInputValue();
         
-        // 初期行を1行追加
-        
+        // 初期行を1行追加（マスターの読み込み後なので、親項目の選択肢が入った状態で出る）
+        addTableRow();
         updateTotalSummary();
         
       } catch (error) {
