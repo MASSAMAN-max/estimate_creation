@@ -44,8 +44,6 @@
       const categoryOptions = MASTER_CATEGORIES.map(cat => `<option value="${htmlEscape(cat)}">${htmlEscape(cat)}</option>`).join('') + '<option value="__NEW__">＋新規項目</option>';
 
       card.innerHTML = `
-        <div class="card-number-badge"></div>
-
         <div class="card-top-row">
           <div class="card-category-box">
             <div class="card-title-line">
