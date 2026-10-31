@@ -38,6 +38,7 @@
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
         isHandlingAuthExpired_ = false; // 再ログインできたので、期限切れ処理の抑止を解除する
         invalidateMasterListsCache_(); // 前のログイン時のマスターを使い回さない
+        resetProjectCache_();          // 前のログイン時の案件リストも使い回さない
     
         // ログイン成功後はメニュー画面へ（ページ再読み込み時と遷移を統一）
         showMenuScreen();
@@ -112,8 +113,8 @@
     
       localStorage.removeItem('currentUser');
       currentUser = null;
-      invalidateMasterListsCache_();
-    　invalidateMasterListsCache_(); // 次にログインする人に、前の人のマスターを使い回さない
+        invalidateMasterListsCache_();
+        resetProjectCache_(); // 次にログインする人に、前の人のマスター・案件リストを使い回さない
       // 表示中のローダー・一覧モーダルを閉じてから、ログイン画面へ戻す
       ['loader', 'listModal', 'linkCaseModal'].forEach(id => {
         const el = document.getElementById(id);
