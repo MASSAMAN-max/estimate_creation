@@ -35,6 +35,7 @@
      
     // =====================================
     // 明細行（親項目カード）を追加している関数
+    // ・カードの番号（項目 1、項目 2…）と色は、style.css が自動で付ける
     // =====================================
     function addTableRow(itemData = null) {
       const container = document.getElementById('detailsContainer');
@@ -71,7 +72,7 @@
         <div class="breakdown-container"></div>
 
         <div class="card-action-row">
-          <button type="button" class="btn" style="background-color: #e8f5e9; color: #2e7d32; padding: 6px 12px; font-size: 14px; font-weight: bold;" onclick="addBreakdownRow(this.closest('.detail-card'), this.closest('.detail-card').querySelector('.breakdown-container'), false)">
+          <button type="button" class="btn btn-add-content" onclick="addBreakdownRow(this.closest('.detail-card'), this.closest('.detail-card').querySelector('.breakdown-container'), false)">
             <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle;">add</span> 内容を追加
           </button>
           <button type="button" class="btn btn-danger" style="padding: 6px 12px; font-size: 14px;" onclick="deleteTableRow(this)">
@@ -114,16 +115,21 @@
         // ========== ステップ1: 親項目（カテゴリ）をセット ==========
         const categorySelect = card.querySelector('.item-category-select');
         if (categorySelect) {
-          const category = firstItem.itemCategory || '';
+          // 復元時に補った仮の名前「（カテゴリなし）」は、未選択として扱う
+          const rawCategory = firstItem.itemCategory || '';
+          const category = rawCategory === '（カテゴリなし）' ? '' : rawCategory;
+
           categorySelect.value = category;
-          
-          if (!category) {
+          // マスタの選択肢にない名前だと、value は空に戻る。その場合は新規項目として入力欄へ入れる
+          const isNotInMaster = category !== '' && categorySelect.value !== category;
+
+          if (category === '' || isNotInMaster) {
             categorySelect.value = '__NEW__';
             const inputContainer = card.querySelector('.dynamic-input-container');
             const input = card.querySelector('.item-category-input');
             if (inputContainer && input) {
               inputContainer.style.display = 'block';
-              input.value = '';
+              input.value = category; // 未選択のときは空、マスタにない名前のときはその名前
               input.required = true;
             }
           }
@@ -190,9 +196,10 @@
           }
 
           // メインHTMLの流し込み
+          // ・見出し「仕様・摘要」の丸い番号は、style.css が自動で付ける（内訳の削除で自動的に詰まる）
           breakdownRow.innerHTML = `
             <div class="form-group" style="margin-top: 5px;">
-              <label>仕様・摘要</label>
+              <label class="breakdown-title"><span class="breakdown-number"></span>仕様・摘要</label>
               <div class="voice-input-wrapper">
                 <input type="text" class="item-name" placeholder="品名・内容など" value="${htmlEscape(String(item.itemName || ''))}">
                 <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)"><span class="material-symbols-outlined">mic</span></button>
@@ -269,9 +276,10 @@
       const unitOptions = (!MASTER_UNITS.includes('式') ? '<option value="式">式</option>' : '') + 
                           MASTER_UNITS.filter(u => u && u.trim()).map(u => `<option value="${htmlEscape(u.trim())}">${htmlEscape(u.trim())}</option>`).join('');
     
+      // ・見出し「仕様・摘要」の丸い番号は、style.css が自動で付ける（内訳の削除で自動的に詰まる）
       row.innerHTML = `
         <div class="form-group" style="margin-top: 5px;">
-          <label>仕様・摘要</label>
+          <label class="breakdown-title"><span class="breakdown-number"></span>仕様・摘要</label>
           <div class="voice-input-wrapper">
             <input type="text" class="item-name" placeholder="品名・内容など">
             <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)"><span class="material-symbols-outlined">mic</span></button>
@@ -359,11 +367,6 @@
       remarkRow.querySelector('.remark-input').focus();
     }
 
-    
-    // =====================================
-    // 内訳の数による単位制限ルールを制御する関数
-    // =====================================
-    // =====================================
     // =====================================
     // 項目行（親）を削除する関数
     // =====================================
