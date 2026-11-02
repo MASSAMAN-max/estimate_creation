@@ -567,6 +567,9 @@
         estimateDate: document.getElementById('estimateDate').value,
         estimator: document.getElementById('estimatorSelect').value.trim(),
         subject: document.getElementById('subject').value.trim(),
+        // 部屋番号・間取り（デザインBと保存項目名は共通。画面のIDだけAは別）
+        deptNo: document.getElementById('deptNoA').value.trim(),
+        layout: document.getElementById('layoutA').value.trim(),
         validity: document.getElementById('validity').value.trim(),
         paymentTerms: document.getElementById('paymentTerms').value.trim(),
         remarks: document.getElementById('remarks').value.trim(),
