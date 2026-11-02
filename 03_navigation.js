@@ -13,29 +13,31 @@
     //   以前は画面ごとの関数に同じ表示切り替えを手書きしていたため、要素を追加・変更するときに
     //   3〜4か所を直す必要があった。今後は、この表だけを直せばよい
     // ・値は、各要素に元から指定されている表示方法（flex／block／inline-flex）
+    // ・sharedInfoCard は、デザインA・Bで共用する「基本情報」カード（作成画面の2つだけで表示する）
     // ・表に書かれていない要素は変更しない（ログイン画面では「メニューに戻る」ボタンに触れない）
     const SCREEN_LAYOUTS_ = {
       // ログイン画面だけを表示し、アプリ全体の土台を隠す
       LOGIN: {
         loginScreen: 'flex', appWrapper: 'none',
-        menuScreen: 'none', mainApp: 'none', mainAppB: 'none', bottomBarA: 'none'
+        menuScreen: 'none', mainApp: 'none', mainAppB: 'none', bottomBarA: 'none',
+        sharedInfoCard: 'none'
       },
       // メニュー画面（作成フォームは隠す）。ヘッダーの「メニューに戻る」ボタンは不要
       MENU: {
         loginScreen: 'none', appWrapper: 'block',
-        menuScreen: 'flex', mainApp: 'none', mainAppB: 'none', bottomBarA: 'none',
+        menuScreen: 'flex', mainApp: 'none', mainAppB: 'none', bottomBarA: 'none', sharedInfoCard: 'none',
         backToMenuBtn: 'none'
       },
       // デザインAの作成フォーム。小計・消費税・税込合計の固定ボトムバーも表示する
       DESIGN_A: {
         loginScreen: 'none', appWrapper: 'block',
-        menuScreen: 'none', mainApp: 'block', mainAppB: 'none', bottomBarA: 'flex',
+        menuScreen: 'none', mainApp: 'block', mainAppB: 'none', bottomBarA: 'flex', sharedInfoCard: 'block',
         backToMenuBtn: 'inline-flex'
       },
       // デザインBの作成フォーム（デザインAと共通の土台・ヘッダーを利用）
       DESIGN_B: {
         loginScreen: 'none', appWrapper: 'block',
-        menuScreen: 'none', mainApp: 'none', mainAppB: 'block', bottomBarA: 'none',
+        menuScreen: 'none', mainApp: 'none', mainAppB: 'block', bottomBarA: 'none', sharedInfoCard: 'block',
         backToMenuBtn: 'inline-flex'
       }
     };
