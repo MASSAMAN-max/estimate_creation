@@ -75,28 +75,6 @@
       color: var(--primary);
     }
 
-    .form-grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 12px;
-      margin-bottom: 14px;
-    }
-    @media (min-width: 768px) {
-      .form-grid {
-        grid-template-columns: 1fr 1fr;
-      }
-    }
-
-    /* 2項目を1行に並べる枠（スマホでも横並びのまま）
-       ・minmax(0, 1fr) にして、長い取引先名でも列が横にはみ出さないようにする
-       ・grid-column: 1 / -1 で、form-grid の2列表示（PC）でも1行ぶんを使う */
-    .form-row-pair {
-      grid-column: 1 / -1;
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-      gap: 12px;
-    }
-
     /* ⭕ フォーム要素：文字を16pxにしてスマホのズームを防止＋サイズ感を統一 */
     .form-group input,
     .form-group select,
@@ -234,8 +212,8 @@
 
     /* 「内容を追加」ボタン：濃い緑の背景に白文字
        ・.btn（padding 12px 24px / 16px）が後ろにあって上書きされていたため、
-         .btn.btn-add-content と書いて優先させる。
-       ・「項目ごと削除」ボタン（インライン指定 padding 6px 12px / 14px）と同じサイズにする */
+         .btn.btn-add-content と書いて優先させる
+       ・「項目ごと削除」ボタン（padding 6px 12px / 14px）と同じサイズにする */
     .btn.btn-add-content {
       background-color: #2E7D32;
       color: white;
@@ -583,7 +561,9 @@
          （デザインAで同名のクラスを使う場合は、衝突に注意すること）
        ============================================================ */
     /* デザインB用のスコープ変数（.design-b-scope 配下にのみ適用。既存デザインAの --primary 等とは独立） */
-    .design-b-scope {
+    /* デザインBの作成画面と、共通の基本情報カード（デザインA・B共用）で同じ配色を使う */
+    .design-b-scope,
+    .shared-info-scope {
       --primary: #2563eb;
       --primary-light: #eff6ff;
       --primary-dark: #1d4ed8;
@@ -596,8 +576,11 @@
       --warning-bg: #fef3c7;
       --warning-border: #f59e0b;
 
-      background-color: var(--bg);
+      background-color: var(--card-bg); /* 基本情報カードの背景とそろえるため、従来の薄グレーから白に変更 */
       color: var(--text);
+    }
+
+    .design-b-scope {
       padding-bottom: 140px; /* 下部固定バー用の余白 */
       overflow-x: hidden;
       display: block;
@@ -631,19 +614,9 @@
     /* 基本情報のグリッドレイアウト（レスポンシブ対応） */
     .info-grid {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: repeat(2, minmax(0, 1fr)); /* 長い取引先名でも列が横にはみ出さない */
       gap: 10px;
       width: 100%;
-    }
-
-    /* スマホ画面（横幅480px以下）では1列表示にしてはみ出しを防止 */
-    @media (max-width: 480px) {
-      .info-grid {
-        grid-template-columns: 1fr;
-      }
-      .info-field.full-width {
-        grid-column: span 1 !important;
-      }
     }
 
     .info-field {
