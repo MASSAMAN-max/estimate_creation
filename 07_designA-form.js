@@ -14,14 +14,13 @@
         currentOriginId = '';
         document.getElementById('estimateForm').reset();
         document.getElementById('detailsContainer').innerHTML = '';
-        // reset() では戻らない「新規入力欄の表示」と「担当者リストの選択肢」も初期状態に戻す
-        resetClientFieldsUi_('');
-        resetCaseSelection_('A');
+        // 共通の基本情報カードは form の外にあるため、reset() では戻らない。専用の関数で初期状態に戻す
+        resetSharedInfoFields_();
         // マスターデータ取得（await で完了を待つ）
         await loadMasterLists();
-        
+
         // 今日の日付をセット
-        document.getElementById('estimateDate').value = getTodayInputValue();
+        document.getElementById('infoDate').value = getTodayInputValue();
         
         // 初期行を1行追加（マスターの読み込み後なので、親項目の選択肢が入った状態で出る）
         addTableRow();
@@ -460,7 +459,6 @@
     // 画面入力値を集める関数
     // =====================================
     function getFormData() {
-      const { clientName: finalClientName, contactPerson: finalContactPerson } = getClientSelectionValues_('');
       
       const details = [];
       
@@ -560,18 +558,8 @@
       const currentTotal    = getValueFromDisplay('totalLabel');    
 
       return {
-        caseNos: caseNosA.slice(),
-        clientName: finalClientName,
-        contactPerson: finalContactPerson,
-        clientAddress: document.getElementById('clientAddress').value.trim(),
-        estimateDate: document.getElementById('estimateDate').value,
-        estimator: document.getElementById('estimatorSelect').value.trim(),
-        subject: document.getElementById('subject').value.trim(),
-        // 部屋番号・間取り（デザインBと保存項目名は共通。画面のIDだけAは別）
-        deptNo: document.getElementById('deptNoA').value.trim(),
-        layout: document.getElementById('layoutA').value.trim(),
-        validity: document.getElementById('validity').value.trim(),
-        paymentTerms: document.getElementById('paymentTerms').value.trim(),
+        // 案件・取引先・日付・件名など、基本情報カードの値（デザインBと共通。11_sharedInfo.js）
+        ...getSharedInfoValues_(),
         remarks: document.getElementById('remarks').value.trim(),
         details: details,
         // すでに画面で正しく計算・表示されている値をそのまま使い回す
