@@ -295,8 +295,8 @@
     /* 🌟 金額ボックス：他の input/select とデザイン・サイズを完全統一 */
     .amount-display-box {
       width: 100%;
-      padding: 10px;                        /* 他の入力欄と同じ余白 */
-      font-size: 16px;           /* 他の入力欄と同じ文字サイズ */
+      padding: 8px;                        /* 他の入力欄と同じ余白 */
+      font-size: 14px;           /* 他の入力欄と同じ文字サイズ */
       font-weight: bold;
       border: 1px solid var(--gray-border);
       border-radius: var(--radius);
