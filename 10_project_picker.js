@@ -1,7 +1,7 @@
 /**
  * 10_project_picker.js
- * 案件選択部品（デザインA・Bの作成画面）と、案件マスタ・発注元マスタの裏読込。
- * 案件を選ぶと「取引先・取引先担当・件名・現場住所（Aのみ）」へ自動反映し、
+ * 案件選択部品（共通の基本情報カード。デザインA・B共用）と、案件マスタ・発注元マスタの裏読込。
+ * 案件を選ぶと「取引先・取引先担当・件名・現場住所」へ自動反映し、
  * 案件を選ぶまでは、この入力欄を入力不可にする。
  * 依存：01_config.js、05_masterData.js（resetClientFieldsUi_ / restoreClientSelection_）、06_utils.js（fetchWithRetry_ / htmlEscape）
  */
@@ -384,23 +384,17 @@ function createProjectPicker(containerId, selectedList, options) {
 //  ・案件を選ぶたびに、最後に選んだ案件の内容で4項目を上書きする（その後の手修正は可能）
 //  ・「紐付け案件無し」を選ぶと、入力欄を手入力できる（入力済みの内容は残す）
 //  ・案件を全部外したら、4項目を空にして再びロックする
-//  ・現場住所は、デザインAのみ（デザインBに入力欄がないため）
-const CASE_FORM_BINDINGS_ = {
-  A: {
-    suffix: '', list: caseNosA,
-    subjectId: 'subject', addressId: 'clientAddress',
-    lockIds: ['clientSelect', 'clientName', 'contactPersonSelect', 'contactPersonName', 'subject', 'clientAddress']
-  },
-  B: {
-    suffix: 'B', list: caseNosB,
-    subjectId: 'infoSubject', addressId: null,
-    lockIds: ['infoClientSelect', 'infoClient', 'infoClientContactSelect', 'infoClientContact', 'infoSubject']
-  }
-};
+//  ・基本情報カードはデザインA・Bで共用のため、連動の処理も1つだけ
+//    （現場住所はデザインBのPDFには出ないが、保存・復元はされる）
+
+/** 案件選択に連動する4項目の入力欄ID（取引先・取引先担当・件名・現場住所。新規入力欄を含む） */
+const CASE_LINKED_FIELD_IDS_ = [
+  'infoClientSelect', 'infoClient', 'infoClientContactSelect', 'infoClientContact', 'infoSubject', 'infoAddress'
+];
 
 /** 4項目（と、その音声入力ボタン）の入力可否を切り替える */
-function setCaseFieldsLocked_(design, locked) {
-  CASE_FORM_BINDINGS_[design].lockIds.forEach(id => {
+function setCaseFieldsLocked_(locked) {
+  CASE_LINKED_FIELD_IDS_.forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
     el.disabled = locked;
@@ -410,58 +404,55 @@ function setCaseFieldsLocked_(design, locked) {
 }
 
 /** 4項目の入力内容を空にする */
-function clearCaseFields_(design) {
-  const binding = CASE_FORM_BINDINGS_[design];
-  resetClientFieldsUi_(binding.suffix);
-  document.getElementById(binding.subjectId).value = '';
-  if (binding.addressId) document.getElementById(binding.addressId).value = '';
+function clearCaseFields_() {
+  resetClientFieldsUi_();
+  document.getElementById('infoSubject').value = '';
+  document.getElementById('infoAddress').value = '';
 }
 
 /** 案件の内容を4項目へ上書きする（取引先がマスタに無ければ、新規取引先として入力欄へ入れる） */
-function fillCaseFields_(design, project) {
-  const binding = CASE_FORM_BINDINGS_[design];
-  resetClientFieldsUi_(binding.suffix); // 前回の「新規入力欄」の表示などを初期状態に戻してから入れる
-  restoreClientSelection_(project.client, project.contact, binding.suffix);
-  document.getElementById(binding.subjectId).value = project.name || '';
-  if (binding.addressId) document.getElementById(binding.addressId).value = project.address || '';
+function fillCaseFields_(project) {
+  resetClientFieldsUi_(); // 前回の「新規入力欄」の表示などを初期状態に戻してから入れる
+  restoreClientSelection_(project.client, project.contact);
+  document.getElementById('infoSubject').value = project.name || '';
+  document.getElementById('infoAddress').value = project.address || '';
 }
 
 /** ロックの状態だけを、選択状態に合わせる（入力内容は触らない。下書き・コピーの復元時に使う） */
-function syncCaseFormLock_(design) {
-  setCaseFieldsLocked_(design, CASE_FORM_BINDINGS_[design].list.length === 0);
+function syncCaseFormLock_() {
+  setCaseFieldsLocked_(caseNos.length === 0);
 }
 
 /** ユーザーが案件を追加・解除したときの反映（部品の onChange から呼ばれる） */
-function applyCaseSelectionToForm_(design, selectedList) {
+function applyCaseSelectionToForm_(selectedList) {
   const lastCaseNo = selectedList[selectedList.length - 1];
   if (!lastCaseNo) {
-    clearCaseFields_(design);
+    clearCaseFields_();
   } else if (lastCaseNo !== CASE_NONE) {
     const project = projectMapByNo.get(lastCaseNo);
-    if (project) fillCaseFields_(design, project);
+    if (project) fillCaseFields_(project);
   }
-  syncCaseFormLock_(design);
+  syncCaseFormLock_();
 }
 
 /** 案件の選択状態を指定した内容にして、部品とロックを更新する（新規作成・復元用。入力内容は触らない） */
-function setCaseSelection_(design, caseNos) {
-  const binding = CASE_FORM_BINDINGS_[design];
-  binding.list.length = 0;
-  caseNos.forEach(caseNo => binding.list.push(caseNo));
-  projectPickers[design].reset();
-  syncCaseFormLock_(design);
+function setCaseSelection_(newCaseNos) {
+  caseNos.length = 0;
+  newCaseNos.forEach(caseNo => caseNos.push(caseNo));
+  projectPickers.main.reset();
+  syncCaseFormLock_();
 }
 
-function resetCaseSelection_(design) {
-  setCaseSelection_(design, []);
+function resetCaseSelection_() {
+  setCaseSelection_([]);
 }
 
-// デザインA・Bの案件選択部品（読み込み時に1回だけ作る）
+// 案件選択部品（読み込み時に1回だけ作る）
 const projectPickers = {
-  A: createProjectPicker('projectPickerA', caseNosA, { title: '案件の選択（必須）', onChange: list => applyCaseSelectionToForm_('A', list) }),
-  B: createProjectPicker('projectPickerB', caseNosB, { title: '案件の選択（必須）', onChange: list => applyCaseSelectionToForm_('B', list) }),
+  // 作成画面（デザインA・B共通の基本情報カード）
+  main: createProjectPicker('projectPicker', caseNos, { title: '案件の選択（必須）', onChange: applyCaseSelectionToForm_ }),
   // 後から案件を紐付けるモーダル用。4項目の自動反映はしない（作成済みのPDFと食い違わないため）
-  L: createProjectPicker('projectPickerLink', caseNosLink, { title: '案件の選択（複数可）', allowNone: false, onChange: () => {} })
+  link: createProjectPicker('projectPickerLink', caseNosLink, { title: '案件の選択（複数可）', allowNone: false, onChange: () => {} })
 };
 
 function refreshAllProjectPickers() {
@@ -469,5 +460,4 @@ function refreshAllProjectPickers() {
 }
 
 // 初期状態（案件未選択）では4項目をロックしておく
-syncCaseFormLock_('A');
-syncCaseFormLock_('B');
+syncCaseFormLock_();
