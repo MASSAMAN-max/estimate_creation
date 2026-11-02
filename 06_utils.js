@@ -10,12 +10,10 @@
     // ・ログイン欄（ID・パスワード）のクリアはこの関数の対象外（呼び出し元で個別に行う）
     // =====================================
     function resetAllForms_() {
-      document.getElementById('estimateForm').reset();
+      document.getElementById('estimateForm').reset(); // デザインAの備考など
       document.getElementById('detailsContainer').innerHTML = '';
-      resetClientFieldsUi_(''); // デザインAの取引先・担当者まわりも初期状態に戻す
-      resetFormB_();
-      resetCaseSelection_('A'); // 案件の選択を外し、4項目を再びロックする
-      resetCaseSelection_('B');
+      resetSharedInfoFields_(); // 共通の基本情報カード（取引先・案件選択・初期値）を初期状態に戻す（11_sharedInfo.js）
+      resetFormB_();            // デザインBの明細・備考を戻す
     }
 
     // =====================================
