@@ -127,37 +127,44 @@
           <div id="projectPickerA"></div>
           <div class="case-lock-hint">案件を選ぶと、取引先・担当者・現場住所・件名が自動入力されます。案件がない場合は「紐付け案件無し」を選ぶと手入力できます。</div>
         </div>
-        <div class="form-group">
-          <label for="estimateDate">見積作成日 <span class="badge-required">必須</span></label>
-          <input type="date" id="estimateDate" required>
-        </div>
-        <div class="form-group">
-          <label for="clientSelect">取引先 <span class="badge-required">必須</span></label>
-          <select id="clientSelect" required onchange="toggleNewClient()">
-            <option value="">-- 選択（読込中...） --</option>
-          </select>
-          <div id="newClientContainer" class="dynamic-input-container" style="display: none;">
-            <label for="clientName">新規取引先名 *</label>
-            <input type="text" id="clientName" placeholder="○○○○株式会社">
+        <!-- 見積作成日｜見積担当者（スマホでも横並び） -->
+        <div class="form-row-pair">
+          <div class="form-group">
+            <label for="estimateDate">見積作成日 <span class="badge-required">必須</span></label>
+            <input type="date" id="estimateDate" required>
+          </div>
+          <div class="form-group">
+            <label for="estimatorSelect">見積担当者</label>
+            <select id="estimatorSelect">
+              <option value="">-- 選択（読込中...） --</option>
+            </select>
           </div>
         </div>
-       
-        <div class="form-group">
-          <label for="contactPersonSelect">取引先担当者</label>
-          <select id="contactPersonSelect" onchange="toggleNewContactPerson()">
-            <option value="">-- 取引先を先に選択してください --</option>
-          </select>
-          <div id="newContactPersonContainer" class="dynamic-input-container" style="display: none;">
-            <label for="contactPersonName">新規担当者名 *</label>
-            <input type="text" id="contactPersonName" placeholder="山田太郎">
+
+        <!-- 取引先｜取引先担当者（新規入力欄は、それぞれのプルダウンの真下に出る） -->
+        <div class="form-row-pair">
+          <div class="form-group">
+            <label for="clientSelect">取引先 <span class="badge-required">必須</span></label>
+            <select id="clientSelect" required onchange="toggleNewClient()">
+              <option value="">-- 選択（読込中...） --</option>
+            </select>
+            <div id="newClientContainer" class="dynamic-input-container" style="display: none;">
+              <label for="clientName">新規取引先名 *</label>
+              <input type="text" id="clientName" placeholder="○○○○株式会社">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="contactPersonSelect">取引先担当者</label>
+            <select id="contactPersonSelect" onchange="toggleNewContactPerson()">
+              <option value="">-- 取引先を先に選択してください --</option>
+            </select>
+            <div id="newContactPersonContainer" class="dynamic-input-container" style="display: none;">
+              <label for="contactPersonName">新規担当者名 *</label>
+              <input type="text" id="contactPersonName" placeholder="山田太郎">
+            </div>
           </div>
         </div>
-        <div class="form-group">
-          <label for="estimatorSelect">見積担当</label>
-          <select id="estimatorSelect">
-            <option value="">-- 選択（読込中...） --</option>
-          </select>
-        </div>
+
         <div class="form-group full-width">
           <label for="clientAddress">現場 住所</label>
           <div class="voice-input-wrapper">
@@ -167,7 +174,7 @@
             </button>
           </div>
         </div>
-       
+
         <div class="form-group full-width">
           <label for="subject">件名 <span class="badge-required">必須</span></label>
           <div class="voice-input-wrapper">
@@ -177,17 +184,32 @@
             </button>
           </div>
         </div>
-       
-        <div class="form-group">
-          <label for="validity">有効期限</label>
-          <input type="text" id="validity" value=" 御見積作成から3ヵ月">
+
+        <!-- 部屋番号｜間取り
+             ※ IDはデザインBの infoDeptNo / infoLayout と重複させないため deptNoA / layoutA。
+               保存データの項目名（deptNo / layout）はBと共通 -->
+        <div class="form-row-pair">
+          <div class="form-group">
+            <label for="deptNoA">部屋番号</label>
+            <input type="text" id="deptNoA" placeholder="例: 101号室">
+          </div>
+          <div class="form-group">
+            <label for="layoutA">間取り</label>
+            <input type="text" id="layoutA" placeholder="例: 1LDK / 30㎡">
+          </div>
         </div>
-       
-        <div class="form-group">
-          <label for="paymentTerms">支払条件</label>
-          <input type="text" id="paymentTerms" value=" 従来通り">
+
+        <!-- 有効期限｜支払条件 -->
+        <div class="form-row-pair">
+          <div class="form-group">
+            <label for="validity">有効期限</label>
+            <input type="text" id="validity" value=" 御見積作成から3ヵ月">
+          </div>
+          <div class="form-group">
+            <label for="paymentTerms">支払条件</label>
+            <input type="text" id="paymentTerms" value=" 従来通り">
+          </div>
         </div>
-      </div>
 
       <div class="table-section-header">
         <label>【明細項目】</label>
@@ -196,7 +218,7 @@
       <div id="detailsContainer" class="details-list"></div>
 
       <div class="table-section-header">
-        <button type="button" class="btn btn-secondary" onclick="handleAddDetailCardClick()">
+        <button type="button" class="btn btn-add-card" onclick="handleAddDetailCardClick()">
           <span class="material-symbols-outlined">add_circle</span>項目追加
         </button>
       </div>
