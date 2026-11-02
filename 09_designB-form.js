@@ -14,20 +14,20 @@
 
     // マスターデータ（カテゴリ・内容の一覧）
     const MASTER_DATA_B = [
-      { category: "ガラス・サッシ", items: ["大", "中", "小"] },
-      { category: "和室", items: ["照明", "押入", "畳", "床間", "建具", "ワク"] },
-      { category: "洋室", items: ["照明", "収納", "ｶｰﾃﾝﾚｰﾙ", "ドア", "ワク"] },
-      { category: "リビング", items: ["照明", "収納", "カーテンレール"] },
-      { category: "キッチン", items: ["換気扇", "フード", "壁", "水切棚", "シンク", "排水口", "手元燈", "ｽﾃﾝﾚｽ回り", "ドア", "照明", "収納", "ｸｯｷﾝｸﾞﾋｰﾀｰ"] },
-      { category: "浴室", items: ["ドア", "排水口", "浴槽", "鏡", "床", "換気扇", "照明", "カラン", "金具回り", "壁", "天井"] },
-      { category: "洗面室", items: ["洗面台", "洗濯パン", "照明", "換気扇", "ドア"] },
-      { category: "トイレ", items: ["ドア", "便器", "照明", "換気扇"] },
-      { category: "玄関周り", items: ["ドア", "土間", "下駄箱", "照明"] },
-      { category: "クロス（天井・壁）", items: ["全面洗浄", "拾い洗い"] },
-      { category: "床クリーン・ワックス", items: ["既ワックス剥離"] },
-      { category: "エアコン", items: ["フィルター", "表面", "内部"] },
+      { category: "ガラス・サッシ", items: ["一式", "大", "中", "小"] },
+      { category: "和室", items: ["一式", "照明", "押入", "畳", "床間", "建具", "ワク"] },
+      { category: "洋室", items: ["一式", "照明", "収納", "ｶｰﾃﾝﾚｰﾙ", "ドア", "ワク"] },
+      { category: "リビング", items: ["一式", "照明", "収納", "カーテンレール"] },
+      { category: "キッチン", items: ["一式", "換気扇", "フード", "壁", "水切棚", "シンク", "排水口", "手元燈", "ｽﾃﾝﾚｽ回り", "ドア", "照明", "収納", "ｸｯｷﾝｸﾞﾋｰﾀｰ"] },
+      { category: "浴室", items: ["一式", "ドア", "排水口", "浴槽", "鏡", "床", "換気扇", "照明", "カラン", "金具回り", "壁", "天井"] },
+      { category: "洗面室", items: ["一式", "洗面台", "洗濯パン", "照明", "換気扇", "ドア"] },
+      { category: "トイレ", items: ["一式", "ドア", "便器", "照明", "換気扇"] },
+      { category: "玄関周り", items: ["一式", "ドア", "土間", "下駄箱", "照明"] },
+      { category: "クロス（天井・壁）", items: ["一式", "全面洗浄", "拾い洗い"] },
+      { category: "床クリーン・ワックス", items: ["一式", "既ワックス剥離"] },
+      { category: "エアコン", items: ["一式", "フィルター", "表面", "内部"] },
       { category: "その他", items: ["ベランダ", "土間", "壁", "手すり", "木枠", "ｻﾝﾙｰﾑ", "ｺﾝｾﾝﾄ", "配電盤", "倉庫"] },
-      { category: "補修工事", items: ["塗装", "キズ補修"] }
+      { category: "補修工事", items: ["一式", "塗装", "キズ補修"] }
     ];
 
     // =====================================
@@ -115,36 +115,23 @@
 
       appStateB = createEmptyAppStateB_();
 
-      // ✅ 修正：valueAsDate はUTC基準のため、日本時間の0:00〜9:00に前日になっていた
-      document.getElementById('infoDate').value = getTodayInputValue();
-      document.getElementById('infoEstimator').value = '';
-      document.getElementById('infoClient').value = '';
-      document.getElementById('infoClientContact').value = '';
-      document.getElementById('infoSubject').value = '';
-      document.getElementById('infoDeptNo').value = '';
-      document.getElementById('infoLayout').value = '';
+      // 共通の基本情報カードを初期状態（空・初期値・案件未選択）に戻す
+      resetSharedInfoFields_();
       document.getElementById('globalRemark').value = '';
 
-      // ✅ 変更：取引先・取引先担当者を選択式にしたため、マスターデータ取得を待ってから
-      //   選択肢を表示する（デザインAのinitializeEstimateFormと同じ流れ）
+      // 取引先・取引先担当者・見積担当者は選択式のため、マスターデータの取得を待ってから選択肢を表示する
       await loadMasterLists();
-      // 取引先が空（未選択）なので、担当者プルダウンは「取引先を先に選択してください」状態にし、
-      // 新規入力欄も隠す（デザインAと共通の初期化）
-      resetClientFieldsUi_('B');
-      resetCaseSelection_('B');
+      // ✅ valueAsDate はUTC基準のため、日本時間の0:00〜9:00に前日になっていた
+      document.getElementById('infoDate').value = getTodayInputValue();
       renderB();
     }
 
     // フォームを完全にリセット（ログアウト・メニューに戻る時）
     function resetFormB_() {
       appStateB = createEmptyAppStateB_();
-      const ids = ['infoDate','infoEstimator','infoClient','infoClientContact','infoSubject','infoDeptNo','infoLayout','globalRemark'];
-      ids.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.value = '';
-      });
-      // 取引先・担当者は選択式のため、選択状態と新規入力欄もリセットする（デザインAと共通の初期化）
-      resetClientFieldsUi_('B');
+      // ※ 基本情報（日付・取引先など）は共通カード側（resetSharedInfoFields_）で戻す
+      const globalRemark = document.getElementById('globalRemark');
+      if (globalRemark) globalRemark.value = '';
       const container = document.getElementById('categoryContainer');
       if (container) container.innerHTML = '';
     }
@@ -592,21 +579,11 @@
       });
 
       const totals = calculateTotalsB();
-      const { clientName: finalClientNameB, contactPerson: finalContactPersonB } = getClientSelectionValues_('B');
 
       return {
-        caseNos: caseNosB.slice(),
-        clientName: finalClientNameB,
-        contactPerson: finalContactPersonB,
-        clientAddress: '', // デザインBには入力欄なし
-        estimateDate: document.getElementById('infoDate').value,
-        subject: document.getElementById('infoSubject').value.trim(),
-        validity: '',      // デザインBには入力欄なし
-        paymentTerms: '',  // デザインBには入力欄なし
+        // 案件・取引先・日付・件名など、基本情報カードの値（デザインAと共通。11_sharedInfo.js）
+        ...getSharedInfoValues_(),
         remarks: document.getElementById('globalRemark').value.trim(),
-        estimator: document.getElementById('infoEstimator').value.trim(),
-        deptNo: document.getElementById('infoDeptNo').value.trim(),
-        layout: document.getElementById('infoLayout').value.trim(),
         details: details,
         subtotal: totals.subtotal,
         tax: totals.tax,
@@ -620,28 +597,12 @@
     //       自動計算だったかは区別できないため）。自動計算に戻したい場合は各カテゴリの
     //       「自動」ボタンで再計算してください。
     //       和室・洋室は「和室（2室）」のような表記から室数を分離して復元します。
-    // 戻り値：利用者へ通知すべきメッセージの配列（問題なければ空配列）
+    // ※ 基本情報（日付・取引先・件名・案件など）は、共通カードの reflectSharedInfoFields_ が復元する
     // =====================================================================
-    function reflectFieldsDesignB_(formData, mode) {
+    function reflectFieldsDesignB_(formData) {
       const main = formData.main || {};
 
-      document.getElementById('infoDate').value =
-        mode === 'COPY_CREATE' ? getTodayInputValue() : formatDateToInput(main.estimateDate);
-      document.getElementById('infoSubject').value = main.subject || '';
-      document.getElementById('infoDeptNo').value = main.deptNo || '';
-      document.getElementById('infoLayout').value = main.layout || '';
       document.getElementById('globalRemark').value = main.remarks || '';
-
-      // ✅ 変更：取引先・取引先担当者を選択式にしたため、マスタに存在すれば選択、
-      //   存在しなければ新規入力欄へ反映する共通関数を使う（デザインAと同じ処理）
-      restoreClientSelection_(main.clientName, main.contactPerson, 'B');
-
-      // 見積担当。一覧にない名前は未選択に戻し、通知用のメッセージを集める
-      const restoreWarnings = [];
-      const missingEstimator = restoreEstimatorSelection_('infoEstimator', main.estimator);
-      if (missingEstimator) {
-        restoreWarnings.push(`見積担当「${missingEstimator}」は一覧にないため、未選択に戻しました。選び直してください。`);
-      }
 
       appStateB = createEmptyAppStateB_();
 
@@ -704,14 +665,7 @@
           }
         }
       });
-      // 案件Noの復元（コピー作成では引き継がず、案件を選び直してもらう）
-      const restoredCaseNos = mode === 'COPY_CREATE' ? [] : (main.caseNos || []);
-      setCaseSelection_('B', restoredCaseNos);
-      if (restoredCaseNos.length === 0) {
-        restoreWarnings.push('案件が未選択です。案件を選択してください（選択すると、取引先・担当者・件名が上書きされます）。');
-      }
       renderB();
-      return restoreWarnings;   // 呼び出し元（04_listModal.js）が通知に使う
     }
 
     // =====================================
