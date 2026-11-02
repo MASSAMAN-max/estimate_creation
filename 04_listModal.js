@@ -304,109 +304,34 @@
 
         const targetDesignType = (formData.main && formData.main.designType) || 'A';
 
-        // ---- デザインBのデータの場合は専用の復元処理へ分岐 ----
+        // ステップ2: フォーム状態を設定
+        currentMode = mode;
+        currentOriginId = id;
+        currentDesignType = targetDesignType === 'B' ? 'B' : 'A';
+
+        // ステップ3〜6: 共通の基本情報カード（デザインA・B共通）を、リセット→マスター読込→復元の順で戻す
+        document.getElementById('loaderText').textContent = 'マスターデータを読み込んでいます...';
+        resetSharedInfoFields_();   // 前回の新規入力欄の表示や案件選択を残さない
+        await loadMasterLists();    // 取引先・担当者・見積担当者の選択肢が必要なため、復元の前に読み込む
+
+        document.getElementById('loaderText').textContent = 'クライアント情報を設定しています...';
+        const restoreWarnings = reflectSharedInfoFields_(formData.main, mode);
+
+        // ---- デザインB：明細・備考の復元は専用処理 ----
         if (targetDesignType === 'B') {
-          currentMode = mode;
-          currentOriginId = id;
-          currentDesignType = 'B';
-
-          // ✅ 変更：デザインBも取引先・担当者を選択式にしたため、復元前にマスターデータを
-          //   読み込んでおく（デザインAの復元処理と同じ流れ）
-          document.getElementById('loaderText').textContent = 'マスターデータを読み込んでいます...';
-          await loadMasterLists();
-
-          // 変更後
-          const restoreWarnings = reflectFieldsDesignB_(formData, mode);
-
+          reflectFieldsDesignB_(formData);
           document.getElementById('loader').style.display = 'none';
-          const baseMessage = mode === 'DRAFT_EDIT' ? '下書きを読み込みました。' : '見積書をコピーしました。';
-          // 注意メッセージがある場合は、同じダイアログに追記して警告アイコンで表示する
-          Swal.fire({
-            icon: restoreWarnings.length > 0 ? 'warning' : 'success',
-            title: 'データ読み込み完了',
-            html: [htmlEscape(baseMessage), ...restoreWarnings.map(w => htmlEscape(w))].join('<br><br>'),
-            confirmButtonText: '了解'
-          });
+          showRestoreCompleteDialog_(mode, restoreWarnings);
           showMainAppB();
           return;
         }
 
-        currentDesignType = 'A';
-        // ステップ2: フォーム状態を設定
-        currentMode = mode;
-        currentOriginId = id;
-     
-        // ステップ3: フォーム初期化
+        // ---- デザインA：全体備考 ----
+        document.getElementById('loaderText').textContent = 'フォーム詳細を設定しています...';
         document.getElementById('estimateForm').reset();
         document.getElementById('detailsContainer').innerHTML = '';
-     
-        // ステップ4: マスターデータ読み込み
-        document.getElementById('loaderText').textContent = 'マスターデータを読み込んでいます...';
-        await loadMasterLists();
-     
-        // マスター読み込み後に検証を追加
-        if (!MASTER_CLIENTS || MASTER_CLIENTS.length === 0) {
-          console.warn('⚠️ Master data might not have loaded completely');
-        }
-     
-        // ステップ5: 日付設定
-        const targetDate = mode === 'COPY_CREATE' ? new Date() : new Date(formData.main.estimateDate);
-        document.getElementById('estimateDate').value = formatDateToInput(targetDate);
-     
-        // ========== ステップ6〜7: 取引先・担当者情報設定 ==========
-        document.getElementById('loaderText').textContent = 'クライアント情報を設定しています...';
+        document.getElementById('remarks').value = formData.main.remarks || '';
 
-        const currentClientName = formData.main.clientName;
-        restoreClientSelection_(currentClientName, formData.main.contactPerson, '');
-        const restoreWarningsA = [];
-        const restoredCaseNos = mode === 'COPY_CREATE' ? [] : (formData.main.caseNos || []);
-        setCaseSelection_('A', restoredCaseNos);
-        if (restoredCaseNos.length === 0) {
-          restoreWarningsA.push('案件が未選択です。案件を選択してください（選択すると、取引先・担当者・件名・現場住所が上書きされます）。');
-        }
-        const missingEstimatorA = restoreEstimatorSelection_('estimatorSelect', formData.main.estimator);
-        if (missingEstimatorA) {
-          restoreWarningsA.push(`見積担当「${missingEstimatorA}」は一覧にないため、未選択に戻しました。選び直してください。`);
-        }
-        // ========== ステップ8: その他の入力欄を設定 ==========
-        document.getElementById('loaderText').textContent = 'フォーム詳細を設定しています...';
-        
-        const addressInput = document.getElementById('clientAddress');
-        if (addressInput) {
-          addressInput.value = formData.main.clientAddress || '';
-        }
-        
-        const subjectInput = document.getElementById('subject');
-        if (subjectInput) {
-          subjectInput.value = formData.main.subject || '';
-        }
-        
-        const paymentTermsInput = document.getElementById('paymentTerms');
-        if (paymentTermsInput) {
-          paymentTermsInput.value = formData.main.paymentTerms || '';
-        }
-        
-        const validityInput = document.getElementById('validity');
-        if (validityInput) {
-          validityInput.value = formData.main.validity || '';
-        }
-        
-        const remarksInput = document.getElementById('remarks');
-        if (remarksInput) {
-          remarksInput.value = formData.main.remarks || '';
-        }
-
-        // 部屋番号・間取り（デザインBの復元と同じく、コピー作成でも引き継ぐ）
-        const deptNoInput = document.getElementById('deptNoA');
-        if (deptNoInput) {
-          deptNoInput.value = formData.main.deptNo || '';
-        }
-
-        const layoutInput = document.getElementById('layoutA');
-        if (layoutInput) {
-          layoutInput.value = formData.main.layout || '';
-        }
-     
         // ========== ステップ9: 明細行の復存（同名親項目＆備考統合 完全対応版） ==========
         document.getElementById('loaderText').textContent = '明細データを復存しています...';
 
@@ -507,13 +432,7 @@
         document.getElementById('loader').style.display = 'none';
         
         // 成功メッセージ
-        const successMsg = mode === 'DRAFT_EDIT' ? '下書きを読み込みました。' : '見積書をコピーしました。';
-        Swal.fire({
-          icon: restoreWarningsA.length > 0 ? 'warning' : 'success',
-          title: 'データ読み込み完了',
-          html: [htmlEscape(successMsg), ...restoreWarningsA.map(w => htmlEscape(w))].join('<br><br>'),
-          confirmButtonText: '了解'
-        });
+        showRestoreCompleteDialog_(mode, restoreWarnings);
      
         //  メイン画面を表示（必須）
         showMainApp();
@@ -557,7 +476,7 @@
       linkTargetEstimateNo = estimateNo;
       document.getElementById('linkCaseTargetLabel').textContent = `見積番号：${estimateNo}`;
       caseNosLink.length = 0;       // 配列は再代入せず、中身だけ空にする（部品が同じ配列を参照しているため）
-      projectPickers.L.reset();
+      projectPickers.link.reset();
       loadProjectsIfNeeded_();      // 案件リストが未取得・失敗・古い場合は取り直す
       document.getElementById('linkCaseModal').style.display = 'flex';
     }
@@ -613,4 +532,18 @@
         Swal.fire({ icon: 'error', title: '紐付けに失敗しました', text: error.message, confirmButtonText: '了解' });
         // モーダルは開いたままにして、やり直せるようにする
       }
+    }
+
+    // =====================================
+    // 過去データの復元が終わったときの案内を表示する（デザインA・B共通）
+    // ・注意メッセージ（見積担当者が一覧にない、案件が未選択など）があれば、同じダイアログに追記して警告アイコンで表示する
+    // =====================================
+    function showRestoreCompleteDialog_(mode, restoreWarnings) {
+      const baseMessage = mode === 'DRAFT_EDIT' ? '下書きを読み込みました。' : '見積書をコピーしました。';
+      Swal.fire({
+        icon: restoreWarnings.length > 0 ? 'warning' : 'success',
+        title: 'データ読み込み完了',
+        html: [htmlEscape(baseMessage), ...restoreWarnings.map(w => htmlEscape(w))].join('<br><br>'),
+        confirmButtonText: '了解'
+      });
     }
