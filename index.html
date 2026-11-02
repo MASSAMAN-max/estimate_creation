@@ -119,99 +119,99 @@
     </div>
   </div>
 
-  <div id="mainApp" style="display:none; width:100%;">
-    <form id="estimateForm">
-      <div class="form-grid">
-        <div class="form-group" style="grid-column: 1 / -1;">
-          <label>案件 <span class="badge-required">必須</span></label>
-          <div id="projectPickerA"></div>
-          <div class="case-lock-hint">案件を選ぶと、取引先・担当者・現場住所・件名が自動入力されます。案件がない場合は「紐付け案件無し」を選ぶと手入力できます。</div>
-        </div>
-        <!-- 見積作成日｜見積担当者（スマホでも横並び） -->
-        <div class="form-row-pair">
-          <div class="form-group">
-            <label for="estimateDate">見積作成日 <span class="badge-required">必須</span></label>
-            <input type="date" id="estimateDate" required>
+  <!-- =====================================
+       共通の基本情報カード（デザインA・B共用）
+       ・表示／非表示は 03_navigation.js（SCREEN_LAYOUTS_ の sharedInfoCard）
+       ・初期化・値の取得・復元は 11_sharedInfo.js
+       ・案件の選択と4項目（取引先・担当者・現場住所・件名）のロックは 10_project_picker.js
+       ===================================== -->
+  <div id="sharedInfoCard" class="shared-info-scope" style="display:none;">
+    <div class="container">
+      <div class="info-card">
+        <h2>基本情報</h2>
+        <div class="info-grid">
+          <div class="info-field full-width">
+            <label>案件 <span class="badge-required">必須</span></label>
+            <div id="projectPicker"></div>
+            <div class="case-lock-hint">案件を選ぶと、取引先・担当者・現場住所・件名が自動入力されます。案件がない場合は「紐付け案件無し」を選ぶと手入力できます。</div>
           </div>
-          <div class="form-group">
-            <label for="estimatorSelect">見積担当者</label>
-            <select id="estimatorSelect">
+
+          <div class="info-field">
+            <label for="infoDate">見積日 <span class="badge-required">必須</span></label>
+            <input type="date" id="infoDate">
+          </div>
+          <div class="info-field">
+            <label for="infoEstimator">見積担当者</label>
+            <select id="infoEstimator">
               <option value="">-- 選択（読込中...） --</option>
             </select>
           </div>
-        </div>
 
-        <!-- 取引先｜取引先担当者（新規入力欄は、それぞれのプルダウンの真下に出る） -->
-        <div class="form-row-pair">
-          <div class="form-group">
-            <label for="clientSelect">取引先 <span class="badge-required">必須</span></label>
-            <select id="clientSelect" required onchange="toggleNewClient()">
+          <div class="info-field">
+            <label for="infoClientSelect">取引先 <span class="badge-required">必須</span></label>
+            <select id="infoClientSelect" onchange="toggleNewClient()">
               <option value="">-- 選択（読込中...） --</option>
             </select>
             <div id="newClientContainer" class="dynamic-input-container" style="display: none;">
-              <label for="clientName">新規取引先名 *</label>
-              <input type="text" id="clientName" placeholder="○○○○株式会社">
+              <label for="infoClient">新規取引先名 *</label>
+              <input type="text" id="infoClient" placeholder="○○○○株式会社">
             </div>
           </div>
-          <div class="form-group">
-            <label for="contactPersonSelect">取引先担当者</label>
-            <select id="contactPersonSelect" onchange="toggleNewContactPerson()">
+          <div class="info-field">
+            <label for="infoClientContactSelect">取引先担当者</label>
+            <select id="infoClientContactSelect" onchange="toggleNewContactPerson()">
               <option value="">-- 取引先を先に選択してください --</option>
             </select>
             <div id="newContactPersonContainer" class="dynamic-input-container" style="display: none;">
-              <label for="contactPersonName">新規担当者名 *</label>
-              <input type="text" id="contactPersonName" placeholder="山田太郎">
+              <label for="infoClientContact">新規担当者名 *</label>
+              <input type="text" id="infoClientContact" placeholder="山田太郎">
             </div>
           </div>
-        </div>
 
-        <div class="form-group full-width">
-          <label for="clientAddress">現場 住所</label>
-          <div class="voice-input-wrapper">
-            <input type="text" id="clientAddress" placeholder="〒000-0000 住所">
-            <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)">
-              <span class="material-symbols-outlined">mic</span>
-            </button>
+          <div class="info-field full-width">
+            <label for="infoAddress">現場 住所</label>
+            <div class="voice-input-wrapper">
+              <input type="text" id="infoAddress" placeholder="〒000-0000 住所">
+              <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)">
+                <span class="material-symbols-outlined">mic</span>
+              </button>
+            </div>
           </div>
-        </div>
 
-        <div class="form-group full-width">
-          <label for="subject">件名 <span class="badge-required">必須</span></label>
-          <div class="voice-input-wrapper">
-            <input type="text" id="subject" required placeholder="例) 工事に伴うお見積り">
-            <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)">
-              <span class="material-symbols-outlined">mic</span>
-            </button>
+          <div class="info-field full-width">
+            <label for="infoSubject">件名 <span class="badge-required">必須</span></label>
+            <div class="voice-input-wrapper">
+              <input type="text" id="infoSubject" placeholder="例) ○○マンション101号室 原状回復工事">
+              <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)">
+                <span class="material-symbols-outlined">mic</span>
+              </button>
+            </div>
           </div>
-        </div>
 
-        <!-- 部屋番号｜間取り
-             ※ IDはデザインBの infoDeptNo / infoLayout と重複させないため deptNoA / layoutA。
-               保存データの項目名（deptNo / layout）はBと共通 -->
-        <div class="form-row-pair">
-          <div class="form-group">
-            <label for="deptNoA">部屋番号</label>
-            <input type="text" id="deptNoA" placeholder="例: 101号室">
+          <div class="info-field">
+            <label for="infoDeptNo">部屋番号</label>
+            <input type="text" id="infoDeptNo" placeholder="例: 101号室">
           </div>
-          <div class="form-group">
-            <label for="layoutA">間取り</label>
-            <input type="text" id="layoutA" placeholder="例: 1LDK / 30㎡">
+          <div class="info-field">
+            <label for="infoLayout">間取り</label>
+            <input type="text" id="infoLayout" placeholder="例: 1LDK / 30㎡">
           </div>
-        </div>
 
-        <!-- 有効期限｜支払条件 -->
-        <div class="form-row-pair">
-          <div class="form-group">
-            <label for="validity">有効期限</label>
-            <input type="text" id="validity" value=" 御見積作成から3ヵ月">
+          <div class="info-field">
+            <label for="infoValidity">有効期限</label>
+            <input type="text" id="infoValidity" value="御見積作成から3ヵ月">
           </div>
-          <div class="form-group">
-            <label for="paymentTerms">支払条件</label>
-            <input type="text" id="paymentTerms" value=" 従来通り">
+          <div class="info-field">
+            <label for="infoPaymentTerms">支払条件</label>
+            <input type="text" id="infoPaymentTerms" value="従来通り">
           </div>
         </div>
       </div>
+    </div>
+  </div>
 
+  <div id="mainApp" style="display:none; width:100%;">
+    <form id="estimateForm">
       <div class="table-section-header">
         <label>【明細項目】</label>
       </div>
@@ -273,59 +273,7 @@
        ===================================== -->
   <div id="mainAppB" class="design-b-scope" style="display:none; width:100%;">
     <div class="container">
-      <!-- 1. 基本情報入力エリア -->
-      <div class="info-card">
-        <h2>基本情報</h2>
-        <div class="info-grid">
-          <div class="info-field full-width">
-            <label>案件 <span class="badge-required">必須</span></label>
-            <div id="projectPickerB"></div>
-            <div class="case-lock-hint">案件を選ぶと、取引先・担当者・件名が自動入力されます。案件がない場合は「紐付け案件無し」を選ぶと手入力できます。</div>
-          </div>
-          <div class="info-field">
-            <label for="infoDate">見積日 <span class="badge-required">必須</span></label>
-            <input type="date" id="infoDate" required>
-          </div>
-          <div class="info-field">
-            <label for="infoEstimator">見積担当</label>
-            <select id="infoEstimator">
-              <option value="">-- 選択（読込中...） --</option>
-            </select>
-          </div>
-          <div class="info-field">
-            <label for="infoClientSelect">取引先 <span class="badge-required">必須</span></label>
-            <select id="infoClientSelect" required onchange="toggleNewClientB()">
-              <option value="">-- 選択（読込中...） --</option>
-            </select>
-            <div id="newClientContainerB" class="dynamic-input-container" style="display: none;">
-              <label for="infoClient">新規取引先名 *</label>
-              <input type="text" id="infoClient" placeholder="取引先会社名">
-            </div>
-          </div>
-          <div class="info-field">
-            <label for="infoClientContactSelect">取引先担当</label>
-            <select id="infoClientContactSelect" onchange="toggleNewContactPersonB()">
-              <option value="">-- 取引先を先に選択してください --</option>
-            </select>
-            <div id="newContactPersonContainerB" class="dynamic-input-container" style="display: none;">
-              <label for="infoClientContact">新規担当者名 *</label>
-              <input type="text" id="infoClientContact" placeholder="先方担当者名">
-            </div>
-          </div>
-          <div class="info-field full-width">
-            <label for="infoSubject">件名 <span class="badge-required">必須</span></label>
-            <input type="text" id="infoSubject" required placeholder="例: ○○マンション101号室 原状回復工事">
-          </div>
-          <div class="info-field">
-            <label>部番号</label>
-            <input type="text" id="infoDeptNo" placeholder="部屋番号/部番号">
-          </div>
-          <div class="info-field">
-            <label>間取り</label>
-            <input type="text" id="infoLayout" placeholder="例: 1LDK / 30㎡">
-          </div>
-        </div>
-      </div>
+      <!-- 基本情報は、上の共通カード（#sharedInfoCard）に統合した -->
 
       <!-- 2. カテゴリ入力エリア (JS動的生成) -->
       <div id="categoryContainer"></div>
@@ -442,6 +390,7 @@
   <script src="./08_previewSave.js"></script>
   <script src="./09_designB-form.js"></script>
   <script src="./10_project_picker.js"></script>
+  <script src="./11_sharedInfo.js"></script>
   
 </body>
 </html>
