@@ -87,6 +87,16 @@
       }
     }
 
+    /* 2項目を1行に並べる枠（スマホでも横並びのまま）
+       ・minmax(0, 1fr) にして、長い取引先名でも列が横にはみ出さないようにする
+       ・grid-column: 1 / -1 で、form-grid の2列表示（PC）でも1行ぶんを使う */
+    .form-row-pair {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 12px;
+    }
+
     /* ⭕ フォーム要素：文字を16pxにしてスマホのズームを防止＋サイズ感を統一 */
     .form-group input,
     .form-group select,
@@ -222,33 +232,41 @@
       padding-top: 10px;
     }
 
-    /* 「内容を追加」ボタン：濃い緑の背景に白文字（大きさは従来どおり） */
-    .btn-add-content {
+    /* 「内容を追加」ボタン：濃い緑の背景に白文字
+       ・.btn（padding 12px 24px / 16px）が後ろにあって上書きされていたため、
+         .btn.btn-add-content と書いて優先させる。
+       ・「項目ごと削除」ボタン（インライン指定 padding 6px 12px / 14px）と同じサイズにする */
+    .btn.btn-add-content {
       background-color: #2E7D32;
       color: white;
       padding: 6px 12px;
       font-size: 14px;
     }
-    .btn-add-content:hover {
+    .btn.btn-add-content:hover {
       background-color: #256427;
       transform: translateY(-1px);
       box-shadow: 0 4px 8px rgba(46, 125, 50, 0.3);
     }
+    /* カード下段の2ボタン（内容を追加／項目ごと削除）は、文字数が違っても幅をそろえる */
+    .card-action-row .btn {
+      min-width: 136px;
+    }
 
-    /* 「項目追加」ボタン：青の背景に白文字。横長にして押しやすくする */
-    .btn-add-card {
+    /* 「項目追加」ボタン：青の塗りつぶし＋白文字、横幅いっぱいで目立たせる
+       ・.btn が後ろにあって上書きされるため、.btn.btn-add-card で優先させる */
+    .btn.btn-add-card {
+      width: 100%;
       background-color: var(--primary);
       color: white;
-      min-width: 260px;
-      padding: 14px 32px;
+      padding: 16px 32px;
+      font-size: 18px;
+      box-shadow: 0 2px 8px rgba(25, 118, 210, 0.3);
     }
-    .btn-add-card:hover {
+    .btn.btn-add-card:hover {
       background-color: var(--primary-dark);
       transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
+      box-shadow: 0 4px 12px rgba(25, 118, 210, 0.4);
     }
-    /* 「項目追加」ボタンを置く行は、ボタンを中央に寄せる */
-    .table-section-header.add-card-row { justify-content: center; }
 
     /* 仕様・摘要の番号：項目の色の丸い数字（内訳の追加・削除で自動的に詰まる） */
     .breakdown-container { counter-reset: breakdown-row; }
