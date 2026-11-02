@@ -22,8 +22,8 @@
     let projectListFetchedAt = 0;       // 最後に取得できた時刻（一定時間ごとの取り直し用）
 
     // 選択中の案件No。部品が同じ配列を直接書き換えるため、空にするときは .length = 0 を使う（再代入しない）
-    const caseNosA = [];  // デザインA
-    const caseNosB = [];  // デザインB
+    // ✅ 変更：基本情報カードをデザインA・Bで共用にしたため、案件Noの配列も1つにまとめた
+    const caseNos = [];      // 作成画面（デザインA・B共通）で選択中の案件No
     const caseNosLink = [];  // 後から案件を紐付けるモーダルで、選択中の案件No
     // 現在のフォームの状態を追跡する管理変数
     let currentUser = null;   // ログインユーザー情報
@@ -62,7 +62,7 @@
       if (parsedUser) {
         currentUser = parsedUser;
         // 今日の日付を自動セット（重要な処理なので残します）
-        document.getElementById('estimateDate').value = getTodayInputValue();
+        document.getElementById('infoDate').value = getTodayInputValue();
         showMenuScreen();  // メニュー画面を表示
       } else {
         showLoginScreen();
