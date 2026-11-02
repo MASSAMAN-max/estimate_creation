@@ -1,9 +1,9 @@
 /**
  * 05_masterData.js
  * 取引先・担当者・項目・単位のマスターデータ取得と、
- * デザインA・デザインB共通の取引先／担当者プルダウンまわりの制御。
- * ✅ 変更：デザインBも取引先・担当者を選択式にしたため、要素IDを引数で受け取る
- *   共通関数に整理し、A・B両方から呼べるようにした。
+ * 共通の基本情報カード（デザインA・B共用）の取引先／担当者プルダウンまわりの制御。
+ * ✅ 変更：基本情報カードをデザインA・Bで1つに共用したため、要素IDは1セットに統一した
+ *   （以前はA用・B用の2セットをidSuffixで切り替えていた）。
  */
 
     // =====================================
@@ -57,12 +57,10 @@
         MASTER_CATEGORIES = masterData.categories || [];
         MASTER_UNITS = masterData.units || [];
         MASTER_ESTIMATORS = masterData.estimators || [];
-      
-        // 取引先プルダウンを構築（デザインA・デザインB共通の選択肢）
-        buildClientOptions_('clientSelect');
-        buildClientOptions_('infoClientSelect');
+
+        // 基本情報カード（デザインA・B共通）の取引先・見積担当者プルダウンを構築
+        buildClientOptions_(CLIENT_FIELD_IDS_.select);
         buildEstimatorOptions_('infoEstimator');
-        buildEstimatorOptions_('estimatorSelect'); // デザインAの見積担当
       } catch (e) {
         console.error("マスタデータ取得失敗", e);
         Swal.fire({
@@ -71,10 +69,10 @@
           text: '一部のマスタ情報が読み込めませんでした。',
           confirmButtonText: '了解'
         });
-      } 
+      }
     }
 
-    // ===== 取引先プルダウンの選択肢を構築する共通関数 =====
+    // ===== 取引先プルダウンの選択肢を構築する =====
     function buildClientOptions_(selectId) {
       const clientSelect = document.getElementById(selectId);
       if (!clientSelect) return;
@@ -88,7 +86,7 @@
       clientSelect.innerHTML += '<option value="__NEW__">（新規取引先を入力する）</option>';
     }
 
-    // ===== 見積担当（デザインB）のプルダウンの選択肢を構築する =====
+    // ===== 見積担当者のプルダウンの選択肢を構築する =====
     function buildEstimatorOptions_(selectId) {
       const select = document.getElementById(selectId);
       if (!select) return;
@@ -101,7 +99,7 @@
       });
     }
 
-    // ===== 見積担当の選択状態を復元する =====
+    // ===== 見積担当者の選択状態を復元する =====
     // ・一覧にある名前 → その担当者を選択
     // ・保存値が空 → 未選択
     // ・一覧にない名前 → 未選択に戻す
@@ -125,43 +123,24 @@
       select.value = '';
       return name;
     }
-    
-    // ===== 取引先・担当者まわりの入力欄ID（デザインA/Bの対応表） =====
-    // ・以前は各関数の冒頭で「idSuffix ? 'B用ID' : 'A用ID'」を何度も書いていたため、ここに集約した
-    // ・IDを変更・追加するときはこの表だけを直せばよい
-    // ・idSuffix：デザインAは ''、デザインBは 'B'
-    const CLIENT_FIELD_IDS_ = {
-      '': {
-        select: 'clientSelect',            // 取引先プルダウン
-        newContainer: 'newClientContainer', // 新規取引先の入力欄の枠
-        input: 'clientName',               // 新規取引先名の入力欄
-        contactSelect: 'contactPersonSelect',            // 担当者プルダウン
-        newContactContainer: 'newContactPersonContainer', // 新規担当者の入力欄の枠
-        contactInput: 'contactPersonName'                 // 新規担当者名の入力欄
-      },
-      'B': {
-        select: 'infoClientSelect',
-        newContainer: 'newClientContainerB',
-        input: 'infoClient',
-        contactSelect: 'infoClientContactSelect',
-        newContactContainer: 'newContactPersonContainerB',
-        contactInput: 'infoClientContact'
-      }
-    };
-    function getClientFieldIds_(idSuffix) {
-      return CLIENT_FIELD_IDS_[idSuffix ? 'B' : ''];
-    }
 
-    // ===== 取引先・担当者まわりの入力欄を、初期状態（未選択）に戻す共通関数 =====
+    // ===== 取引先・担当者まわりの入力欄ID =====
+    // ・基本情報カードを共用にしたため、IDは1セットだけ。IDを変更・追加するときはこの表だけを直せばよい
+    const CLIENT_FIELD_IDS_ = {
+      select: 'infoClientSelect',                        // 取引先プルダウン
+      newContainer: 'newClientContainer',                // 新規取引先の入力欄の枠
+      input: 'infoClient',                               // 新規取引先名の入力欄
+      contactSelect: 'infoClientContactSelect',          // 担当者プルダウン
+      newContactContainer: 'newContactPersonContainer',  // 新規担当者の入力欄の枠
+      contactInput: 'infoClientContact'                  // 新規担当者名の入力欄
+    };
+
+    // ===== 取引先・担当者まわりの入力欄を、初期状態（未選択）に戻す =====
     // ・取引先は未選択、担当者プルダウンは「取引先を先に選択してください」の1件だけにし、
     //   新規取引先・新規担当者の入力欄は、非表示・空・必須なし に戻す
-    // ・✅ 修正：以前はデザインBだけがこの初期化を手書きしており、デザインAは
-    //   estimateForm.reset() だけだったため、「新規取引先名／新規担当者名」の入力欄が
-    //   表示されたまま残ったり、前回の取引先の担当者リストが残ったりしていた
-    //   （reset() は入力値しか戻さず、表示状態やプルダウンの選択肢は戻さないため）
-    // ・idSuffix：デザインAは ''、デザインBは 'B'
-    function resetClientFieldsUi_(idSuffix) {
-      const ids = getClientFieldIds_(idSuffix);
+    // ・form.reset() は入力値しか戻さず、表示状態やプルダウンの選択肢は戻さないため、この関数で戻す
+    function resetClientFieldsUi_() {
+      const ids = CLIENT_FIELD_IDS_;
 
       const clientSelect = document.getElementById(ids.select);
       if (clientSelect) clientSelect.value = '';
@@ -183,23 +162,20 @@
       });
     }
 
-    // ===== 取引先選択時のイベントハンドラ（共通実装） =====
-    // idSuffix：デザインAは ''（clientSelect等）、デザインBは 'B'（infoClientSelect等）
-    function toggleNewClient_(idSuffix) {
-      const { select: selectId, newContainer: containerId, input: inputId,
-              contactSelect: contactSelectId, newContactContainer: newContactContainerId } = getClientFieldIds_(idSuffix);
+    // ===== 取引先選択時のイベントハンドラ =====
+    function toggleNewClient() {
+      const ids = CLIENT_FIELD_IDS_;
+      const select = document.getElementById(ids.select);
+      const container = document.getElementById(ids.newContainer);
+      const input = document.getElementById(ids.input);
+      const contactPersonSelect = document.getElementById(ids.contactSelect);
+      const newContactPersonContainer = document.getElementById(ids.newContactContainer);
 
-      const select = document.getElementById(selectId);
-      const container = document.getElementById(containerId);
-      const input = document.getElementById(inputId);
-      const contactPersonSelect = document.getElementById(contactSelectId);
-      const newContactPersonContainer = document.getElementById(newContactContainerId);
-      
-      if(select.value === '__NEW__') {
+      if (select.value === '__NEW__') {
         container.style.display = 'block';
         input.required = true;
         input.focus();
-        
+
         // 新規取引先の場合、担当者プルダウンをクリア
         contactPersonSelect.innerHTML = '<option value="">-- 新規取引先の担当者を選択/入力 --</option>';
         contactPersonSelect.innerHTML += '<option value="__NEW__">（新規担当者を入力する）</option>';
@@ -208,34 +184,30 @@
         container.style.display = 'none';
         input.required = false;
         input.value = '';
-        
+
         // 既存取引先を選択 → 該当する担当者をプルダウンに表示
-        updateContactPersonList_(select.value, idSuffix);
+        updateContactPersonList_(select.value);
       }
     }
-    function toggleNewClient() { toggleNewClient_(''); }
-    function toggleNewClientB() { toggleNewClient_('B'); }
 
-    // ===== 取引先に紐付く担当者リストを更新する関数（共通実装） =====
-    function updateContactPersonList_(selectedClient, idSuffix) {
-      const { contactSelect: contactSelectId, newContactContainer: newContactContainerId,
-              contactInput: contactInputId } = getClientFieldIds_(idSuffix);
+    // ===== 取引先に紐付く担当者リストを更新する =====
+    function updateContactPersonList_(selectedClient) {
+      const ids = CLIENT_FIELD_IDS_;
+      const contactPersonSelect = document.getElementById(ids.contactSelect);
+      const newContactPersonContainer = document.getElementById(ids.newContactContainer);
+      const contactPersonInput = document.getElementById(ids.contactInput);
 
-      const contactPersonSelect = document.getElementById(contactSelectId);
-      const newContactPersonContainer = document.getElementById(newContactContainerId);
-      const contactPersonInput = document.getElementById(contactInputId);
-      
       if (!selectedClient) {
         contactPersonSelect.innerHTML = '<option value="">-- 取引先を先に選択してください --</option>';
         newContactPersonContainer.style.display = 'none';
         return;
       }
-      
+
       // マスターから該当する取引先の担当者一覧を取得
       const contactPersons = MASTER_CONTACTPERSONS[selectedClient] || [];
-      
+
       contactPersonSelect.innerHTML = '<option value="">-- 担当者を選択してください --</option>';
-      
+
       // 取引先に紐付く担当者を全て追加
       contactPersons.forEach(person => {
         const option = document.createElement('option');
@@ -243,26 +215,24 @@
         option.textContent = person;
         contactPersonSelect.appendChild(option);
       });
-      
+
       // 「新規担当者を入力する」オプションを追加
       contactPersonSelect.innerHTML += '<option value="__NEW__">（新規担当者を入力する）</option>';
-      
+
       // コンテナを非表示にして、入力欄をリセット
       newContactPersonContainer.style.display = 'none';
       contactPersonInput.required = false;
       contactPersonInput.value = '';
     }
-     
-    // ===== 担当者選択時のイベントハンドラ（共通実装） =====
-    function toggleNewContactPerson_(idSuffix) {
-      const { contactSelect: selectId, newContactContainer: containerId,
-              contactInput: inputId } = getClientFieldIds_(idSuffix);
 
-      const select = document.getElementById(selectId);
-      const container = document.getElementById(containerId);
-      const input = document.getElementById(inputId);
-      
-      if(select.value === '__NEW__') {
+    // ===== 担当者選択時のイベントハンドラ =====
+    function toggleNewContactPerson() {
+      const ids = CLIENT_FIELD_IDS_;
+      const select = document.getElementById(ids.contactSelect);
+      const container = document.getElementById(ids.newContactContainer);
+      const input = document.getElementById(ids.contactInput);
+
+      if (select.value === '__NEW__') {
         container.style.display = 'block';
         input.required = true;
         input.focus();
@@ -272,25 +242,19 @@
         input.value = '';
       }
     }
-    function toggleNewContactPerson() { toggleNewContactPerson_(''); }
-    function toggleNewContactPersonB() { toggleNewContactPerson_('B'); }
 
-    // ===== 取引先・担当者の選択欄から、確定値（選択済み or 新規入力値）を取り出す共通関数 =====
-    // idSuffix：デザインAは ''、デザインBは 'B'
-    function getClientSelectionValues_(idSuffix) {
-      const { select: selectId, input: inputId,
-              contactSelect: contactSelectId, contactInput: contactInputId } = getClientFieldIds_(idSuffix);
+    // ===== 取引先・担当者の選択欄から、確定値（選択済み or 新規入力値）を取り出す =====
+    function getClientSelectionValues_() {
+      const ids = CLIENT_FIELD_IDS_;
 
-      const clientSelect = document.getElementById(selectId);
-      let finalClientName = clientSelect.value;
+      let finalClientName = document.getElementById(ids.select).value;
       if (finalClientName === '__NEW__') {
-        finalClientName = document.getElementById(inputId).value.trim();
+        finalClientName = document.getElementById(ids.input).value.trim();
       }
 
-      const contactPersonSelect = document.getElementById(contactSelectId);
-      let finalContactPerson = contactPersonSelect.value;
+      let finalContactPerson = document.getElementById(ids.contactSelect).value;
       if (finalContactPerson === '__NEW__') {
-        finalContactPerson = document.getElementById(contactInputId).value.trim();
+        finalContactPerson = document.getElementById(ids.contactInput).value.trim();
       } else if (!finalContactPerson) {
         finalContactPerson = '';
       }
@@ -298,15 +262,12 @@
       return { clientName: finalClientName, contactPerson: finalContactPerson };
     }
 
-    // ===== 取引先・担当者の選択状態を復元する共通関数 =====
-    // idSuffix：デザインAは ''、デザインBは 'B'
+    // ===== 取引先・担当者の選択状態を復元する =====
     // マスタに存在する値なら選択式にセット、存在しなければ「新規」扱いで入力欄に反映する
-    function restoreClientSelection_(clientName, contactPersonName, idSuffix) {
-      const { select: selectId, newContainer: containerId, input: inputId,
-              contactSelect: contactSelectId, newContactContainer: newContactContainerId,
-              contactInput: contactInputId } = getClientFieldIds_(idSuffix);
+    function restoreClientSelection_(clientName, contactPersonName) {
+      const ids = CLIENT_FIELD_IDS_;
 
-      const clientSelect = document.getElementById(selectId);
+      const clientSelect = document.getElementById(ids.select);
       if (clientSelect) {
         const clientExists = Array.from(clientSelect.options).some(opt => opt.value === clientName);
 
@@ -314,17 +275,17 @@
           clientSelect.value = clientName;
         } else {
           clientSelect.value = '__NEW__';
-          const clientNameInput = document.getElementById(inputId);
+          const clientNameInput = document.getElementById(ids.input);
           if (clientNameInput) clientNameInput.value = clientName || '';
-          const newClientContainer = document.getElementById(containerId);
+          const newClientContainer = document.getElementById(ids.newContainer);
           if (newClientContainer) newClientContainer.style.display = 'block';
         }
       }
 
       // 担当者リストを、選択（または新規入力）された取引先名で更新
-      const contactPersonSelect = document.getElementById(contactSelectId);
+      const contactPersonSelect = document.getElementById(ids.contactSelect);
       if (contactPersonSelect && clientName) {
-        updateContactPersonList_(clientName, idSuffix);
+        updateContactPersonList_(clientName);
 
         if (contactPersonName) {
           const personExists = Array.from(contactPersonSelect.options).some(opt => opt.value === contactPersonName);
@@ -333,9 +294,9 @@
             contactPersonSelect.value = contactPersonName;
           } else {
             contactPersonSelect.value = '__NEW__';
-            const contactPersonNameInput = document.getElementById(contactInputId);
+            const contactPersonNameInput = document.getElementById(ids.contactInput);
             if (contactPersonNameInput) contactPersonNameInput.value = contactPersonName;
-            const newContactPersonContainer = document.getElementById(newContactContainerId);
+            const newContactPersonContainer = document.getElementById(ids.newContactContainer);
             if (newContactPersonContainer) newContactPersonContainer.style.display = 'block';
           }
         }
