@@ -395,6 +395,17 @@
         if (remarksInput) {
           remarksInput.value = formData.main.remarks || '';
         }
+
+        // 部屋番号・間取り（デザインBの復元と同じく、コピー作成でも引き継ぐ）
+        const deptNoInput = document.getElementById('deptNoA');
+        if (deptNoInput) {
+          deptNoInput.value = formData.main.deptNo || '';
+        }
+
+        const layoutInput = document.getElementById('layoutA');
+        if (layoutInput) {
+          layoutInput.value = formData.main.layout || '';
+        }
      
         // ========== ステップ9: 明細行の復存（同名親項目＆備考統合 完全対応版） ==========
         document.getElementById('loaderText').textContent = '明細データを復存しています...';
