@@ -76,7 +76,7 @@
     function buildClientOptions_(selectId) {
       const clientSelect = document.getElementById(selectId);
       if (!clientSelect) return;
-      clientSelect.innerHTML = '<option value="">-- 取引先を選択してください --</option>';
+      clientSelect.innerHTML = '<option value="">- 取引先を選択してください -</option>';
       MASTER_CLIENTS.forEach(client => {
         const option = document.createElement('option');
         option.value = client;
