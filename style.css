@@ -30,7 +30,7 @@
       margin: 0;
       background-color: #FAFAFA;
       color: var(--text-primary);
-      font-size: 16px;
+      font-size: 14px;
       line-height: 1.6;
       font-weight: 500;
     }
@@ -38,8 +38,8 @@
     /* フォーム要素共通スタイル：input, select, textarea の標準化 */
     input, select, textarea {
       font-family: inherit;
-      font-size: 16px !important;
-      padding: 12px;
+      font-size: 14px !important;
+      padding: 10px;
       border: 2px solid var(--gray-border);
       border-radius: 8px;
       box-sizing: border-box;
