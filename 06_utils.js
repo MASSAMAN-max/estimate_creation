@@ -16,6 +16,20 @@
       resetFormB_();            // デザインBの明細・備考を戻す
     }
 
+    // 自動で再試行してよいaction（同じリクエストを2回送っても、結果が変わらないもの）。
+    // 見積番号の発行・下書きの新規保存・PDF生成は、再送すると二重になるため含めない
+    // （通信が遅いだけで、サーバー側は処理済みのことがある）。
+    //   読み取り：loadMasterLists / loadProjects / loadFormData / loadRecentList / searchEstimates
+    //   書き込みだが、サーバー側で再送に耐える作りのもの：
+    //     saveEstimateDetailsBackground（既存の明細を置き換える）／ saveCaseFolderShortcutsBackground・
+    //     linkEstimateToCases（作成済みはスキップする）／ deleteDraft（見つからなくてもエラーにしない）
+    //   その他：logout（2回実行しても同じ）／ login（使われなかったトークンが1つ残るだけ）
+    const RETRY_SAFE_ACTIONS_ = new Set([
+      'login', 'logout',
+      'loadMasterLists', 'loadProjects', 'loadFormData', 'loadRecentList', 'searchEstimates',
+      'saveEstimateDetailsBackground', 'saveCaseFolderShortcutsBackground', 'linkEstimateToCases', 'deleteDraft'
+    ]);
+
     // =====================================
     // GAS APIへのリクエストを送り、失敗時に1回だけ自動リトライする共通関数
     // ・リトライの対象は「通信レベルの失敗」（HTTPエラー、fetch自体の失敗、
@@ -99,11 +113,14 @@
           return await attemptFetch();
         } catch (firstError) {
           if (!(firstError instanceof TransportError_)) {
-            // 業務エラーはリトライせずそのまま投げる
-            throw firstError;
+            throw firstError; // 業務エラーはリトライせずそのまま投げる
+          }
+          if (!RETRY_SAFE_ACTIONS_.has(body.action)) {
+            // 再送すると二重に実行される処理。サーバー側で実行済みの可能性を案内して終了する
+            throw new Error(`${firstError.message}\n処理はサーバー側で実行されている可能性があります。` +
+              `一覧や下書きを確認してから、必要であれば再度お試しください。`);
           }
           console.warn(`通信に失敗しました。1回だけ自動で再試行します（action: ${body.action}）:`, firstError.message);
-          // 通信レベルの失敗のみ、1回だけ自動リトライ
           return await attemptFetch();
         }
       } catch (finalError) {
