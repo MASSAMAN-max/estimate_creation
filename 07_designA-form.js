@@ -95,10 +95,7 @@
         }
       } else {
         // 💡 データが本当にない（新規作成ボタンを押した）時だけ、空の初期行を追加する
-        const breakdownContainer = card.querySelector('.breakdown-container');
-        if (typeof addBreakdownRow === 'function') {
-          addBreakdownRow(card, breakdownContainer, true);
-        }
+        addBreakdownRow(card, card.querySelector('.breakdown-container'), true);
       }
     }
 
@@ -140,115 +137,24 @@
           throw new Error('breakdown-container が見つかりません');
         }
         
-        // ========== ステップ3: 各行の生成 ==========
+        // ========== ステップ3: 各行の生成（行の組み立ては共通関数 createBreakdownRowElement_ に任せる） ==========
         itemDataArray.forEach((item, rowIndex) => {
-          const breakdownRow = document.createElement('div');
-          breakdownRow.className = 'breakdown-row';
-          breakdownRow.style = 'border: 1px solid #f1f3f5; padding: 8px; margin-bottom: 8px; border-radius: 4px; background: #fff;';
-          
-          const displayQty = item.itemQty || 1;
-          const displayUnit = item.itemUnit ? String(item.itemUnit).trim() : '式';
-          const displayPrice = Number(item.itemPrice || 0);
-          const displayAmount = Number(item.itemAmount || 0);
-          
-          // 数量・単位セレクトの生成
-          
-          const unitOptions = (!MASTER_UNITS.includes('式') ? '<option value="式">式</option>' : '') + 
-                              MASTER_UNITS.filter(u => u && u.trim()).map(u => 
-                                `<option value="${htmlEscape(u.trim())}" ${u === displayUnit ? 'selected' : ''}>${htmlEscape(u.trim())}</option>`
-                              ).join('');
-          
-          // 📝 備考のHTMLを事前に組み立てる（配列内のすべての備考をループで回す）
-          let remarksHtml = '';
-          const remarksArray = item.itemRemarksList || (item.itemRemarks ? [item.itemRemarks] : []);
-          
-          if (remarksArray.length > 0) {
-            remarksHtml = remarksArray.map(remarkVal => `
-              <div class="remark-row" style="display: flex; gap: 6px; align-items: center;">
-                <div class="voice-input-wrapper" style="flex: 1; display: flex; gap: 6px;">
-                  <input type="text" class="remark-input" value="${htmlEscape(String(remarkVal).trim())}" style="flex: 1;">
-                  <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)" style="padding: 4px 8px;">
-                    <span class="material-symbols-outlined" style="font-size: 14px;">mic</span>
-                  </button>
-                  <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.remark-row').remove()" style="padding: 4px 8px;">
-                    <span class="material-symbols-outlined" style="font-size: 14px;">delete</span>
-                  </button>
-                </div>
-              </div>
-            `).join('');
-          } else {
-            // 備考が1件もない場合は空の入力欄を1つだけ用意しておく
-            remarksHtml = `
-              <div class="remark-row" style="display: flex; gap: 6px; align-items: center;">
-                <div class="voice-input-wrapper" style="flex: 1; display: flex; gap: 6px;">
-                  <input type="text" class="remark-input" value="" style="flex: 1;">
-                  <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)" style="padding: 4px 8px;">
-                    <span class="material-symbols-outlined" style="font-size: 14px;">mic</span>
-                  </button>
-                  <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.remark-row').remove()" style="padding: 4px 8px;">
-                    <span class="material-symbols-outlined" style="font-size: 14px;">delete</span>
-                  </button>
-                </div>
-              </div>
-            `;
-          }
+          // 備考は複数件。1件もない場合は、空の入力欄を1つだけ用意しておく
+          const remarks = (item.itemRemarksList || (item.itemRemarks ? [item.itemRemarks] : []))
+            .map(remark => String(remark).trim());
 
-          // メインHTMLの流し込み
-          // ・見出し「仕様・摘要」の丸い番号は、style.css が自動で付ける（内訳の削除で自動的に詰まる）
-          breakdownRow.innerHTML = `
-            <div class="form-group" style="margin-top: 5px;">
-              <label class="breakdown-title"><span class="breakdown-number"></span>仕様・摘要</label>
-              <div class="voice-input-wrapper">
-                <input type="text" class="item-name" placeholder="品名・内容など" value="${htmlEscape(String(item.itemName || ''))}">
-                <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)"><span class="material-symbols-outlined">mic</span></button>
-              </div>
-            </div>
-      
-            <div class="card-row-lower" style="margin-bottom: 4px;">
-              <div class="item-grid-row-3col">
-                <div class="form-group">
-                  <label>数量</label>
-                  <input type="number" class="item-qty" min="1" step="1" value="${displayQty}" oninput="calculateBreakdownAmount(this)" onchange="normalizeQtyInput_(this)">
-                </div>
-                <div class="form-group">
-                  <label>単位</label>
-                  <select class="item-unit">${unitOptions}</select>
-                </div>
-                <div class="form-group">
-                  <label>単価</label>
-                  <input type="number" class="item-price" min="0" value="${displayPrice}" oninput="calculateBreakdownAmount(this)">
-                </div>
-                <div class="form-group">
-                  <label>金額</label>
-                  <div class="amount-display-box"><span>¥</span><span class="item-amount" data-value="${displayAmount}">${displayAmount.toLocaleString()}</span></div>
-                </div>
-              </div>
-            </div>
-      
-            <div class="remarks-container" style="background: #f9f9f9; border: 1px dashed #e0e0e0; border-radius: 4px; padding: 8px; margin: 8px 0;">
-              <label style="font-size: 12px; color: #666; display: block; margin-bottom: 6px; font-weight: bold;">📝 備考（複数追加可）</label>
-              <div class="remarks-list" style="display: flex; flex-direction: column; gap: 6px;">
-                ${remarksHtml}
-              </div>
-              <button type="button" class="btn btn-sm" style="background-color: #e8f5e9; color: #2e7d32; padding: 4px 8px; font-size: 12px; margin-top: 6px;" onclick="addRemarkRow(this)">
-                <span class="material-symbols-outlined" style="font-size: 14px;">add</span> 備考を追加
-              </button>
-            </div>
-      
-            ${rowIndex > 0 ? `
-            <div style="text-align: left; margin-top: 2px; margin-bottom: 2px;">
-              <button type="button" class="btn btn-sm btn-danger" onclick="deleteBreakdownRow(this)" style="padding: 6px 12px; font-size: 14px; height: auto; line-height: 1; border-radius: 4px;">
-                <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle;">delete</span> 内訳を削除
-              </button>
-            </div>
-            ` : ''}
-          `;
-          
+          const breakdownRow = createBreakdownRowElement_({
+            name: item.itemName || '',
+            qty: item.itemQty || 1,
+            unit: item.itemUnit,
+            price: Number(item.itemPrice || 0),
+            amount: Number(item.itemAmount || 0),
+            remarks: remarks.length > 0 ? remarks : ['']
+          }, rowIndex > 0);
 
-          // DOMに追加
           breakdownContainer.appendChild(breakdownRow);
         });
-        
+
         // ========== ステップ4: 全体の更新 ==========
         updateCardTotal(card);
         
@@ -259,57 +165,94 @@
     }
 
     // =====================================
-    // 子行（内訳）を追加する関数
+    // 備考行（備考入力欄1件分）のHTMLを組み立てる共通関数
+    // ・内訳の組み立て（createBreakdownRowElement_）と「備考を追加」ボタン（addRemarkRow）で共用
     // =====================================
-    function addBreakdownRow(card, breakdownContainer, isFirst = false) {
+    function buildRemarkRowHtml_(value) {
+      return `
+        <div class="remark-row" style="display: flex; gap: 6px; align-items: center;">
+          <div class="voice-input-wrapper" style="flex: 1; display: flex; gap: 6px;">
+            <input type="text" class="remark-input" placeholder="仕様・摘要（備考）を追加" value="${htmlEscape(value)}" style="flex: 1;">
+            <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)" style="padding: 4px 8px;">
+              <span class="material-symbols-outlined" style="font-size: 14px;">mic</span>
+            </button>
+            <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.remark-row').remove()" style="padding: 4px 8px;">
+              <span class="material-symbols-outlined" style="font-size: 14px;">delete</span>
+            </button>
+          </div>
+        </div>`;
+    }
+
+    // =====================================
+    // 単位プルダウンの選択肢HTMLを組み立てる
+    // ・「式」は、マスターになくても必ず先頭に入れる（初期値が「式」のため）
+    // ・保存済みの単位がマスターにない場合も、選択肢に加える（別の単位に勝手に変わらないように）
+    // =====================================
+    function buildUnitOptionsHtml_(selectedUnit) {
+      const units = MASTER_UNITS.map(unit => String(unit).trim()).filter(Boolean);
+      if (!units.includes('式')) units.unshift('式');
+      if (!units.includes(selectedUnit)) units.push(selectedUnit);
+      return units.map(unit =>
+        `<option value="${htmlEscape(unit)}" ${unit === selectedUnit ? 'selected' : ''}>${htmlEscape(unit)}</option>`
+      ).join('');
+    }
+
+    // =====================================
+    // 内訳の行（仕様・摘要1件分）を組み立てる共通関数
+    // ・新規追加（addBreakdownRow）と、保存データの復元（populateDetailCardWithGroup）の両方から使う
+    // ・rowData：{ name, qty, unit, price, amount, remarks: [文字列, ...] }
+    // ・showDeleteButton：「内訳を削除」ボタンを付けるか（カード先頭の行には付けない）
+    // ・見出し「仕様・摘要」の丸い番号は、style.css が自動で付ける（内訳の削除で自動的に詰まる）
+    // =====================================
+    function createBreakdownRowElement_(rowData, showDeleteButton) {
       const row = document.createElement('div');
       row.className = 'breakdown-row';
       row.style = 'border: 1px solid #f1f3f5; padding: 8px; margin-bottom: 8px; border-radius: 4px; background: #fff;';
-      
-      const unitOptions = (!MASTER_UNITS.includes('式') ? '<option value="式">式</option>' : '') + 
-                          MASTER_UNITS.filter(u => u && u.trim()).map(u => `<option value="${htmlEscape(u.trim())}">${htmlEscape(u.trim())}</option>`).join('');
-    
-      // ・見出し「仕様・摘要」の丸い番号は、style.css が自動で付ける（内訳の削除で自動的に詰まる）
+
+      const unit = String(rowData.unit || '').trim() || '式'; // 単位の初期値は「式」
+      const amount = Number(rowData.amount || 0);
+
       row.innerHTML = `
         <div class="form-group" style="margin-top: 5px;">
           <label class="breakdown-title"><span class="breakdown-number"></span>仕様・摘要</label>
           <div class="voice-input-wrapper">
-            <input type="text" class="item-name" placeholder="品名・内容など">
+            <input type="text" class="item-name" placeholder="品名・内容など" value="${htmlEscape(rowData.name)}">
             <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)"><span class="material-symbols-outlined">mic</span></button>
           </div>
         </div>
-    
+
         <div class="card-row-lower" style="margin-bottom: 4px;">
           <div class="item-grid-row-3col">
             <div class="form-group">
               <label>数量</label>
-              <input type="number" class="item-qty" min="1" step="1" value="1" oninput="calculateBreakdownAmount(this)" onchange="normalizeQtyInput_(this)">
+              <input type="number" class="item-qty" min="1" step="1" value="${htmlEscape(rowData.qty)}" oninput="calculateBreakdownAmount(this)" onchange="normalizeQtyInput_(this)">
             </div>
             <div class="form-group">
               <label>単位</label>
-              <select class="item-unit">${unitOptions}</select>
+              <select class="item-unit">${buildUnitOptionsHtml_(unit)}</select>
             </div>
             <div class="form-group">
               <label>単価</label>
-              <input type="number" class="item-price" min="0" value="0" oninput="calculateBreakdownAmount(this)">
+              <input type="number" class="item-price" min="0" value="${Number(rowData.price || 0)}" oninput="calculateBreakdownAmount(this)">
             </div>
             <div class="form-group">
               <label>金額</label>
-              <div class="amount-display-box"><span>¥</span><span class="item-amount" data-value="0">0</span></div>
+              <div class="amount-display-box"><span>¥</span><span class="item-amount" data-value="${amount}">${amount.toLocaleString()}</span></div>
             </div>
           </div>
         </div>
-    
-        <!-- 複数備考コンテナ -->
+
         <div class="remarks-container" style="background: #f9f9f9; border: 1px dashed #e0e0e0; border-radius: 4px; padding: 8px; margin: 8px 0;">
           <label style="font-size: 12px; color: #666; display: block; margin-bottom: 6px; font-weight: bold;">📝 備考（複数追加可）</label>
-          <div class="remarks-list" style="display: flex; flex-direction: column; gap: 6px;"></div>
+          <div class="remarks-list" style="display: flex; flex-direction: column; gap: 6px;">
+            ${rowData.remarks.map(buildRemarkRowHtml_).join('')}
+          </div>
           <button type="button" class="btn btn-sm" style="background-color: #e8f5e9; color: #2e7d32; padding: 4px 8px; font-size: 12px; margin-top: 6px;" onclick="addRemarkRow(this)">
             <span class="material-symbols-outlined" style="font-size: 14px;">add</span> 備考を追加
           </button>
         </div>
-    
-        ${!isFirst ? `
+
+        ${showDeleteButton ? `
         <div style="text-align: left; margin-top: 2px; margin-bottom: 2px;">
           <button type="button" class="btn btn-sm btn-danger" onclick="deleteBreakdownRow(this)" style="padding: 6px 12px; font-size: 14px; height: auto; line-height: 1; border-radius: 4px;">
             <span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle;">delete</span> 内訳を削除
@@ -317,47 +260,33 @@
         </div>
         ` : ''}
       `;
-    
+      return row;
+    }
+
+    // =====================================
+    // 子行（内訳）を追加する関数
+    // ・数量の初期値は1、単位の初期値は「式」
+    // ・カード最初の行（isFirst）だけ、備考の入力欄を1つ最初から用意する（削除ボタンも付けない）
+    // =====================================
+    function addBreakdownRow(card, breakdownContainer, isFirst = false) {
+      const row = createBreakdownRowElement_({ name: '', qty: 1, unit: '式', price: 0, amount: 0, remarks: [] }, !isFirst);
       breakdownContainer.appendChild(row);
-      
-      const unitSelect = row.querySelector('.item-unit');
-      unitSelect.value = '';
-      
-      // 最初の1行には初期備考行を1つ追加
+
       if (isFirst) {
-        addRemarkRow(row.querySelector('.remarks-container button'));
+        addRemarkRow(row.querySelector('.remarks-container > button'));
       }
-      
-      // 状態チェック後に金額計算を実行
+
       calculateBreakdownAmount(row.querySelector('.item-qty'));
     }
-    
+
     // =====================================
     // 備考行を追加する関数
     // =====================================
     function addRemarkRow(addButton) {
       const remarksList = addButton.closest('.remarks-container').querySelector('.remarks-list');
-      
-      const remarkRow = document.createElement('div');
-      remarkRow.className = 'remark-row';
-      remarkRow.style = 'display: flex; gap: 6px; align-items: center;';
-      
-      remarkRow.innerHTML = `
-        <div class="voice-input-wrapper" style="flex: 1; display: flex; gap: 6px;">
-          <input type="text" class="remark-input" placeholder="仕様・摘要（備考）を追加" style="flex: 1;">
-          <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)" style="padding: 4px 8px;">
-            <span class="material-symbols-outlined" style="font-size: 14px;">mic</span>
-          </button>
-          <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.remark-row').remove()" style="padding: 4px 8px;">
-            <span class="material-symbols-outlined" style="font-size: 14px;">delete</span>
-          </button>
-        </div>
-      `;
-      
-      remarksList.appendChild(remarkRow);
-      
+      remarksList.insertAdjacentHTML('beforeend', buildRemarkRowHtml_(''));
       // 新規追加した入力欄にフォーカス
-      remarkRow.querySelector('.remark-input').focus();
+      remarksList.lastElementChild.querySelector('.remark-input').focus();
     }
 
     // =====================================
@@ -440,18 +369,24 @@
     }
     
     // =====================================
-    // 全体の合計や消費税を計算している関数
+    // 全体の小計・消費税・税込合計を計算する（画面には触れない）
+    // ・各親項目の「項目合計金額」の合計が小計。消費税は小計×10%の切り捨て
     // =====================================
-    function updateTotalSummary() {
+    function calculateTotalsA_() {
       let subtotal = 0;
-      // 各親項目の「合計金額ボックス」から値を集計します
       document.querySelectorAll('.card-total-amount').forEach(span => {
         subtotal += parseFloat(span.dataset.value) || 0;
       });
-      
       const tax = Math.floor(subtotal * 0.1);
-      const total = subtotal + tax;
-      
+      return { subtotal: subtotal, tax: tax, total: subtotal + tax };
+    }
+
+    // =====================================
+    // 全体の合計や消費税を計算して、画面（ボトムバー）に表示する関数
+    // =====================================
+    function updateTotalSummary() {
+      const { subtotal, tax, total } = calculateTotalsA_();
+
       document.getElementById('subtotalLabel').textContent = subtotal.toLocaleString();
       document.getElementById('taxLabel').textContent = tax.toLocaleString();
       // totalLabelはデザインBのgrand-total-amountと同じ「¥込みで丸ごと1要素」の構成のため、
@@ -549,28 +484,17 @@
         });
       });
       
-      const getValueFromDisplay = (elementId) => {
-        const el = document.getElementById(elementId);
-        if (!el) return 0;
-        // input要素なら.value、divやspanなどのパーツなら.textContentを取得
-        const rawText = el.tagName === 'INPUT' ? el.value : el.textContent;
-        // 「¥」や「,」や空白など、数字とマイナス・ピリオド以外の文字をすべて綺麗に消去して数値化
-        return Math.floor(Number(rawText.replace(/[^0-9.-]/g, ''))) || 0;
-      };
-
-      const currentSubtotal = getValueFromDisplay('subtotalLabel'); 
-      const currentTax      = getValueFromDisplay('taxLabel');      
-      const currentTotal    = getValueFromDisplay('totalLabel');    
+      // 画面の表示文字列を読み直さず、計算関数から直接受け取る
+      const totals = calculateTotalsA_();
 
       return {
         // 案件・取引先・日付・件名など、基本情報カードの値（デザインBと共通。11_sharedInfo.js）
         ...getSharedInfoValues_(),
         remarks: document.getElementById('remarks').value.trim(),
         details: details,
-        // すでに画面で正しく計算・表示されている値をそのまま使い回す
-        subtotal: currentSubtotal,
-        tax: currentTax,
-        total: currentTotal
+        subtotal: totals.subtotal,
+        tax: totals.tax,
+        total: totals.total
       };
     }
 
