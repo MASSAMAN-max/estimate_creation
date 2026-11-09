@@ -287,6 +287,10 @@
     .form-group input[type="number"] {
       text-align: right;
     }
+    /* デザインAの数量欄：デザインBの室数欄と同じく中央揃え */
+    .form-group input.item-qty {
+      text-align: center;
+    }
 
     .form-group select {
       cursor: pointer;
@@ -648,25 +652,35 @@
     }
 
     /* カテゴリカード */
+    /* カテゴリカード：順番に6色を繰り返す（色はデザインAの .detail-card と同じ） */
     .category-card {
-      background: var(--card-bg);
+      --card-accent: #1976D2;
+      --card-tint: #E3F2FD;
+      background: var(--card-tint);
       border-radius: 12px;
       margin-bottom: 12px;
       border: 1px solid var(--border);
+      border-left: 6px solid var(--card-accent);
       overflow: hidden;
       width: 100%;
     }
+    .category-card:nth-child(6n+2) { --card-accent: #2E7D32; --card-tint: #E8F5E9; }
+    .category-card:nth-child(6n+3) { --card-accent: #EF6C00; --card-tint: #FFF3E0; }
+    .category-card:nth-child(6n+4) { --card-accent: #7B1FA2; --card-tint: #F3E5F5; }
+    .category-card:nth-child(6n+5) { --card-accent: #00838F; --card-tint: #E0F7FA; }
+    .category-card:nth-child(6n+6) { --card-accent: #C2185B; --card-tint: #FCE4EC; }
 
     /* ヘッダー部分 */
     .category-header {
       padding: 10px 14px;
-      background: #f8fafc;
+      background: transparent;
+      color: var(--card-accent);
       font-weight: bold;
       font-size: 14px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-bottom: 1px solid var(--border);
+      border-bottom: 2px solid var(--card-accent);
       gap: 8px;
       flex-wrap: wrap;
     }
@@ -727,9 +741,7 @@
       margin-bottom: 12px;
     }
 
-    .chip {
-      padding: 6px 10px;
-      background: #f1f5f9;
+\1background: white;
       border: 1px solid var(--border);
       border-radius: 20px;
       font-size: 12px;
@@ -743,11 +755,11 @@
     }
 
     .chip.selected {
-      background: var(--primary);
+      background: var(--card-accent);
       color: white;
-      border-color: var(--primary-dark);
+      border-color: var(--card-accent);
       font-weight: bold;
-      box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
     }
 
     /* 有効化された項目カード */
@@ -758,8 +770,7 @@
       margin-top: 8px;
     }
 
-    .active-item-card {
-      background: #f8fafc;
+\1background: white;
       border: 2px dashed var(--border);
       border-radius: 8px;
       padding: 10px;
@@ -823,27 +834,14 @@
       margin-right: 2px;
     }
 
-    .btn-qty {
-      width: 24px;
-      height: 24px;
-      background: #f1f5f9;
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      font-weight: bold;
-      font-size: 13px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-    }
-
+    /* 内容別の数量欄：「室数」欄（updateCategoryCountB の入力欄）と同じ見た目 */
     .qty-input {
-      width: 44px;
+      width: 60px;
+      padding: 6px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 14px;
       text-align: center;
-      border: none;
-      font-size: 15px;
-      font-weight: bold;
-      padding: 2px 0;
     }
 
     .amount-wrap {
@@ -911,19 +909,6 @@
       align-items: center;
       gap: 6px;
       flex-shrink: 0;
-    }
-
-    .btn-add-custom {
-      width: 100%;
-      padding: 8px;
-      background: white;
-      border: 1px dashed var(--primary);
-      color: var(--primary);
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: bold;
-      margin-top: 8px;
-      cursor: pointer;
     }
 
     /* 全体備考カード */
@@ -1055,8 +1040,8 @@
     .chip.chip-add {
       background: white;
       border-style: dashed;
-      border-color: var(--primary);
-      color: var(--primary);
+      border-color: var(--card-accent);
+      color: var(--card-accent);
     }
 
    /* ===== 案件選択部品（10_project_picker.js） ===== */
