@@ -349,31 +349,6 @@
           ? fetchWithRetry_({ action: 'saveCaseFolderShortcutsBackground', payload: { estimateNo: generatedId, caseNos: data.caseNos } }, 120000)
           : Promise.resolve(null);
 
-        // 案件フォルダ側の失敗・警告は、完了画面（PDFリンク）が閉じられてから通知する（PDF自体は保存済み）
-        caseFolderPromise.then(async result => {
-          if (!result || !result.warnings || result.warnings.length === 0) return;
-          await successDialogPromise;
-          Swal.fire({
-            icon: 'warning',
-            title: '案件フォルダへの保存が一部できませんでした',
-            html: `見積書PDF自体は保存されています。<br>案件フォルダへのショートカットが作成できなかった案件があります。<br><br>
-                   <code style="font-size:11px; text-align:left; display:block;">${result.warnings.map(w => htmlEscape(w)).join('<br>')}</code><br>
-                   お手数ですが、担当者にご連絡ください。`,
-            confirmButtonText: '了解'
-          });
-        }).catch(async caseFolderError => {
-          console.error('❌ 案件フォルダへの保存に失敗:', caseFolderError);
-          await successDialogPromise;
-          Swal.fire({
-            icon: 'warning',
-            title: '案件フォルダへの保存に失敗しました',
-            html: `見積書PDF自体は保存されています。<br><br>
-                   <code style="font-size:11px;">${htmlEscape(caseFolderError.message)}</code><br><br>
-                   お手数ですが、担当者にご連絡ください。`,
-            confirmButtonText: '了解'
-          });
-        });
-
         // ========== 確定保存 4. PDF完成後、すぐ完了画面を表示 ==========
         document.getElementById('loader').style.display = 'none';
 
@@ -404,6 +379,31 @@
           confirmButtonText: '閉じる',
           confirmButtonColor: '#666',
           allowOutsideClick: false
+        });
+
+        // 案件フォルダ側の失敗・警告は、完了画面（PDFリンク）が閉じられてから通知する（PDF自体は保存済み）
+        caseFolderPromise.then(async result => {
+          if (!result || !result.warnings || result.warnings.length === 0) return;
+          await successDialogPromise;
+          Swal.fire({
+            icon: 'warning',
+            title: '案件フォルダへの保存が一部できませんでした',
+            html: `見積書PDF自体は保存されています。<br>案件フォルダへのショートカットが作成できなかった案件があります。<br><br>
+                   <code style="font-size:11px; text-align:left; display:block;">${result.warnings.map(w => htmlEscape(w)).join('<br>')}</code><br>
+                   お手数ですが、担当者にご連絡ください。`,
+            confirmButtonText: '了解'
+          });
+        }).catch(async caseFolderError => {
+          console.error('❌ 案件フォルダへの保存に失敗:', caseFolderError);
+          await successDialogPromise;
+          Swal.fire({
+            icon: 'warning',
+            title: '案件フォルダへの保存に失敗しました',
+            html: `見積書PDF自体は保存されています。<br><br>
+                   <code style="font-size:11px;">${htmlEscape(caseFolderError.message)}</code><br><br>
+                   お手数ですが、担当者にご連絡ください。`,
+            confirmButtonText: '了解'
+          });
         });
 
         // 明細保存が（自動リトライ後も）失敗した場合の通知。
