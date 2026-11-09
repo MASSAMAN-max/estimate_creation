@@ -651,7 +651,6 @@
       -webkit-appearance: none;
     }
 
-    /* カテゴリカード */
     /* カテゴリカード：順番に6色を繰り返す（色はデザインAの .detail-card と同じ） */
     .category-card {
       --card-accent: #1976D2;
@@ -741,7 +740,9 @@
       margin-bottom: 12px;
     }
 
-\1background: white;
+    .chip {
+      padding: 6px 10px;
+      background: white;
       border: 1px solid var(--border);
       border-radius: 20px;
       font-size: 12px;
@@ -770,7 +771,8 @@
       margin-top: 8px;
     }
 
-\1background: white;
+    .active-item-card {
+      background: white;
       border: 2px dashed var(--border);
       border-radius: 8px;
       padding: 10px;
