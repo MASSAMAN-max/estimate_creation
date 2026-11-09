@@ -4,9 +4,6 @@
  * 表示と、選択したデータの画面への復元処理。
  */
 
-    // 現在表示中の一覧タイプ（検索実行時に使用）
-    let currentListType = null;
-
     // =====================================
     // 一覧モーダルのボタン操作（イベント委譲）
     // ・ボタンに onclick="関数('ID')" を埋め込むと、IDに特殊文字が含まれたときに
@@ -31,7 +28,6 @@
     // 見積書リストモーダル（複数用途対応版）
     // =====================================
     async function openEstimateListModal(listType) {
-      currentListType = listType;
       try {
         // ここはまだローダーが表示された状態
         const resultData = await fetchWithRetry_({
@@ -149,8 +145,8 @@
         row.style = 'background:white; padding:12px; margin-bottom:8px; border-radius:6px; border:1px solid var(--gray-border); display:flex; flex-direction:column; gap:6px;';
 
         // 案件が未紐付け（紐付け案件無し／旧データ）かどうか
-        const caseNos = item.caseNos || [];
-        const isUnlinked = caseNos.length === 0 || (caseNos.length === 1 && caseNos[0] === CASE_NONE);
+        const linkedCaseNos = item.caseNos || [];
+        const isUnlinked = linkedCaseNos.length === 0 || (linkedCaseNos.length === 1 && linkedCaseNos[0] === CASE_NONE);
 
         // ボタンに持たせるID（クリック処理は、ファイル上部のイベント委譲で行う）
         const idAttr = htmlEscape(String(item.id));
@@ -184,7 +180,7 @@
         row.innerHTML = `
           <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text-secondary);">
             <span>ID: <b>${idAttr}</b></span>
-            <span>案件: ${htmlEscape(caseNos.map(n => n === CASE_NONE ? CASE_NONE_LABEL : n).join(', ') || '－')}</span>
+            <span>案件: ${htmlEscape(linkedCaseNos.map(n => n === CASE_NONE ? CASE_NONE_LABEL : n).join(', ') || '－')}</span>
             <span>作成日: ${formatDateToInput(item.date)}</span>
           </div>
           <div style="font-weight:600; color:var(--text-primary); font-size:14px;">${htmlEscape(item.client || '取引先名なし')} — <span style="font-weight:500; font-size:13px;">${htmlEscape(item.subject || '（件名なし）')}</span></div>
@@ -425,9 +421,7 @@
         }
         
         // ========== ステップ10: 全体合計を最後に1回だけ再計算 ==========
-        if (typeof updateTotalSummary === 'function') {
-          updateTotalSummary();
-        }
+        updateTotalSummary();
         // ローダーを消す
         document.getElementById('loader').style.display = 'none';
         
