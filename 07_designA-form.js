@@ -152,7 +152,6 @@
           const displayAmount = Number(item.itemAmount || 0);
           
           // 数量・単位セレクトの生成
-          const qtyOptions = QTY_OPTIONS_HTML_; // 選択状態は、行を組み立てた後に設定する（下記）
           
           const unitOptions = (!MASTER_UNITS.includes('式') ? '<option value="式">式</option>' : '') + 
                               MASTER_UNITS.filter(u => u && u.trim()).map(u => 
@@ -209,7 +208,7 @@
               <div class="item-grid-row-3col">
                 <div class="form-group">
                   <label>数量</label>
-                  <select class="item-qty" onchange="calculateBreakdownAmount(this)">${qtyOptions}</select>
+                  <input type="number" class="item-qty" min="1" step="1" value="${displayQty}" oninput="calculateBreakdownAmount(this)" onchange="normalizeQtyInput_(this)">
                 </div>
                 <div class="form-group">
                   <label>単位</label>
@@ -245,10 +244,6 @@
             ` : ''}
           `;
           
-          // 数量プルダウンの選択状態を設定する（1〜99の整数以外は、従来どおり先頭の「1」のまま）
-          if (Number.isInteger(displayQty) && displayQty >= 1 && displayQty <= 99) {
-            breakdownRow.querySelector('.item-qty').value = String(displayQty);
-          }
 
           // DOMに追加
           breakdownContainer.appendChild(breakdownRow);
@@ -271,7 +266,6 @@
       row.className = 'breakdown-row';
       row.style = 'border: 1px solid #f1f3f5; padding: 8px; margin-bottom: 8px; border-radius: 4px; background: #fff;';
       
-      const qtyOptions = QTY_OPTIONS_HTML_;
       const unitOptions = (!MASTER_UNITS.includes('式') ? '<option value="式">式</option>' : '') + 
                           MASTER_UNITS.filter(u => u && u.trim()).map(u => `<option value="${htmlEscape(u.trim())}">${htmlEscape(u.trim())}</option>`).join('');
     
@@ -289,7 +283,7 @@
           <div class="item-grid-row-3col">
             <div class="form-group">
               <label>数量</label>
-              <select class="item-qty" onchange="calculateBreakdownAmount(this)">${qtyOptions}</select>
+              <input type="number" class="item-qty" min="1" step="1" value="1" oninput="calculateBreakdownAmount(this)" onchange="normalizeQtyInput_(this)">
             </div>
             <div class="form-group">
               <label>単位</label>
@@ -386,6 +380,17 @@
       requestAnimationFrame(() => {
         updateCardTotal(card);
       });
+    }
+
+    // =====================================
+    // 数量欄の入力補正（デザインB「室数」欄と同じ入力欄方式）
+    // ・空欄・0以下・数値でない場合は「1」に戻す（初期値も1）
+    // ・入力欄を離れたとき（change）に呼ぶ。補正後に金額も再計算する
+    // =====================================
+    function normalizeQtyInput_(input) {
+      const qty = Math.floor(Number(input.value));
+      input.value = (Number.isFinite(qty) && qty >= 1) ? qty : 1;
+      calculateBreakdownAmount(input);
     }
 
     // =====================================
@@ -652,10 +657,3 @@
 
       return true;
     }
-
-    // =====================================
-    // 数量プルダウン（1〜99）の選択肢HTML
-    // ・以前は内訳の行を作るたびに99個の選択肢を組み立て直していたため、1回だけ作って使い回す
-    //   （行が増えるほど、追加・復元が重くなっていた）
-    // =====================================
-    const QTY_OPTIONS_HTML_ = Array.from({ length: 99 }, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join('');
