@@ -185,7 +185,7 @@
         return;
       }
      
-      const input = button.closest('.voice-input-wrapper').querySelector('input');
+      const input = button.closest('.voice-input-wrapper').querySelector('input, textarea'); // 全体備考は textarea のため両方を対象にする
       const recognition = new SpeechRecognition();
       recognition.lang = 'ja-JP';
       recognition.continuous = false;
