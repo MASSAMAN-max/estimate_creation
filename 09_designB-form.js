@@ -193,8 +193,6 @@
           <div class="active-items-list" id="activeListB_${catIdx}">
             ${activeList.map(item => renderActiveCardB(catIdx, item)).join('')}
           </div>
-
-          <button class="btn-add-custom" onclick="addCustomItemB(${catIdx})">＋ 自由な内容を追加</button>
         </div>
       `;
 
@@ -260,10 +258,8 @@
           <div class="controls-row">
             <div class="quantity-control">
               <span class="quantity-label">数量</span>
-              <button class="btn-qty" onclick="changeQtyB(${catIdx}, '${item.id}', -1)">-</button>
-              <input type="number" class="qty-input" value="${item.qty || 1}" min="1"
+              <input type="number" class="qty-input" value="${item.qty || 1}" min="1" step="1"
                 onchange="updateQtyB(${catIdx}, '${item.id}', this.value)">
-              <button class="btn-qty" onclick="changeQtyB(${catIdx}, '${item.id}', 1)">+</button>
             </div>
 
             <div class="amount-wrap">
@@ -290,6 +286,15 @@
       `;
     }
 
+    // =====================================
+    // 内容チップを選んだときに、備考へ最初から入れておく文言（内容名 → 備考）
+    // ・追加したい内容が出たら、ここに1行足すだけでよい
+    // ・チップから追加したときだけ入る（結合の解散・「その他」では入らない）
+    // =====================================
+    const DEFAULT_REMARK_BY_ITEM_B = {
+      'キズ補修': '別紙参照'
+    };
+
     function toggleItemB(catIdx, itemName) {
       let list = appStateB[catIdx].items;
       const existingIndex = list.findIndex(item => item.names.includes(itemName));
@@ -302,61 +307,32 @@
           list.splice(existingIndex, 1);
         }
       } else {
-        list.push(createItemB_(itemName));
+        const newItem = createItemB_(itemName);
+        const defaultRemark = DEFAULT_REMARK_BY_ITEM_B[itemName];
+        if (defaultRemark) {
+          newItem.remark = defaultRemark;
+          newItem.showRemark = true;
+        }
+        list.push(newItem);
       }
 
       renderCategoryB(catIdx);
     }
 
-    // =====================================
-    // 自由な内容をカテゴリへ追加する
-    // ✅ 変更：ネイティブのprompt()ではなく、他の画面と統一してSweetAlert2の
-    //   入力ダイアログを使うようにした
-    // =====================================
-    async function addCustomItemB(catIdx) {
-      const { value: customName } = await Swal.fire({
-        title: '内容を追加',
-        input: 'text',
-        inputLabel: '追加する内容を入力してください',
-        inputPlaceholder: '例: 特注補修',
-        showCancelButton: true,
-        confirmButtonText: '追加',
-        cancelButtonText: 'キャンセル',
-        inputValidator: (value) => {
-          if (!value || value.trim() === '') {
-            return '内容を入力してください。';
-          }
-        }
-      });
-
-      if (!customName || customName.trim() === "") return;
-
-      appStateB[catIdx].items.push(createItemB_(customName.trim()));
-      renderCategoryB(catIdx);
-    }
-
-    function changeQtyB(catIdx, itemId, delta) {
-      const item = appStateB[catIdx].items.find(i => i.id === itemId);
-      if (item) {
-        const currentQty = Number(item.qty) || 1;
-        const newQty = Math.max(1, currentQty + delta);
-
-        if (item.amount && currentQty > 0) {
-          const unitPrice = item.amount / currentQty;
-          item.amount = Math.round(unitPrice * newQty);
-        }
-
-        item.qty = newQty;
-        renderCategoryB(catIdx);
-      }
-    }
-
+    // 数量変更（入力欄のみ）。金額が入力済みなら、単価（金額÷旧数量）を保ったまま新しい数量に比例させる
+    // ・空欄・0以下は「1」に補正する
     function updateQtyB(catIdx, itemId, val) {
       const item = appStateB[catIdx].items.find(i => i.id === itemId);
-      if (item) {
-        item.qty = Math.max(1, Number(val) || 1);
-        renderCategoryB(catIdx);
+      if (!item) return;
+
+      const oldQty = Number(item.qty) || 1;
+      const newQty = Math.max(1, Math.floor(Number(val)) || 1);
+
+      if (item.amount && oldQty > 0) {
+        item.amount = Math.round((item.amount / oldQty) * newQty);
       }
+      item.qty = newQty;
+      renderCategoryB(catIdx);
     }
 
     function updateAmountB(catIdx, itemId, val) {
