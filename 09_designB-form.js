@@ -147,12 +147,23 @@
       const isManual = catState.manualTotal !== null && catState.manualTotal !== '';
       const displayTotal = isManual ? catState.manualTotal : (autoTotal > 0 ? autoTotal : '');
 
+      // 項目数量（室数・台数など）を持つカテゴリなら、その単位（室／台）。持たないカテゴリは undefined
+      const countUnit = CATEGORY_COUNT_UNIT_MAP_B[cat.category];
+
       const catCard = document.createElement('div');
       catCard.className = 'category-card';
 
       catCard.innerHTML = `
         <div class="category-header">
-          <span>${cat.category}</span>
+          <div class="category-name-wrap">
+            <span>${cat.category}</span>
+            ${countUnit ? `
+              <input type="number" min="1" class="category-count-input"
+                value="${catState.categoryCount || ''}" placeholder="例: 2"
+                onchange="updateCategoryCountB(${catIdx}, this.value)">
+              <span class="category-count-unit">${countUnit}</span>
+            ` : ''}
+          </div>
           <div class="category-total-wrap">
             <span style="color:var(--text-muted);">合計:</span>
             <input type="number"
@@ -166,17 +177,6 @@
         </div>
 
         <div class="category-body">
-          ${CATEGORY_COUNT_UNIT_MAP_B[cat.category] ? `
-            <div style="display:flex; align-items:center; gap:6px; margin-bottom:12px;">
-              <label style="font-size:12px; font-weight:bold; color:var(--text-muted);">数量:</label>
-              <input type="number" min="1"
-                value="${catState.categoryCount || ''}"
-                placeholder="例: 2"
-                style="width:60px; padding:6px; border:1px solid var(--border); border-radius:6px; font-size:14px; text-align:center;"
-                onchange="updateCategoryCountB(${catIdx}, this.value)">
-              <span style="font-size:12px; color:var(--text-muted);">${CATEGORY_COUNT_UNIT_MAP_B[cat.category]}</span>
-            </div>
-          ` : ''}
           <div class="chip-section-title">内容を選択（タップで有効化）</div>
           <div class="chip-group">
             ${cat.items.map(itemName => {
@@ -269,17 +269,29 @@
               <span style="font-size:12px; font-weight:bold;">円</span>
             </div>
 
-            <button class="btn-remark-toggle ${hasRemark || item.showRemark ? 'active' : ''}"
-              onclick="toggleRemarkInputB(${catIdx}, '${item.id}')">
-              ${hasRemark ? '備考あり' : '+備考'}
-            </button>
+            <div class="remark-actions">
+              <button type="button" class="btn-remark-clear" title="備考を削除"
+                ${(hasRemark || item.showRemark) ? '' : 'disabled'}
+                onclick="clearRemarkB(${catIdx}, '${item.id}')">
+                <span class="material-symbols-outlined">delete</span>
+              </button>
+              <button class="btn-remark-toggle ${hasRemark || item.showRemark ? 'active' : ''}"
+                onclick="toggleRemarkInputB(${catIdx}, '${item.id}')">
+                ${hasRemark ? '備考あり' : '+備考'}
+              </button>
+            </div>
           </div>
 
           ${(item.showRemark || hasRemark) ? `
             <div class="remark-field">
-              <input type="text" class="remark-input" value="${htmlEscape(item.remark || '')}"
-                placeholder="この項目に関する備考・特記事項..."
-                onchange="updateRemarkB(${catIdx}, '${item.id}', this.value)">
+              <div class="voice-input-wrapper">
+                <input type="text" class="remark-input" value="${htmlEscape(item.remark || '')}"
+                  placeholder="この項目に関する備考・特記事項..."
+                  onchange="updateRemarkB(${catIdx}, '${item.id}', this.value)">
+                <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)">
+                  <span class="material-symbols-outlined">mic</span>
+                </button>
+              </div>
             </div>
           ` : ''}
         </div>
@@ -349,6 +361,16 @@
         item.showRemark = !item.showRemark;
         renderCategoryB(catIdx);
       }
+    }
+
+    // 備考を削除する（ゴミ箱ボタン）。備考の文字を消し、入力欄も閉じる
+    // ・備考は全内容カード共通の扱い。「キズ補修」の初期備考「別紙参照」も、この操作で消せる
+    function clearRemarkB(catIdx, itemId) {
+      const item = appStateB[catIdx].items.find(i => i.id === itemId);
+      if (!item) return;
+      item.remark = '';
+      item.showRemark = false;
+      renderCategoryB(catIdx);
     }
 
     function updateRemarkB(catIdx, itemId, val) {
