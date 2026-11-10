@@ -281,7 +281,12 @@
       <!-- 3. 全体備考エリア -->
       <div class="global-remark-card">
         <h2>全体備考</h2>
-        <textarea class="global-remark-textarea" id="globalRemark" placeholder="見積書全体に関する特記事項や備考を入力してください..."></textarea>
+        <div class="voice-input-wrapper">
+          <textarea class="global-remark-textarea" id="globalRemark" placeholder="見積書全体に関する特記事項や備考を入力してください..."></textarea>
+          <button type="button" class="btn btn-sm" onclick="startVoiceInput(this)">
+            <span class="material-symbols-outlined">mic</span>
+          </button>
+        </div>
       </div>
 
       <!-- 3.5 共通アクション（プレビュー／下書き保存） -->
