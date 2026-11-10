@@ -191,6 +191,7 @@
       recognition.continuous = false;
       recognition.interimResults = true;
      
+      let hasNewText = false; // 音声で文字が入ったか（終了時に change を通知するため）
       button.classList.add('recording');
       button.innerHTML = '<span class="material-symbols-outlined" style="animation: blink 1s infinite;">mic</span> 聴取中...';
       button.disabled = true;
@@ -210,6 +211,7 @@
         }
         if (transcript) {
           input.value = (input.value + transcript).trim();
+          hasNewText = true;
         }
       };
      
@@ -235,6 +237,9 @@
         button.disabled = false;
         input.style.backgroundColor = '';
         input.style.borderColor = '';
+        // 値をプログラムで書き換えても change は発生しないため、ここで通知する
+        // （デザインBの備考は change で内部状態へ保存するので、これが無いと音声入力した備考が保存されない）
+        if (hasNewText) input.dispatchEvent(new Event('change', { bubbles: true }));
       };
       recognition.start();
     }
