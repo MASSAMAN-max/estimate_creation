@@ -684,6 +684,28 @@
       flex-wrap: wrap;
     }
 
+    /* 項目名と項目数量（室数・台数）欄を横に並べる */
+    .category-name-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .category-count-input {
+      width: 60px;
+      padding: 6px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      text-align: center;
+      background: white;
+      color: var(--text);
+    }
+
+    .category-count-unit {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
     .category-total-wrap {
       display: flex;
       align-items: center;
@@ -870,7 +892,36 @@
       border-radius: 4px;
       font-size: 11px;
       cursor: pointer;
+    }
+
+    /* 備考まわりのボタン（削除＋備考）を右端にまとめる */
+    .remark-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
       margin-left: auto;
+    }
+
+    .btn-remark-clear {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: white;
+      border: 1px solid #fca5a5;
+      color: #dc2626;
+      padding: 2px 6px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .btn-remark-clear .material-symbols-outlined {
+      font-size: 16px;
+    }
+
+    .btn-remark-clear:disabled {
+      color: #cbd5e1;
+      border-color: var(--border);
+      cursor: not-allowed;
     }
 
     .btn-remark-toggle.active {
@@ -882,6 +933,15 @@
 
     .remark-field {
       margin-top: 8px;
+    }
+
+    /* 備考欄の音声入力ボタンは、入力欄の高さに合わせて小さくする */
+    .remark-field .btn-sm {
+      padding: 4px 10px;
+    }
+
+    .remark-field .btn-sm .material-symbols-outlined {
+      font-size: 18px;
     }
 
     .remark-input {
@@ -938,6 +998,16 @@
       font-size: 13px;
       resize: vertical;
       font-family: inherit;
+    }
+
+    /* 全体備考：入力欄を伸ばし、音声入力ボタンは上に寄せる */
+    .global-remark-card .voice-input-wrapper {
+      align-items: flex-start;
+    }
+
+    .global-remark-card .global-remark-textarea {
+      flex: 1;
+      min-width: 0;
     }
 
     /* 固定ボトムバー（修正：改行レイアウト＆右端総合計） */
