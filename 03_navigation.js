@@ -53,8 +53,11 @@
 
       // ログイン画面以外では、ヘッダーにログイン中のユーザー名を表示する
       if (screenName !== 'LOGIN') {
-        document.getElementById('userDisplayLabel').textContent = `ログイン: ${currentUser.userName}`;
+        document.getElementById('userDisplayLabel').textContent = currentUser.userName;
       }
+
+      // 画面の高さが変わるため、「一番上に戻る」ボタンの表示も合わせ直す
+      updateScrollToTopVisibility_();
     }
 
     // ---- 以下は、各画面へ切り替えるときの入口（呼び出し元の名前はそのまま使える） ----
@@ -158,3 +161,20 @@
         }
       });
     }
+
+    // =====================================
+    // 「一番上に戻る」ボタン
+    // ・SCROLL_TOP_SHOW_AFTER_PX_ より下までスクロールしたときだけ表示する
+    // =====================================
+    const SCROLL_TOP_SHOW_AFTER_PX_ = 300;
+
+    function updateScrollToTopVisibility_() {
+      const button = document.getElementById('scrollToTopBtn');
+      if (button) button.classList.toggle('is-visible', window.scrollY > SCROLL_TOP_SHOW_AFTER_PX_);
+    }
+
+    function scrollToTop() {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    window.addEventListener('scroll', updateScrollToTopVisibility_, { passive: true });
