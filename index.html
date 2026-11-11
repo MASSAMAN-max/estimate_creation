@@ -68,10 +68,12 @@
         メニューに戻る
       </button>
 
-      <span id="userDisplayLabel" style="font-size:12px; color:var(--text-secondary); font-weight:bold; background:var(--gray-light); padding:6px 12px; border-radius:var(--radius);"></span>
-
-      <button type="button" id="logoutBtn" class="mini-logout-btn" style="padding:6px 10px; font-size:12px; display:inline-flex; align-items:center;" onclick="handleLogout()">
-        <span class="material-symbols-outlined" style="font-size:16px;">logout</span>
+      <!-- ユーザー名とログアウトを1つのボタンに統合（押すとログアウト確認。ホバー時は「ログアウト」表示） -->
+      <button type="button" id="userLogoutBtn" class="user-logout-label" onclick="handleLogout()" title="クリックでログアウト">
+        <span class="material-symbols-outlined user-icon">person</span>
+        <span class="material-symbols-outlined logout-icon">logout</span>
+        <span id="userDisplayLabel" class="label-text-default"></span>
+        <span class="label-text-hover">ログアウト</span>
       </button>
     </div>
   </header>
@@ -385,6 +387,11 @@
   <div class="spinner"></div>
   <div id="loaderText">データを保存＆PDFを作成中...</div>
 </div>
+
+  <!-- 一番上に戻るボタン（表示の切り替えは 03_navigation.js） -->
+  <button type="button" id="scrollToTopBtn" class="scrollToTopBtn" onclick="scrollToTop()" aria-label="一番上に戻る" title="一番上に戻る">
+    <span class="material-symbols-outlined" style="font-size:28px;">keyboard_arrow_up</span>
+  </button>
 
   <script src="./01_config.js"></script>
   <script src="./02_auth.js"></script>
