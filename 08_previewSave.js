@@ -345,8 +345,11 @@
         // ========== 確定保存 3-2. 案件フォルダへのショートカット作成も、裏で起動する（ここでは待たない） ==========
         // 「紐付け案件無し」だけの場合は不要。サーバー側は再実行しても二重に作らないため、通信失敗時の自動リトライも安全
         const needsCaseFolder = (data.caseNos || []).some(no => no !== CASE_NONE);
+        // 金額は保存済みの明細から計算するため、明細保存の完了を待ってから起動する
+        // （明細保存が失敗した場合は、ここも失敗扱いになるが、明細側のエラー案内が別に出る）
         const caseFolderPromise = needsCaseFolder
-          ? fetchWithRetry_({ action: 'saveCaseFolderShortcutsBackground', payload: { estimateNo: generatedId, caseNos: data.caseNos } }, 120000)
+          ? detailsSavePromise.then(() =>
+              fetchWithRetry_({ action: 'saveCaseFolderShortcutsBackground', payload: { estimateNo: generatedId, caseNos: data.caseNos } }, 120000))
           : Promise.resolve(null);
 
         // ========== 確定保存 4. PDF完成後、すぐ完了画面を表示 ==========
