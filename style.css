@@ -834,16 +834,13 @@
     }
 
     /* 数量＆金額＆備考コントロール行 */
+    /* 数量・金額・備考ボタンの並び（枠は付けず、内容カード上にそのまま並べる） */
     .controls-row {
       display: flex;
       flex-wrap: wrap;
       justify-content: space-between;
       align-items: center;
       gap: 8px;
-      background: white;
-      padding: 6px 8px;
-      border-radius: 6px;
-      border: 1px solid var(--border);
     }
 
     .quantity-control {
@@ -885,6 +882,8 @@
     }
 
     .btn-remark-toggle {
+      display: inline-flex;
+      align-items: center;
       background: #f1f5f9;
       border: 1px solid var(--border);
       color: var(--text-muted);
@@ -895,9 +894,10 @@
     }
 
     /* 備考まわりのボタン（削除＋備考）を右端にまとめる */
+    /* 削除ボタンと備考ボタンは stretch で同じ高さにそろえる */
     .remark-actions {
       display: flex;
-      align-items: center;
+      align-items: stretch;
       gap: 4px;
       margin-left: auto;
     }
@@ -909,7 +909,7 @@
       background: white;
       border: 1px solid #fca5a5;
       color: #dc2626;
-      padding: 2px 6px;
+      padding: 0 8px;
       border-radius: 4px;
       cursor: pointer;
     }
@@ -1150,3 +1150,73 @@
    .form-group input:disabled, .form-group select:disabled, .form-group textarea:disabled,
    .info-field input:disabled, .info-field select:disabled { background:#f1f5f9; color:#94a3b8; cursor:not-allowed; }
    .case-lock-hint { font-size:12px; color:var(--text-secondary); margin-top:6px; }
+
+/* ============================================================
+   ヘッダーのユーザー表示兼ログアウトボタン
+   通常時は「👤ユーザー名」、ホバー時は「ログアウト」に切り替わる。
+   スマホ等ホバーできない端末では、通常の見た目のままタップするとログアウト確認が出る。
+   ============================================================ */
+.user-logout-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 220px;
+  font-size: 13px;
+  font-weight: bold;
+  white-space: nowrap;
+  color: var(--text-secondary);
+  background: #e2e8f0;
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  /* <button>をラベル相当の見た目にするための標準スタイルリセット */
+  font-family: inherit;
+  line-height: inherit;
+  box-sizing: border-box;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.user-logout-label .material-symbols-outlined { font-size: 16px; }
+.user-logout-label .logout-icon { display: none; }
+.user-logout-label .label-text-hover { display: none; }
+.user-logout-label .label-text-default { overflow: hidden; text-overflow: ellipsis; }
+.user-logout-label:hover {
+  background-color: #fee2e2;
+  color: #ef4444;
+  border-color: #fca5a5;
+}
+.user-logout-label:hover .user-icon { display: none; }
+.user-logout-label:hover .logout-icon { display: inline-flex; }
+.user-logout-label:hover .label-text-default { display: none; }
+.user-logout-label:hover .label-text-hover { display: inline; }
+
+/* ============================================================
+   一番上に戻るボタン（一定以上スクロールすると表示。03_navigation.js が切り替える）
+   画面下の固定バー（小計・合計）に重ならないよう、少し上に置く
+   ============================================================ */
+.scrollToTopBtn {
+  position: fixed;
+  bottom: 90px;
+  right: 20px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: var(--primary);
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: none;
+  z-index: 999;
+  box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
+  transition: all 0.3s ease;
+  align-items: center;
+  justify-content: center;
+}
+.scrollToTopBtn.is-visible { display: flex; }
+.scrollToTopBtn:hover {
+  background-color: var(--primary-dark);
+  box-shadow: 0 6px 16px rgba(25, 118, 210, 0.4);
+  transform: translateY(-3px);
+}
