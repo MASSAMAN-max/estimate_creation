@@ -156,6 +156,7 @@
         cancelButtonText: 'キャンセル'
       }).then((result) => {
         if (result.isConfirmed) {
+          clearAutosave_(); // 利用者が破棄を了承したので、入力途中の自動保存も削除する
           resetAllForms_();
           showMenuScreen();
         }
