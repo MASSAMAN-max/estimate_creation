@@ -1,4 +1,4 @@
-    /**
+/**
     * 02_auth.js
     * ログイン・ログアウトまわりの処理。
     */
@@ -42,6 +42,7 @@
     
         // ログイン成功後はメニュー画面へ（ページ再読み込み時と遷移を統一）
         showMenuScreen();
+        runStartupRecovery_(); // 期限切れ後の再ログインでも、未完了の保存の再開・入力途中データの復元を確認する
       } catch (error) {
         Swal.fire({ icon: 'error', title: 'ログイン失敗', text: error.message, confirmButtonText: '了解' });
       } finally {
@@ -65,6 +66,7 @@
         if (result.isConfirmed) {
           // サーバー側のトークンも失効させる（端末から消すだけでは、漏れたトークンが使えてしまうため）。
           // 画面の切り替えを待たせないよう、結果は待たない。失敗してもログアウト自体は続行する
+          clearAutosave_(); // 端末に入力途中の顧客情報を残さない（ユーザー名が消える前に呼ぶ）
           const tokenToRevoke = getAuthToken_();
           localStorage.removeItem('currentUser');
           currentUser = null;
@@ -110,6 +112,7 @@
     function handleAuthExpired_(message) {
       if (isHandlingAuthExpired_) return;
       isHandlingAuthExpired_ = true;
+      flushAutosave_(); // フォームを初期化する前に、保存待ちの入力内容を保存しておく（再ログイン後に復元できる）
     
       localStorage.removeItem('currentUser');
       currentUser = null;
