@@ -25,7 +25,8 @@
  */
 
     const AUTOSAVE_DB_NAME_ = 'estimateAutosave';
-    const AUTOSAVE_STORE_ = 'forms';
+    const AUTOSAVE_STORE_ = 'forms';     // 入力途中のフォーム（このファイルが使う）
+    const SAVE_JOB_STORE_ = 'saveJobs';  // 確定保存の未完了ジョブ（13_saveJob.js が使う）
     const AUTOSAVE_DEBOUNCE_MS_ = 1000;
 
     let autosaveDbPromise_ = null;
@@ -38,8 +39,15 @@
     function openAutosaveDb_() {
       if (!autosaveDbPromise_) {
         autosaveDbPromise_ = new Promise((resolve, reject) => {
-          const request = indexedDB.open(AUTOSAVE_DB_NAME_, 1);
-          request.onupgradeneeded = () => request.result.createObjectStore(AUTOSAVE_STORE_);
+          // ver1：forms を作成 ／ ver2：saveJobs を追加（既存の forms のデータはそのまま残る）
+          const request = indexedDB.open(AUTOSAVE_DB_NAME_, 2);
+          request.onupgradeneeded = () => {
+            [AUTOSAVE_STORE_, SAVE_JOB_STORE_].forEach(storeName => {
+              if (!request.result.objectStoreNames.contains(storeName)) {
+                request.result.createObjectStore(storeName);
+              }
+            });
+          };
           request.onsuccess = () => resolve(request.result);
           request.onerror = () => reject(request.error);
         });
@@ -49,19 +57,27 @@
       return autosaveDbPromise_;
     }
 
-    // operation：'get' | 'put' | 'delete'
-    async function runAutosaveOperation_(operation, key, value) {
+    // operation：'get' | 'getAll' | 'put' | 'delete'
+    // ・storeName でストアを指定する（入力途中のフォームと、保存ジョブで共用）
+    async function runIdbOperation_(storeName, operation, key, value) {
       const db = await openAutosaveDb_();
       return new Promise((resolve, reject) => {
-        const transaction = db.transaction(AUTOSAVE_STORE_, operation === 'get' ? 'readonly' : 'readwrite');
-        const store = transaction.objectStore(AUTOSAVE_STORE_);
+        const isReadOnly = operation === 'get' || operation === 'getAll';
+        const transaction = db.transaction(storeName, isReadOnly ? 'readonly' : 'readwrite');
+        const store = transaction.objectStore(storeName);
         let request;
         if (operation === 'put') request = store.put(value, key);
         else if (operation === 'delete') request = store.delete(key);
+        else if (operation === 'getAll') request = store.getAll();
         else request = store.get(key);
         transaction.oncomplete = () => resolve(request.result);
         transaction.onerror = transaction.onabort = () => reject(transaction.error);
       });
+    }
+
+    // 入力途中のフォーム用（従来の呼び出しをそのまま使えるようにした入口）
+    function runAutosaveOperation_(operation, key, value) {
+      return runIdbOperation_(AUTOSAVE_STORE_, operation, key, value);
     }
 
     // 保存キー。ログインユーザーごとに分ける（ログインしていなければ null）
