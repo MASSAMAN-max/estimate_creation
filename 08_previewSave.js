@@ -180,14 +180,21 @@
     // =====================================
     // 【共通】見積・下書きデータ送信関数
     // ・下書き保存（saveDraft）：従来通り、1回のリクエストで完結
-    // ・確定保存（saveEstimate）：✅ 変更：以下の順序で実行する
+    // ・確定保存（saveEstimate）：以下の順序で実行する
     //     1. 採番＋メイン行保存（軽量・高速。失敗時は自動で1回リトライ）
-    //     2. PDF生成（失敗時は自動で1回リトライ）
+    //     2. PDF生成（失敗時は、同じ見積番号でやり直すか中止するかを選べる）
     //     3. PDF完成後、すぐ完了画面を表示
-    //     4. 完了画面表示と並行して、明細行の保存を背景で実行（失敗時は自動で1回リトライ、
-    //        それでも失敗した場合はエラーが確定した時点で、画面にかかわらず割り込みで通知する）
+    //     4. 完了画面表示と並行して、残りの工程（明細保存・マスタ自動登録・元の下書きの削除・
+    //        案件フォルダへの保存）を背景で実行する
     //   こうすることで、時間のかかる明細行の書き込みを待たずにPDFを先に見せられる。
     //   採番の安全性は、メイン行が先に（同期で）書き込まれることで確保している。
+    //
+    // ✅ 変更：見積番号の発行後は、残りの工程を端末に「保存ジョブ」として記録する（13_saveJob.js）。
+    //   他のアプリへ切り替えたり、画面をロックしたり、アプリが終了したりして工程が止まっても、
+    //   アプリに戻ったときに、残りの工程が自動で再開される。
+    //   ・工程の実行は runSaveJobSteps_（13_saveJob.js）に一本化し、本流と再開で同じ処理を使う
+    //   ・見積番号の発行後は、入力途中の自動保存（12_autosave.js）を削除する
+    //     （以後は、保存ジョブが記録を持つため。二重に保存し直して別の見積番号が発行されるのを防ぐ）
     // =====================================
     async function executeSaveProcess(actionType) {
       const userName = getCurrentUserName();
@@ -211,13 +218,15 @@
       document.getElementById('loader').style.display = 'flex';
       document.getElementById('loaderText').textContent = loaderMsg;
 
-      // ✅ 変更：下書きから編集していた場合の「元の下書きID」。
+      // 下書きから編集していた場合の「元の下書きID」。
       //   下書きの削除は、確定保存（明細まで）が成功した後に行う。
       //   画面の状態（currentMode等）が変わる前のここで控えておく。
       const originDraftIdToDelete = (currentMode === 'DRAFT_EDIT' && currentOriginId.startsWith('DRAFT-')) ? currentOriginId : '';
 
       // 見積番号を発行済みかどうか（途中で失敗したとき、エラーメッセージで案内するために使う）
       let issuedEstimateNo = '';
+      // PDFの工程を終えたか。終えるまでに失敗・中止した場合は、保存ジョブを破棄して入力画面に戻す
+      let pdfStepFinished = false;
 
       // GASへ送る共通のペイロード（見積番号(estimateNo)は呼び出し側で追加する）
       const buildPayload = (extra = {}) => ({
@@ -244,7 +253,7 @@
       try {
         // ========== 下書き保存：従来通り1回のリクエストで完結 ==========
         if (isDraft) {
-          // ✅ 変更：編集元が下書き（DRAFT_EDIT）であれば、元の下書きIDを一緒に送信し、
+          // 編集元が下書き（DRAFT_EDIT）であれば、元の下書きIDを一緒に送信し、
           //   サーバー側で新規採番せず上書き更新してもらう（重複下書きの発生を防止）
           const draftPayload = buildPayload(originDraftIdToDelete ? { originDraftId: originDraftIdToDelete } : {});
 
@@ -266,6 +275,7 @@
             confirmButtonText: '閉じる'
           });
 
+          clearAutosave_(); // 下書きとして保存できたので、入力途中の自動保存は不要
           resetAllForms_();
           showMenuScreen();
           return;
@@ -277,15 +287,31 @@
         if (!generatedId) throw new Error('No estimate number returned from server');
         issuedEstimateNo = generatedId;
 
-        // ✅ 変更：元の下書きの削除は、ここでは行わない。
+        // 見積番号を発行できた時点で、残りの工程を端末に「保存ジョブ」として記録する。
+        //   記録できた場合のみ、入力途中の自動保存を削除する（記録できなければ、入力内容を残しておく）
+        const saveJob = {
+          estimateNo: generatedId,
+          userName: userName,
+          step: 'pdf',
+          stepStartedAt: Date.now(),
+          createdAt: Date.now(),
+          payload: buildPayload(),      // 見積番号以外の送信内容（再開時に見積番号を足して送る）
+          caseNos: data.caseNos || [],
+          originDraftId: originDraftIdToDelete,
+          pdfUrl: ''
+        };
+        activeSaveJobIds_.add(generatedId); // この画面が実行中のため、再開処理が重ねて動かないようにする
+        if (await createSaveJob_(saveJob)) clearAutosave_();
+
+        // ✅ 元の下書きの削除は、ここでは行わない。
         //   以前はここで削除していたため、この後のPDF生成や明細保存に失敗すると、
-        //   下書きだけが先に消えてしまっていた。明細保存の成功後（下記3.）に削除する。
+        //   下書きだけが先に消えてしまっていた。明細保存の成功後（保存ジョブの 'details' 工程）に削除する。
 
         // ========== 確定保存 2. PDF生成 ==========
         document.getElementById('loaderText').innerHTML = 
           `見積番号発行完了（${generatedId}）<br><span style="color: #cff5ff; font-weight: bold;">続けて見積書PDFを生成しています... (約5～10秒)</span>`;
 
-        // ✅ 新設：PDF生成に失敗した場合、同じ見積番号のままPDFだけを作り直せるようにする。
+        // PDF生成に失敗した場合、同じ見積番号のままPDFだけを作り直せるようにする。
         //   （そのまま再保存すると別の見積番号が発行され、番号だけが残ってしまうため）
         //   ・採番とメイン行の保存は済んでいるので、やり直すのはPDF生成だけ
         //   ・「中止」を選ぶと、下の catch で「未完了である旨」を案内して終了する
@@ -293,6 +319,9 @@
         let pdfUrl = '';
         while (!pdfUrl) {
           try {
+            // 再開側が「PDF作成中かどうか」を判断するための目印（最後にPDF作成を始めた時刻）
+            await updateSaveJob_(generatedId, { stepStartedAt: Date.now() });
+
             const pdfResultData = await fetchWithRetry_({ action: 'savePdfToDriveBackground', payload: pdfPayload }, 60000);
             if (!pdfResultData?.pdfUrl) {
               throw new Error('PDF URL missing in response');
@@ -321,36 +350,15 @@
               `見積番号 ${htmlEscape(generatedId)} のPDFを作り直しています... (約5～10秒)`;
           }
         }
+        pdfStepFinished = true;
+        await updateSaveJob_(generatedId, { step: 'details', pdfUrl: pdfUrl, stepStartedAt: Date.now() });
 
-        // ========== 確定保存 3. 明細行の保存を先に起動する（ここでは待たない） ==========
-        // ✅ 修正：以前は完了画面を閉じるまで明細保存が始まらず、画面を放置したり
-        //   タブを閉じたりすると、明細とマスタ自動登録が保存されないままになっていた。
+        // ========== 確定保存 3. 残りの工程を、背景で起動する（ここでは待たない） ==========
+        // 明細保存・マスタ自動登録・元の下書きの削除・案件フォルダへの保存を、保存ジョブとして順に実行する。
         //   完了画面を出す「前」に起動することで、画面操作に関係なく保存が進む。
-        const detailsSavePromise = fetchWithRetry_({
-          action: 'saveEstimateDetailsBackground',
-          payload: buildPayload({ estimateNo: generatedId })
-        }).then(() => {
-          // 新しい取引先・項目がマスターへ自動追加されている可能性があるため、
-          // キャッシュを捨てて最新を取り直しておく（次にフォームを開くときに反映される）
-          invalidateMasterListsCache_();
-          preloadMasterLists_();
-
-          // 明細まで保存できたので、ここで初めて元の下書きを削除する
-          // （削除に失敗しても確定保存自体は成功しているため、ログだけ残す）
-          if (originDraftIdToDelete) {
-            return fetchWithRetry_({ action: 'deleteDraft', payload: { draftId: originDraftIdToDelete } })
-              .catch(err => console.error('下書き削除リクエスト失敗:', err));
-          }
-        });
-        // ========== 確定保存 3-2. 案件フォルダへのショートカット作成も、裏で起動する（ここでは待たない） ==========
-        // 「紐付け案件無し」だけの場合は不要。サーバー側は再実行しても二重に作らないため、通信失敗時の自動リトライも安全
-        const needsCaseFolder = (data.caseNos || []).some(no => no !== CASE_NONE);
-        // 金額は保存済みの明細から計算するため、明細保存の完了を待ってから起動する
-        // （明細保存が失敗した場合は、ここも失敗扱いになるが、明細側のエラー案内が別に出る）
-        const caseFolderPromise = needsCaseFolder
-          ? detailsSavePromise.then(() =>
-              fetchWithRetry_({ action: 'saveCaseFolderShortcutsBackground', payload: { estimateNo: generatedId, caseNos: data.caseNos } }, 120000))
-          : Promise.resolve(null);
+        //   途中で止まっても、ジョブは端末に残り、アプリに戻ったときに続きから自動で再開される。
+        const backgroundJobPromise = runSaveJobSteps_({ ...saveJob, step: 'details', pdfUrl: pdfUrl })
+          .finally(() => activeSaveJobIds_.delete(generatedId));
 
         // ========== 確定保存 4. PDF完成後、すぐ完了画面を表示 ==========
         document.getElementById('loader').style.display = 'none';
@@ -384,9 +392,10 @@
           allowOutsideClick: false
         });
 
-        // 案件フォルダ側の失敗・警告は、完了画面（PDFリンク）が閉じられてから通知する（PDF自体は保存済み）
-        caseFolderPromise.then(async result => {
-          if (!result || !result.warnings || result.warnings.length === 0) return;
+        // 背景工程の結果は、完了画面（PDFリンク）が閉じられてから通知する（PDF自体は保存済み）
+        backgroundJobPromise.then(async result => {
+          // 案件フォルダ側の一部失敗（案件ごとの警告）
+          if (!result.warnings || result.warnings.length === 0) return;
           await successDialogPromise;
           Swal.fire({
             icon: 'warning',
@@ -396,30 +405,19 @@
                    お手数ですが、担当者にご連絡ください。`,
             confirmButtonText: '了解'
           });
-        }).catch(async caseFolderError => {
-          console.error('❌ 案件フォルダへの保存に失敗:', caseFolderError);
+        }).catch(async backgroundError => {
+          console.error('❌ 背景工程（明細・案件フォルダ）の保存に失敗:', backgroundError);
+          // ログイン期限切れは、ログイン画面の案内が出ており、再ログイン後に自動で再開される
+          if (backgroundError.code === 'AUTH_EXPIRED') return;
+
           await successDialogPromise;
+          const isFolderStep = backgroundError.saveJobStep === 'folder';
           Swal.fire({
             icon: 'warning',
-            title: '案件フォルダへの保存に失敗しました',
-            html: `見積書PDF自体は保存されています。<br><br>
-                   <code style="font-size:11px;">${htmlEscape(caseFolderError.message)}</code><br><br>
-                   お手数ですが、担当者にご連絡ください。`,
-            confirmButtonText: '了解'
-          });
-        });
-
-        // 明細保存が（自動リトライ後も）失敗した場合の通知。
-        // 完了画面（PDFリンク）を別のダイアログで押し流さないよう、完了画面が閉じられてから表示する
-        detailsSavePromise.catch(async bgError => {
-          console.error('❌ 明細データの保存に失敗:', bgError);
-          await successDialogPromise;
-          Swal.fire({
-            icon: 'error',
-            title: '明細データの保存に失敗しました',
-            html: `見積番号 <strong>${htmlEscape(generatedId)}</strong> の明細データ保存でエラーが発生しました。<br><br>
-                   <code style="font-size:11px;">${htmlEscape(bgError.message)}</code><br><br>
-                   お手数ですが、担当者にご連絡いただくか、後ほど再度ご確認ください。`,
+            title: isFolderStep ? '案件フォルダへの保存が未完了です' : '明細データの保存が未完了です',
+            html: `見積番号 <strong>${htmlEscape(generatedId)}</strong> は発行済みで、見積書PDFは保存されています。<br>
+                   通信状況が回復したときや、アプリを開き直したときに、残りの保存を自動で続けます。<br><br>
+                   <code style="font-size:11px;">${htmlEscape(backgroundError.message)}</code>`,
             confirmButtonText: '了解'
           });
         });
@@ -434,6 +432,13 @@
       } catch (error) {
         document.getElementById('loader').style.display = 'none';
         console.error('❌ Error in executeSaveProcess:', error);
+
+        // PDFの工程を終える前に失敗・中止した場合は、保存ジョブを破棄する（番号の扱いは下の案内のとおり）。
+        //   見積番号の発行時に消した自動保存は、画面に残っている入力内容から保存し直す
+        if (issuedEstimateNo && !pdfStepFinished) {
+          abandonSaveJob_(issuedEstimateNo);
+          scheduleAutosave_();
+        }
 
         // 見積番号を発行した後に失敗した場合は、番号だけが残っていることを案内する
         // （入力内容と下書きは残っているが、再度保存すると別の見積番号が発行されるため）
