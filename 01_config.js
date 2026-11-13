@@ -64,6 +64,7 @@
         // 今日の日付を自動セット（重要な処理なので残します）
         document.getElementById('infoDate').value = getTodayInputValue();
         showMenuScreen();  // メニュー画面を表示
+        runStartupRecovery_(); // 未完了の保存の再開 → 入力途中のデータの復元確認（13_saveJob.js）
       } else {
         showLoginScreen();
         if (needsReloginNotice) {
