@@ -171,7 +171,7 @@
         }
 
         return Array.from(card.querySelectorAll('.breakdown-row')).map((row, index) => {
-          const qty = Number(row.querySelector('.item-qty').value) || 1;
+          const qty = roundQtyA_(row.querySelector('.item-qty').value) || 1;
           const price = Number(row.querySelector('.item-price').value) || 0;
           return {
             itemCategory: index === 0 ? category : '',
@@ -179,7 +179,7 @@
             itemQty: qty,
             itemUnit: row.querySelector('.item-unit').value,
             itemPrice: price,
-            itemAmount: Math.floor(qty * price),
+            itemAmount: calcAmountA_(qty, price),
             itemRemarksList: Array.from(row.querySelectorAll('.remark-input')).map(input => input.value)
           };
         });
