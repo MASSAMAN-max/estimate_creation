@@ -225,7 +225,7 @@
           <div class="item-grid-row-3col">
             <div class="form-group">
               <label>数量</label>
-              <input type="number" class="item-qty" min="1" step="1" value="${htmlEscape(rowData.qty)}" oninput="calculateBreakdownAmount(this)" onchange="normalizeQtyInput_(this)">
+              <input type="number" class="item-qty" min="0.01" step="0.01" value="${htmlEscape(rowData.qty)}" oninput="calculateBreakdownAmount(this)" onchange="normalizeQtyInput_(this)">
             </div>
             <div class="form-group">
               <label>単位</label>
@@ -312,13 +312,28 @@
     }
 
     // =====================================
-    // 数量欄の入力補正（デザインB「室数」欄と同じ入力欄方式）
-    // ・空欄・0以下・数値でない場合は「1」に戻す（初期値も1）
-    // ・入力欄を離れたとき（change）に呼ぶ。補正後に金額も再計算する
+    // デザインAの数量・金額の共通計算
+    // ・数量は小数点第2位までを有効とする（第3位以下は四捨五入）
+    // ・金額は「数量×100」の整数で掛け算してから100で割り、小数の誤差で1円ずれるのを防ぐ
+    //   （端数の円は従来どおり切り捨て）
+    // =====================================
+    function roundQtyA_(value) {
+      const qty = parseFloat(value);
+      return Number.isFinite(qty) ? Math.round(qty * 100) / 100 : 0;
+    }
+
+    function calcAmountA_(qty, price) {
+      return Math.floor(Math.round(roundQtyA_(qty) * 100) * (Number(price) || 0) / 100);
+    }
+
+    // =====================================
+    // 数量欄の入力補正
+    // ・空欄・0.01未満・数値でない場合は「1」に戻す（初期値も1）
+    // ・小数点第2位までに丸める。入力欄を離れたとき（change）に呼ぶ。補正後に金額も再計算する
     // =====================================
     function normalizeQtyInput_(input) {
-      const qty = Math.floor(Number(input.value));
-      input.value = (Number.isFinite(qty) && qty >= 1) ? qty : 1;
+      const qty = roundQtyA_(input.value);
+      input.value = qty >= 0.01 ? qty : 1;
       calculateBreakdownAmount(input);
     }
 
@@ -330,10 +345,9 @@
       const row = element.closest('.breakdown-row');
       
       if (row) {
-        const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+        const qty = row.querySelector('.item-qty').value;
         const price = parseFloat(row.querySelector('.item-price').value) || 0;
-        
-        const amount = Math.floor(qty * price); 
+        const amount = calcAmountA_(qty, price);
         
         const amountSpan = row.querySelector('.item-amount');
         amountSpan.textContent = amount.toLocaleString();
@@ -418,20 +432,20 @@
         //   カード全体の合計金額（項目行の金額として使う）は、全内容の金額を単純合計して求める。
         let cardTotalAmount = 0;
         rows.forEach(row => {
-          const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+          const qty = roundQtyA_(row.querySelector('.item-qty').value);
           const priceVal = row.querySelector('.item-price').value.trim();
           const price = priceVal === '' ? 0 : (parseFloat(priceVal) || 0);
-          cardTotalAmount += Math.floor(qty * price);
+          cardTotalAmount += calcAmountA_(qty, price);
         });
         
         // 各行（内容1、内容2、内容3...）のデータ生成
         rows.forEach((row, index) => {
           const name = row.querySelector('.item-name').value.trim();
-          const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+          const qty = roundQtyA_(row.querySelector('.item-qty').value);
           const unit = row.querySelector('.item-unit').value.trim();
           const priceVal = row.querySelector('.item-price').value.trim();
           const price = priceVal === '' ? 0 : (parseFloat(priceVal) || 0);
-          const amount = Math.floor(qty * price);
+          const amount = calcAmountA_(qty, price);
           
           // 値のクレンジング（空なら「式」）
           const finalUnit = unit || '式';
@@ -551,10 +565,10 @@
         // （何も入力していない空のカードは、保存時に無視されるため問題にしない）
         const hasContent = Array.from(card.querySelectorAll('.breakdown-row')).some(row => {
           const name = row.querySelector('.item-name').value.trim();
-          const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
-          const price = parseFloat(row.querySelector('.item-price').value) || 0;
+            const qty = row.querySelector('.item-qty').value;
+            const price = parseFloat(row.querySelector('.item-price').value) || 0;
           const hasRemark = Array.from(row.querySelectorAll('.remark-input')).some(input => input.value.trim() !== '');
-          return name !== '' || Math.floor(qty * price) !== 0 || hasRemark;
+          return name !== '' || calcAmountA_(qty, price) !== 0 || hasRemark;
         });
 
         if (hasContent) {
