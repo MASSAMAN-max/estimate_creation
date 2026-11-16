@@ -211,6 +211,10 @@
 
       const unit = String(rowData.unit || '').trim() || '式'; // 単位の初期値は「式」
       const amount = Number(rowData.amount || 0);
+      // 単価が空（0を含む）の行は「金額を直接入力する行」。単価欄は空白で表示する
+      const priceText = Number(rowData.price) ? String(Number(rowData.price)) : '';
+      // 直接入力の行で金額が0のときは、欄を空にして入力しやすくする
+      const amountText = (priceText === '' && amount === 0) ? '' : String(amount);
 
       row.innerHTML = `
         <div class="form-group" style="margin-top: 5px;">
@@ -233,11 +237,11 @@
             </div>
             <div class="form-group">
               <label>単価</label>
-              <input type="number" class="item-price" min="0" value="${Number(rowData.price || 0)}" oninput="calculateBreakdownAmount(this)">
+              <input type="number" class="item-price" min="0" placeholder="空欄可" value="${priceText}" oninput="calculateBreakdownAmount(this)">
             </div>
             <div class="form-group">
               <label>金額</label>
-              <div class="amount-display-box"><span>¥</span><span class="item-amount" data-value="${amount}">${amount.toLocaleString()}</span></div>
+              <div class="amount-display-box"><span>¥</span><input type="number" class="item-amount" step="1" value="${amountText}" oninput="calculateBreakdownAmount(this)"></div>
             </div>
           </div>
         </div>
@@ -260,6 +264,7 @@
         </div>
         ` : ''}
       `;
+      syncAmountEditableA_(row); // 単価が空なら金額を入力可、あれば自動計算（入力不可）にする
       return row;
     }
 
@@ -327,6 +332,28 @@
     }
 
     // =====================================
+    // 内訳1行の金額を数値で返す（金額欄の値。空・不正な値は0）
+    // ・単価ありの行は自動計算の結果、単価が空の行は直接入力した値が入っている
+    // =====================================
+    function getBreakdownAmountA_(row) {
+      const amount = Math.round(Number(row.querySelector('.item-amount').value));
+      return Number.isFinite(amount) ? amount : 0;
+    }
+
+    // =====================================
+    // 金額欄の入力可否を、単価欄の状態に合わせる
+    // ・単価が空     ：金額を直接入力できる（単価へは反映しない）
+    // ・単価が入力済み：数量×単価で自動計算し、金額欄は入力不可にする
+    // =====================================
+    function syncAmountEditableA_(row) {
+      const isAuto = row.querySelector('.item-price').value.trim() !== '';
+      const amountInput = row.querySelector('.item-amount');
+      amountInput.readOnly = isAuto;
+      amountInput.placeholder = isAuto ? '' : '直接入力';
+      amountInput.closest('.amount-display-box').classList.toggle('is-editable', !isAuto);
+    }
+
+    // =====================================
     // 数量欄の入力補正
     // ・空欄・0.01未満・数値でない場合は「1」に戻す（初期値も1）
     // ・小数点第2位までに丸める。入力欄を離れたとき（change）に呼ぶ。補正後に金額も再計算する
@@ -345,13 +372,14 @@
       const row = element.closest('.breakdown-row');
       
       if (row) {
-        const qty = row.querySelector('.item-qty').value;
-        const price = parseFloat(row.querySelector('.item-price').value) || 0;
-        const amount = calcAmountA_(qty, price);
-        
-        const amountSpan = row.querySelector('.item-amount');
-        amountSpan.textContent = amount.toLocaleString();
-        amountSpan.dataset.value = amount; 
+        // 単価が入力されている行だけ、数量×単価で金額を自動計算する。
+        // 単価が空の行は、直接入力された金額をそのまま使う（ここでは書き換えない）
+        const priceText = row.querySelector('.item-price').value.trim();
+        if (priceText !== '') {
+          const qty = row.querySelector('.item-qty').value;
+          row.querySelector('.item-amount').value = calcAmountA_(qty, parseFloat(priceText) || 0);
+        }
+        syncAmountEditableA_(row);
       }
       
       // 親カードの合計を更新
@@ -369,8 +397,7 @@
       
       let cardSubtotal = 0;
       for (let i = 0; i < rows.length; i++) {
-        const span = rows[i].querySelector('.item-amount');
-        cardSubtotal += parseFloat(span.dataset.value) || 0;
+        cardSubtotal += getBreakdownAmountA_(rows[i]);
       }
       
       const totalSpan = card.querySelector('.card-total-amount');
@@ -432,10 +459,7 @@
         //   カード全体の合計金額（項目行の金額として使う）は、全内容の金額を単純合計して求める。
         let cardTotalAmount = 0;
         rows.forEach(row => {
-          const qty = roundQtyA_(row.querySelector('.item-qty').value);
-          const priceVal = row.querySelector('.item-price').value.trim();
-          const price = priceVal === '' ? 0 : (parseFloat(priceVal) || 0);
-          cardTotalAmount += calcAmountA_(qty, price);
+          cardTotalAmount += getBreakdownAmountA_(row);
         });
         
         // 各行（内容1、内容2、内容3...）のデータ生成
@@ -444,8 +468,9 @@
           const qty = roundQtyA_(row.querySelector('.item-qty').value);
           const unit = row.querySelector('.item-unit').value.trim();
           const priceVal = row.querySelector('.item-price').value.trim();
-          const price = priceVal === '' ? 0 : (parseFloat(priceVal) || 0);
-          const amount = calcAmountA_(qty, price);
+          // 単価が空の行は空のまま送る（金額を直接入力した行）
+          const price = priceVal === '' ? '' : (parseFloat(priceVal) || 0);
+          const amount = getBreakdownAmountA_(row);
           
           // 値のクレンジング（空なら「式」）
           const finalUnit = unit || '式';
@@ -565,10 +590,8 @@
         // （何も入力していない空のカードは、保存時に無視されるため問題にしない）
         const hasContent = Array.from(card.querySelectorAll('.breakdown-row')).some(row => {
           const name = row.querySelector('.item-name').value.trim();
-            const qty = row.querySelector('.item-qty').value;
-            const price = parseFloat(row.querySelector('.item-price').value) || 0;
           const hasRemark = Array.from(row.querySelectorAll('.remark-input')).some(input => input.value.trim() !== '');
-          return name !== '' || calcAmountA_(qty, price) !== 0 || hasRemark;
+          return name !== '' || getBreakdownAmountA_(row) !== 0 || hasRemark;
         });
 
         if (hasContent) {
