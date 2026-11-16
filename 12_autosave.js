@@ -179,7 +179,7 @@
             itemQty: qty,
             itemUnit: row.querySelector('.item-unit').value,
             itemPrice: price,
-            itemAmount: calcAmountA_(qty, price),
+            itemAmount: getBreakdownAmountA_(row), // 直接入力した金額も保持する
             itemRemarksList: Array.from(row.querySelectorAll('.remark-input')).map(input => input.value)
           };
         });
@@ -241,7 +241,7 @@
 
       if (record.remarks.trim() !== '') return true;
       return record.details.some(group => group.some(item =>
-        item.itemCategory || item.itemName.trim() !== '' || item.itemPrice > 0 ||
+        item.itemCategory || item.itemName.trim() !== '' || item.itemPrice > 0 || item.itemAmount !== 0 ||
         item.itemRemarksList.some(remark => remark.trim() !== '')));
     }
 
