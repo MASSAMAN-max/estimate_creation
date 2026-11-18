@@ -157,6 +157,7 @@
       }).then((result) => {
         if (result.isConfirmed) {
           clearAutosave_(); // 利用者が破棄を了承したので、入力途中の自動保存も削除する
+          cancelPendingPreview_(); // プレビューで仮発行した見積番号があれば取り消す（待たない）
           resetAllForms_();
           showMenuScreen();
         }
