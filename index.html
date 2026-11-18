@@ -18,6 +18,12 @@
   <!-- SweetAlert2：モーダルダイアログ・アラート用ライブラリ -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.26.25/dist/sweetalert2.all.min.js" integrity="sha384-nLoOnA/BDh8A/jxqtckg4DumuCGOBYUnNJLZdQz/zfYNp3wcjGSoWTAzgko06G/2" crossorigin="anonymous"></script>
 
+  <!-- PDF.js：プレビューのPDFを画面内に表示するためのライブラリ（Android Chrome はPDFを埋め込み表示できないため）
+       ※ バージョンは 14_pdfPreview.js の PDF_JS_WORKER_URL_ と必ず同じにすること
+       ※ SweetAlert2 と同様に、integrity（改ざん検知）の属性を追加すること
+       （値：curl -s <上のURL> | openssl dgst -sha384 -binary | openssl base64 -A → "sha384-" を前に付ける） -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
   <link rel="stylesheet" href="./style.css">
 </head>
 <body>
@@ -244,7 +250,7 @@
         <button type="button" class="btn btn-primary" style="background-color: var(--gray-light); color: var(--text-primary); border: 1px solid var(--gray-border); flex: 1;" onclick="showPDFPreview()">
           <span class="material-symbols-outlined">visibility</span>プレビュー
         </button>
-        <button type="button" class="btn btn-primary" style="background-color: var(--warning); flex: 1;" onclick="executeSaveProcess('saveDraft')">
+        <button type="button" class="btn btn-primary" style="background-color: var(--warning); flex: 1;" onclick="saveDraftProcess()">
           <span class="material-symbols-outlined">draft</span>下書き保存
         </button>
       </div>
@@ -296,7 +302,7 @@
         <button type="button" class="btn btn-primary" style="background-color: var(--gray-light); color: var(--text-primary); border: 1px solid var(--gray-border); flex: 1;" onclick="showPDFPreview()">
           <span class="material-symbols-outlined">visibility</span>プレビュー
         </button>
-        <button type="button" class="btn btn-primary" style="background-color: var(--warning); flex: 1;" onclick="executeSaveProcess('saveDraft')">
+        <button type="button" class="btn btn-primary" style="background-color: var(--warning); flex: 1;" onclick="saveDraftProcess()">
           <span class="material-symbols-outlined">draft</span>下書き保存
         </button>
       </div>
@@ -383,6 +389,20 @@
       </div>
     </div>
 
+<!-- PDFの確認画面（「プレビュー」で作ったPDFを表示。表示・取り消しは 14_pdfPreview.js） -->
+<div id="pdfPreviewModal" class="pdf-preview-modal" style="display:none;">
+  <div class="pdf-preview-header">見積書プレビュー<span id="pdfPreviewEstimateNo"></span></div>
+  <div id="pdfPreviewPages" class="pdf-preview-pages"></div>
+  <div class="pdf-preview-footer">
+    <button type="button" id="pdfPreviewBackBtn" class="btn btn-secondary">
+      <span class="material-symbols-outlined">edit</span>戻って修正
+    </button>
+    <button type="button" id="pdfPreviewConfirmBtn" class="btn btn-primary">
+      <span class="material-symbols-outlined">check_circle</span>確定して保存
+    </button>
+  </div>
+</div>
+
 <div id="loader">
   <div class="spinner"></div>
   <div id="loaderText">データを保存＆PDFを作成中...</div>
@@ -406,6 +426,7 @@
   <script src="./11_sharedInfo.js"></script>
   <script src="./12_autosave.js"></script>
   <script src="./13_saveJob.js"></script>
+  <script src="./14_pdfPreview.js"></script>
   
 </body>
 </html>
