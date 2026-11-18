@@ -67,6 +67,8 @@
           // サーバー側のトークンも失効させる（端末から消すだけでは、漏れたトークンが使えてしまうため）。
           // 画面の切り替えを待たせないよう、結果は待たない。失敗してもログアウト自体は続行する
           clearAutosave_(); // 端末に入力途中の顧客情報を残さない（ユーザー名が消える前に呼ぶ）
+          // プレビューで仮発行した見積番号を取り消す。トークンの失効より先に完了させるため、待ってから失効させる
+          const cancelPreviewPromise = cancelPendingPreview_();
           const tokenToRevoke = getAuthToken_();
           localStorage.removeItem('currentUser');
           currentUser = null;
@@ -78,8 +80,9 @@
           showLoginScreen();
     
           if (tokenToRevoke) {
-            fetchWithRetry_({ action: 'logout', payload: { token: tokenToRevoke } }, 10000)
-              .catch(error => console.error('サーバー側のトークン失効に失敗しました:', error));
+            cancelPreviewPromise.then(() =>
+              fetchWithRetry_({ action: 'logout', payload: { token: tokenToRevoke } }, 10000)
+            ).catch(error => console.error('サーバー側のトークン失効に失敗しました:', error));
           }
         }
       });
@@ -118,6 +121,7 @@
       currentUser = null;
         invalidateMasterListsCache_();
         resetProjectCache_(); // 次にログインする人に、前の人のマスター・案件リストを使い回さない
+      closePdfPreviewModal_(); // PDFの確認画面を開いていたら閉じる（待っている呼び出し元も解除される）
       // 表示中のローダー・一覧モーダルを閉じてから、ログイン画面へ戻す
       ['loader', 'listModal', 'linkCaseModal'].forEach(id => {
         const el = document.getElementById(id);
