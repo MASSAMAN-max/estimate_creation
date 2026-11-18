@@ -453,7 +453,7 @@
     // 確定保存の完了後に、編集元（下書き／コピー元）の状態を新規作成に戻す
     // ✅ 変更：以前は元の下書きの削除もここで行っていたが、PDF生成や明細保存に
     //   失敗したときに下書きだけが先に消えてしまうため、削除は確定保存の成功後
-    //   （08_previewSave.js の executeSaveProcess）に移した。
+    //   （13_saveJob.js の 'details' 工程）に移した。
     // =====================================
     function resetEditOriginState_() {
       currentMode = 'NEW';
