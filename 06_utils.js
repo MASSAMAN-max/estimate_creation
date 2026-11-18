@@ -17,17 +17,18 @@
     }
 
     // 自動で再試行してよいaction（同じリクエストを2回送っても、結果が変わらないもの）。
-    // 見積番号の発行・下書きの新規保存・PDF生成は、再送すると二重になるため含めない
+    // 見積番号の発行（previewEstimatePdf）・下書きの新規保存・PDF生成は、再送すると二重になるため含めない
     // （通信が遅いだけで、サーバー側は処理済みのことがある）。
     //   読み取り：loadMasterLists / loadProjects / loadFormData / loadRecentList / searchEstimates
     //   書き込みだが、サーバー側で再送に耐える作りのもの：
     //     saveEstimateDetailsBackground（既存の明細を置き換える）／ saveCaseFolderShortcutsBackground・
-    //     linkEstimateToCases（作成済みはスキップする）／ deleteDraft（見つからなくてもエラーにしない）
+    //     linkEstimateToCases（作成済みはスキップする）／ deleteDraft・cancelPendingEstimate（見つからなくてもエラーにしない）
     //   その他：logout（2回実行しても同じ）／ login（使われなかったトークンが1つ残るだけ）
     const RETRY_SAFE_ACTIONS_ = new Set([
       'login', 'logout',
       'loadMasterLists', 'loadProjects', 'loadFormData', 'loadRecentList', 'searchEstimates',
-      'saveEstimateDetailsBackground', 'saveCaseFolderShortcutsBackground', 'linkEstimateToCases', 'deleteDraft'
+      'saveEstimateDetailsBackground', 'saveCaseFolderShortcutsBackground', 'linkEstimateToCases', 'deleteDraft',
+      'cancelPendingEstimate'
     ]);
 
     // =====================================
