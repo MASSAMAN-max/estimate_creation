@@ -74,12 +74,14 @@
     function showMainApp() {
       currentDesignType = 'A';
       showScreen_('DESIGN_A');
+      prewarmPdfTemplate_('A'); // プレビュー用のテンプレートのコピーを、裏で用意しておく（14_pdfPreview.js）
     }
 
     // デザインB用フォーム画面を表示（デザインAと共通の土台・ヘッダーを利用）
     function showMainAppB() {
       currentDesignType = 'B';
       showScreen_('DESIGN_B');
+      prewarmPdfTemplate_('B'); // プレビュー用のテンプレートのコピーを、裏で用意しておく（14_pdfPreview.js）
     }
 
     function showLoginScreen() {
