@@ -25,6 +25,25 @@
     let heldPreviewEstimateNo_ = '';
 
     // =====================================
+    // テンプレートのコピーの事前作成を、サーバーへ依頼する（待たない。失敗しても何も起きない）
+    // ・プレビューは、事前に作ったコピーがあれば速い（サーバーの 13_テンプレート事前コピー.js）
+    // ・作成画面を開いたとき（03_navigation.js）と、プレビューを表示したとき（再プレビュー用）に呼ぶ
+    // ・短時間に何度も呼ばないよう、同じデザインへの依頼は PREWARM_MIN_INTERVAL_MS_ の間隔をあける
+    //   （force を指定した場合を除く。サーバー側でも、十分な数があれば何もしない）
+    // =====================================
+    const PREWARM_MIN_INTERVAL_MS_ = 60 * 1000;
+    const lastPrewarmAt_ = { A: 0, B: 0 };
+
+    function prewarmPdfTemplate_(designType, force = false) {
+      const design = designType === 'B' ? 'B' : 'A';
+      if (!force && Date.now() - lastPrewarmAt_[design] < PREWARM_MIN_INTERVAL_MS_) return;
+      lastPrewarmAt_[design] = Date.now();
+
+      fetchWithRetry_({ action: 'prepareTemplateCopy', payload: { designType: design } }, 60000)
+        .catch(error => console.warn('テンプレートの事前コピーの依頼に失敗しました（プレビューは、その場でコピーを作るため問題ありません）:', error.message));
+    }
+
+    // =====================================
     // 仮発行した見積番号の記録（端末）と、取り消し
     // =====================================
     function getPendingPreviewKey_() {
