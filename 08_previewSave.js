@@ -121,6 +121,7 @@
       heldPreviewEstimateNo_ = preview.estimateNo;
       await rememberPendingPreview_(preview.estimateNo);
       loader.style.display = 'none';
+      prewarmPdfTemplate_(currentDesignType, true); // 確認画面を見ている間に、再プレビュー用のコピーを用意しておく
 
       const choice = await showPdfPreviewModal_(preview.pdfBase64, preview.estimateNo);
       preview.pdfBase64 = null; // 大きいデータなので、使い終わったら手放す
